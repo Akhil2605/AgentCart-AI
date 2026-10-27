@@ -160,6 +160,15 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'index.html'));
 });
 
+// Process-level safety handlers
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
 // Start server if run directly
 let server = null;
 if (require.main === module) {
@@ -168,6 +177,14 @@ if (require.main === module) {
     console.log(`📦 SQLite database ready with 24 technical jackets`);
     console.log(`🤖 AI Stylist initialized (${process.env.GEMINI_API_KEY ? 'Gemini 2.5 Active' : 'Heuristic Demo Fallback Active'})`);
     console.log(`💳 PayPal Checkout initialized (${process.env.PAYPAL_CLIENT_ID ? 'Sandbox Active' : 'Demo Guidance Mode Active'})`);
+  });
+
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(`Port ${PORT} is already in use.`);
+    } else {
+      console.error('Server error:', err);
+    }
   });
 }
 

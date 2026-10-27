@@ -1,103 +1,65 @@
 # Project State: AgentCart AI
 
-**Current Status:** Production Prototype Ready / Phase 5 Verified  
+**Current Status:** Liquid Glass Frontend Transformation Complete  
 **Date:** October 27, 2026  
-**Platform Version:** v2.4.0
+**Platform Version:** v2.5.0 (Liquid Glass Edition)
 
 ---
 
-## 1. Implemented Features Summary
+## 1. Liquid Glass Visual Transformation Summary
 
-### Visual Identity & Brand Architecture
-- Deep black and charcoal luxury aesthetic (`#07080a`, `#0c0d12`) with neon electric cyan accents (`#00f0ff`, `#0070f3`) and glassmorphic panels.
-- Announcement bar with live status and delivery threshold disclosure.
-- Sticky glassmorphic navigation bar with mobile responsive drawer toggle.
-- Cinematic hero section featuring the flagship CyberShell Stormbreaker, technical specifications, and dual CTAs.
-- Technical quality showcase (GORE-TEX Pro, StormGrid™ 3-Layer Ripstop, 28,000mm hydrostatic head, YKK AquaGuard® zips).
-- Verified buyer reviews section with transparent sample/demo disclosure.
-- Newsletter update section with local confirmation and demo data privacy disclaimer.
-- Complete responsive footer with site navigation and technology disclosures.
+The frontend has been transformed into a **Liquid Glass** shopping experience with subtle, elegant motion, preserving all existing shopping interactions, cart persistence, SQLite order tracking, and AI/PayPal integrations:
 
-### 24-Jacket Product Catalogue
-- Replaced all produce/APMC data with 24 distinct technical jackets across all 10 required styles:
-  - Technical Windbreakers
-  - Lightweight Rain Jackets
-  - Bomber Jackets
-  - Denim Jackets
-  - Puffer Jackets
-  - Hooded Jackets
-  - Casual Everyday Jackets
-  - Sports and Outdoor Jackets
-  - Minimalist Urban Jackets
-  - Insulated Winter Jackets
-- Every product configured with authentic INR pricing (`₹1,499` to `₹4,699`), original demo discount prices, variant colorways with hex codes, sizes (`XS` through `XXL`), live stock counts, and local studio images in `assets/images/jackets/`.
+### 🎨 Visual Language & Palette
+- **Deep Midnight Navy:** `#080D18` — primary canvas background with organic liquid caustics.
+- **Obsidian Black:** `#101722` — secondary surfaces and backdrop panels.
+- **Electric Cyan:** `#42E8F5` — primary accent, interactive highlights, and active states.
+- **Icy Blue:** `#8ACBFF` — secondary accent, sub-headings, and gradient pairings.
+- **Soft Violet:** `#9B8CFF` — used strictly for AI stylist aura and indicator glow.
+- **Frosted Surfaces:** `rgba(255, 255, 255, 0.08)` down to `0.04`, layered over deep midnight with `backdrop-filter: blur(14px)` to `blur(24px)`.
+- **Reflective Specular Edges:** `inset 0 1px 1px rgba(255, 255, 255, 0.22)` producing realistic glass refraction.
+- **Readable Contrast:** Primary text `#F4F7FB`, Secondary text `#A7B2C5`, Dim text `#6F7D95`.
 
-### Search, Filters & Sorting
-- Real-time search matching name, materials, features, description, and colorways.
-- Category chips bar.
-- Size filter chips (`XS`, `S`, `M`, `L`, `XL`, `XXL`).
-- Price range slider (up to ₹5,000).
-- Multi-criteria sorting (Featured, Price asc/desc, Name asc, Rating desc).
-- Live counter and empty state with one-click filter reset.
-
-### Product Details Modal
-- Detailed view with image, price, discount badge, description.
-- Interactive color swatches.
-- Size selector with live stock warning (e.g. "Low stock: Only 3 left").
-- Quantity stepper (+ / -).
-- Instant "Add to Cart" and "Compare" actions.
-
-### Preserved & Upgraded Cart System (from APMC)
-- Parabolic flying jacket animation into floating cart pill (`#cartPill`).
-- Morphing cart drawer (`#cartDrawer`) with frosted backdrop blur.
-- Free delivery progress bar (threshold: ₹2,000; below threshold delivery fee: ₹150; above: Free).
-- Line-item quantity increment, decrement, and item removal.
-- Persistent `localStorage` support across reloads.
-
-### Grounded AI Shopping Assistant
-- Real-time conversational interface with message history.
-- Extraction of budget, color, style, size, and occasion.
-- Strict grounding in the 24-jacket catalog (no hallucinations or invented prices).
-- Interactive recommendation cards inside the chat bubble with match reasoning, trade-offs, and direct "Add to Cart".
-- Dual operational modes:
-  - **Live Gemini 2.5 Mode:** Activated when `GEMINI_API_KEY` is provided in `.env`.
-  - **Grounded Heuristic Mode:** Active out of the box when no API key is set, clearly labeled as demo mode.
-
-### Side-by-Side Product Comparison
-- Floating comparison bar when 1+ jackets are selected (supports up to 4 jackets).
-- Comprehensive comparison modal matrix displaying waterproofing, breathability, weight, fit, materials, features, and pricing.
-
-### Secure PayPal Sandbox Checkout Flow
-- Server-side recalculation of line totals, subtotal, delivery fee, and grand total strictly from SQLite database (client price tampering ignored).
-- Official PayPal Sandbox REST API integration for order creation and capture.
-- Seamless demo test purchase workflow when credentials are unset, saving order to SQLite and generating an itemized receipt.
+### 🌊 Subtle Motion & Interactive Feedback
+- **Floating Motion:** Selected glass components (hero badge, flagship jacket stage, ambient orbs) float vertically by 4–5px over smooth 6–7s ease-in-out cycles (`@keyframes liquidFloat`).
+- **Hover Lift:** Product cards lift 5px (`transform: translateY(-5px) scale(1.008)`) with cyan border brightening and soft outer glow.
+- **Reflective Sheen Sweep:** An elegant diagonal glass reflection sweeps across product cards on hover without obstructing jacket photography or text (`.product-card::after`).
+- **Pulsing AI Indicator:** Restrained soft violet-cyan pulse while the AI Stylist is processing.
+- **Parabolic Item Fly Animation:** Retained and enhanced with electric cyan drop shadows flying directly into the floating liquid cart pill.
+- **Mobile Menu Drawer:** Smooth liquid glass slide-out drawer on viewports under 680px.
+- **Accessibility:** Full `prefers-reduced-motion: reduce` compliance (turns off continuous floating, sheen sweeps, and instantaneous transitions). Fallback for non-backdrop-filter browsers.
 
 ---
 
-## 2. File Manifest
+## 2. Core Functional Modules (Preserved & Verified)
 
-| File / Path | Purpose |
-|-------------|---------|
-| `index.html` | Primary application entry point & frontend markup |
-| `styles.css` | Cyber-technical luxury stylesheet with variables, animations & responsive rules |
-| `app.js` | Core frontend application, cart mechanics, modals, AI chat & checkout |
-| `data/catalog.json` | Master catalog of 24 jackets with complete specs |
-| `assets/images/jackets/*` | 24 studio product images |
-| `server/server.js` | Express server, REST endpoints, static serving |
-| `server/db.js` | SQLite data access layer using Node built-in `node:sqlite` |
-| `server/schema.sql` | Database schema for products, variants, orders, order items |
-| `server/gemini.js` | Grounded AI stylist engine (Gemini 2.5 API + Heuristic Demo) |
-| `server/paypal.js` | Server-side pricing validation & PayPal Sandbox API integration |
-| `server/seed.js` | Standalone SQLite seeder script |
-| `tests/run_tests.js` | 17-point automated integration test suite |
-| `package.json` | Dependencies, scripts (`start`, `seed`, `test`) |
-| `.env.example` | Environment variable template |
-| `.env` | Local development environment configuration |
-| `README.md` | Comprehensive user & developer manual |
-| `PROJECT_STATE.md` | Current implementation status and manifest |
-| `HANDOFF.md` | Milestone handoff, verified tests, and next steps |
-| `apmc.html` | Original reference website (preserved intact) |
-| `Screenshot 2026-10-27 *.png` | Original jacket screenshot references (preserved intact) |
+1. **Jacket Catalogue (24 Models across 10 Styles):**
+   - Technical Windbreakers, Lightweight Rain Jackets, Bomber Jackets, Denim Jackets, Puffer Jackets, Hooded Jackets, Casual Everyday Jackets, Sports & Outdoor, Minimalist Urban, and Insulated Winter Jackets.
+   - Prices in Indian Rupees (`₹1,499` to `₹4,699`).
+   - Local photography in `assets/images/jackets/` displayed in studio lighting stages.
+
+2. **Search, Filter & Sorting System:**
+   - Real-time debounced search, horizontal category chips, size selector chips (`XS`–`XXL`), price range slider, and multi-criteria sorting.
+
+3. **Product Comparison Matrix:**
+   - Persistent bottom glass tray (up to 4 jackets) opening a side-by-side comparison modal comparing hydrostatic head, breathability, weight, fit, materials, and pricing.
+
+4. **Product Details Modal:**
+   - Deep obsidian liquid glass modal with colorway swatches, size selector with stock count warnings, quantity stepper, and quick Add to Cart.
+
+5. **Cart System (Enhanced from APMC):**
+   - Floating liquid glass cart pill with thumbnail stack and pulse animation.
+   - Slide-out cart drawer with free delivery progress calculation (free above ₹2,000 threshold; ₹150 below).
+   - LocalStorage persistence.
+
+6. **AI Jacket Shopping Assistant:**
+   - Conversational chat console with constraint extraction (budget, color, size, occasion).
+   - Grounded strictly in catalog inventory with trade-off analysis.
+   - Dual mode: Gemini 2.5 API integration when `GEMINI_API_KEY` is present; intelligent catalog heuristic demo mode when unset.
+
+7. **Secure PayPal Sandbox Checkout:**
+   - Server-side price recalculation from SQLite database.
+   - Supports official PayPal Sandbox SDK creation and capture, plus server-verified demo test order simulation with instant itemized receipt.
 
 ---
 
@@ -113,6 +75,10 @@
 
 ---
 
-## 4. Known Limitations & Notes
-- PayPal Sandbox live popup requires standard PayPal developer sandbox credentials in `.env`. Without them, the checkout operates in server-verified Demo Simulation Mode.
-- Gemini 2.5 live LLM requires a valid `GEMINI_API_KEY` in `.env`. Without it, the assistant operates in catalog heuristic mode with demo labeling.
+## 4. Modified Files Manifest
+
+- [`styles.css`](file:///D:/AgentCart-AI/styles.css): Complete rewrite into the Liquid Glass design system (variables, glass panels, motion, responsive layout).
+- [`index.html`](file:///D:/AgentCart-AI/index.html): Enhanced with mobile navigation drawer, ambient liquid orbs, and glass container attributes.
+- [`app.js`](file:///D:/AgentCart-AI/app.js): Enhanced with mobile drawer event listeners and liquid pulsing AI indicator.
+- [`PROJECT_STATE.md`](file:///D:/AgentCart-AI/PROJECT_STATE.md): Updated project state document.
+- [`HANDOFF.md`](file:///D:/AgentCart-AI/HANDOFF.md): Updated handoff milestone document.

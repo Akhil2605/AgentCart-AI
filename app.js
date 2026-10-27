@@ -779,13 +779,13 @@ async function submitAiPrompt(promptText) {
   chatBody.appendChild(userBubble);
   chatBody.scrollTop = chatBody.scrollHeight;
 
-  // Append Thinking / Loading Indicator
+  // Append Thinking / Loading Indicator with restrained liquid pulse
   const aiLoading = document.createElement('div');
   aiLoading.className = 'chat-bubble ai';
   aiLoading.innerHTML = `
-    <div style="display:flex; align-items:center; gap:8px;">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-      <span>Analyzing 24 jackets against your budget, weather specs, and fit...</span>
+    <div style="display:flex; align-items:center; gap:10px;">
+      <span style="width:8px; height:8px; border-radius:50%; background:var(--accent-violet); box-shadow:0 0 10px var(--accent-violet); animation:liquidFloat 1.2s infinite ease-in-out;"></span>
+      <span style="color:var(--accent-ice); font-size:0.85rem;">Analyzing 24 jackets against your budget, weather specs, and fit...</span>
     </div>
   `;
   chatBody.appendChild(aiLoading);
@@ -1358,6 +1358,27 @@ function setupEventListeners() {
     alert(`Thank you! Demo subscription acknowledged for: ${email}\nNo personal data is stored externally.`);
     $('#newsletterEmail').value = '';
   });
+
+  // Mobile Menu Drawer Toggle
+  const mobileToggle = $('#mobileMenuToggle');
+  const mobileDrawer = $('#mobileNavDrawer');
+  if (mobileToggle && mobileDrawer) {
+    mobileToggle.addEventListener('click', () => {
+      const isOpen = mobileDrawer.classList.toggle('open');
+      mobileDrawer.setAttribute('aria-hidden', String(!isOpen));
+    });
+
+    $$('.mobile-nav-link').forEach(link => {
+      link.addEventListener('click', (e) => {
+        mobileDrawer.classList.remove('open');
+        mobileDrawer.setAttribute('aria-hidden', 'true');
+        if (link.id === 'mobileNavCompareLink') {
+          e.preventDefault();
+          openCompareModal();
+        }
+      });
+    });
+  }
 
   // Escape key to close open modals
   document.addEventListener('keydown', (e) => {

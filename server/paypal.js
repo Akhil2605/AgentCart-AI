@@ -196,6 +196,9 @@ async function createPayPalSandboxOrder(order) {
         items: paypalItems
       }
     ],
+    payer: (order.customer_email && order.customer_email.includes('@')) ? {
+      email_address: order.customer_email
+    } : undefined,
     payment_source: {
       paypal: {
         experience_context: {

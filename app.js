@@ -33,7 +33,11 @@ const State = {
 // Utilities
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => document.querySelectorAll(sel);
+const USD_RATE = 85;
+const usd = (n) => '$' + (Number(n) / USD_RATE).toFixed(2);
 const inr = (n) => '₹' + Number(n).toLocaleString('en-IN');
+const dualPrice = (n) => `${usd(n)} <span class="dual-inr">(${inr(n)})</span>`;
+const dualPricePlain = (n) => `${usd(n)} (${inr(n)})`;
 const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const animDur = (ms) => prefersReducedMotion ? 1 : ms;
 
@@ -200,8 +204,8 @@ function renderProductGrid() {
 
         <div class="card-foot-row">
           <div class="card-price-col">
-            <span class="card-current-price">${inr(p.price)}</span>
-            ${p.original_price ? `<span class="card-orig-price">${inr(p.original_price)}</span>` : ''}
+            <span class="card-current-price">${dualPrice(p.price)}</span>
+            ${p.original_price ? `<span class="card-orig-price">${dualPrice(p.original_price)}</span>` : ''}
           </div>
 
           <div class="card-actions-col">
@@ -245,7 +249,7 @@ function resetFilters() {
 
   $('#searchInput').value = '';
   $('#priceRange').value = 5000;
-  $('#priceRangeVal').textContent = '₹5,000';
+  $('#priceRangeVal').textContent = dualPricePlain(5000);
   $('#sortSelect').value = 'featured';
 
   $$('.chip-btn').forEach(b => b.classList.toggle('active', b.dataset.cat === 'All'));
@@ -474,12 +478,12 @@ function renderCartDrawer(stagger) {
   }
 
   $('#cartDrawerCount').textContent = count;
-  $('#cartSubtotal').textContent = inr(subtotal);
+  $('#cartSubtotal').innerHTML = dualPrice(subtotal);
 
   const deliveryFee = subtotal >= State.config.free_shipping_threshold ? 0 : State.config.standard_shipping_fee;
-  $('#cartDeliveryFee').textContent = deliveryFee === 0 ? 'Free' : inr(deliveryFee);
-  $('#cartFinalTotal').textContent = inr(subtotal + deliveryFee);
-  $('#checkoutBtnAmt').textContent = inr(subtotal + deliveryFee);
+  $('#cartDeliveryFee').innerHTML = deliveryFee === 0 ? 'Free' : dualPrice(deliveryFee);
+  $('#cartFinalTotal').innerHTML = dualPrice(subtotal + deliveryFee);
+  $('#checkoutBtnAmt').textContent = `${usd(subtotal + deliveryFee)} USD`;
 
   list.innerHTML = items.map(it => {
     const key = `${it.id}-${it.size}-${it.color}`;
@@ -499,7 +503,7 @@ function renderCartDrawer(stagger) {
           </div>
         </div>
         <div class="cart-item-right">
-          <div class="cart-item-price">${inr(it.price * it.quantity)}</div>
+          <div class="cart-item-price">${dualPrice(it.price * it.quantity)}</div>
           <button class="cart-item-del-btn" data-op="delete" aria-label="Remove item">
             <svg viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
           </button>
@@ -547,7 +551,7 @@ function checkDeliveryEligibility() {
       if (bar) bar.style.width = '100%';
     } else {
       const pct = Math.min(100, Math.round((subtotal / threshold) * 100));
-      text.innerHTML = `Add <strong>${inr(remaining)}</strong> more for free delivery`;
+      text.innerHTML = `Add <strong>${dualPricePlain(remaining)}</strong> more for free delivery`;
       if (bar) bar.style.width = `${pct}%`;
     }
   }, animDur(800));
@@ -569,11 +573,11 @@ function openProductModal(productId) {
   $('#modalImg').alt = product.name;
   $('#modalCategory').textContent = product.category;
   $('#modalTitle').textContent = product.name;
-  $('#modalPrice').textContent = inr(product.price);
+  $('#modalPrice').innerHTML = dualPrice(product.price);
 
   const discount = product.original_price ? Math.round(((product.original_price - product.price) / product.original_price) * 100) : 0;
   if (discount > 0) {
-    $('#modalOrigPrice').textContent = inr(product.original_price);
+    $('#modalOrigPrice').innerHTML = dualPrice(product.original_price);
     $('#modalOrigPrice').style.display = 'inline';
     $('#modalDiscountBadge').textContent = `-${discount}% OFF`;
     $('#modalDiscountBadge').style.display = 'inline';
@@ -708,7 +712,7 @@ function openCompareModal() {
           <td class="compare-col-header">
             <img src="${p.image}" alt="">
             <div style="font-weight:800; font-size:0.95rem;">${p.name}</div>
-            <div style="color:var(--accent-cyan); font-weight:800; margin:4px 0;">${inr(p.price)}</div>
+            <div style="color:var(--accent-cyan); font-weight:800; margin:4px 0;">${dualPrice(p.price)}</div>
             <button class="btn-card-add" data-add="${p.id}" style="margin:6px auto 0;">Add to Cart</button>
           </td>
         `).join('')}
@@ -832,7 +836,7 @@ function renderAiResponse(userPrompt, data) {
   const p = data.extracted_preferences;
   if (p) {
     const tags = [];
-    if (p.budget_max) tags.push(`Max Budget: ₹${p.budget_max.toLocaleString('en-IN')}`);
+    if (p.budget_max) tags.push(`Max Budget: ${dualPricePlain(p.budget_max)}`);
     if (p.color) tags.push(`Color: ${p.color}`);
     if (p.size) tags.push(`Size: ${p.size}`);
     if (p.occasion) tags.push(`Occasion: ${p.occasion}`);
@@ -858,7 +862,7 @@ function renderAiResponse(userPrompt, data) {
               <img src="${rec.image}" alt="">
             </div>
             <div class="ai-rec-title">${rec.name}</div>
-            <div class="ai-rec-price">${inr(rec.price)}</div>
+            <div class="ai-rec-price">${dualPrice(rec.price)}</div>
             <div class="ai-rec-reason">${rec.match_reason}</div>
             ${rec.trade_offs ? `<div style="font-size:0.68rem; color:var(--amber); margin-bottom:8px;">⚠️ Trade-off: ${rec.trade_offs}</div>` : ''}
             <div class="ai-rec-actions">
@@ -912,9 +916,9 @@ function openCheckoutModal() {
   const delivery = subtotal >= State.config.free_shipping_threshold ? 0 : State.config.standard_shipping_fee;
   const total = subtotal + delivery;
 
-  $('#checkoutSubtotal').textContent = inr(subtotal);
-  $('#checkoutDelivery').textContent = delivery === 0 ? 'Free' : inr(delivery);
-  $('#checkoutTotal').textContent = inr(total);
+  $('#checkoutSubtotal').innerHTML = dualPrice(subtotal);
+  $('#checkoutDelivery').innerHTML = delivery === 0 ? 'Free' : dualPrice(delivery);
+  $('#checkoutTotal').innerHTML = `${usd(total)} USD <span class="dual-inr">(${inr(total)})</span>`;
 
   const modal = $('#checkoutModal');
   modal.classList.add('open');
@@ -947,9 +951,9 @@ function setupPayPal() {
           PayPal Sandbox Active
         </strong>
         <div style="font-size:0.75rem; color:var(--text-secondary); margin-top:4px;">
-          ⚠️ <strong>Testing Instructions:</strong> Log in with your <strong>Personal</strong> Sandbox Buyer account (<code style="color:var(--accent-cyan);">sb-buyerXXXX@personal.example.com</code>).<br>
-          <em style="color:#ef4444;">Do NOT log in with your Business/Merchant account</em> — PayPal forbids merchants from buying from themselves and will show <em>“Things don't appear to be working”</em>.<br>
-          <em>Tip:</em> Test in an <strong>Incognito/Private window</strong> if your browser has an active PayPal developer session.
+          👤 <strong>Target Personal Buyer Account:</strong><br>
+          Email: <code style="color:var(--accent-cyan); font-weight:700;">sb-lg72c53550049@personal.example.com</code><br>
+          <span style="color:#f59e0b;">⚠️ If PayPal says <em>"You are logging in to the account of the seller"</em>, open an <strong>Incognito / Private window</strong> (Ctrl+Shift+N) to clear active merchant dashboard cookies.</span>
         </div>
       </div>
     `;
@@ -1127,16 +1131,16 @@ function handleOrderSuccess(order) {
     ${order.items.map(it => `
       <div class="receipt-item-line">
         <span>${it.product_name} (${it.size} / ${it.color}) × ${it.quantity}</span>
-        <strong>${inr(it.line_total)}</strong>
+        <strong>${dualPrice(it.line_total)}</strong>
       </div>
     `).join('')}
     <div class="receipt-item-line" style="margin-top:8px;">
       <span>Delivery Fee</span>
-      <span>${order.delivery_fee === 0 ? 'Free' : inr(order.delivery_fee)}</span>
+      <span>${order.delivery_fee === 0 ? 'Free' : dualPrice(order.delivery_fee)}</span>
     </div>
     <div class="receipt-item-line" style="font-weight:800; font-size:1rem; border-top:1px solid rgba(255,255,255,0.1); padding-top:8px;">
       <span>Total Paid</span>
-      <span style="color:var(--accent-cyan);">${inr(order.total_amount)}</span>
+      <span style="color:var(--accent-cyan);">${usd(order.total_amount)} USD <span class="dual-inr">(${inr(order.total_amount)})</span></span>
     </div>
     ${txnLine}
     <div style="margin-top:12px; font-size:0.75rem; color:var(--text-muted);">
@@ -1207,7 +1211,7 @@ function setupEventListeners() {
   priceRange.addEventListener('input', (e) => {
     const val = Number(e.target.value);
     State.filters.maxPrice = val;
-    priceRangeVal.textContent = inr(val);
+    priceRangeVal.textContent = dualPricePlain(val);
     renderProductGrid();
   });
 

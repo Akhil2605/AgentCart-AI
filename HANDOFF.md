@@ -1,46 +1,47 @@
 # AgentCart AI — Milestone Handoff Document
 
-**Current Milestone:** PayPal Sandbox Debugging & Diagnostic Hardening Complete  
+**Current Milestone:** Dual Currency Experience (USD Primary + INR Secondary, PayPal USD Processing)  
 **Date:** October 27, 2026  
-**Platform Version:** v2.6.1  
+**Platform Version:** v2.7.0  
 
 ---
 
-## 1. Executive Summary & Root Cause Investigation
+## 1. Executive Summary: Dual Currency System
+
+### Background & Reason for USD Processing:
+- PayPal's Orders v2 API does not support `INR` (`CURRENCY_NOT_SUPPORTED` 422 error / `This seller doesn't accept payments in your currency`).
+- To allow seamless PayPal Sandbox checkout while keeping the Indian market pricing context familiar, AgentCart AI now displays prices in **USD as the primary payment currency** with the **INR amount shown clearly beside it** (e.g. `$23.52 (₹1,999)`).
+- When a customer checks out, the transaction is denominated and charged in USD at the fixed conversion rate (`$1 USD = ₹85 INR`).
+
+### Implementation Details:
+1. **Frontend Formatting:**
+   - Every price on the site (product cards, modal, comparison matrix, AI recommendations, cart drawer, checkout modal, and confirmation receipt) displays USD bold and prominent, with the equivalent INR formatted in secondary text: `${usd(amount)} <span class="dual-inr">(${inr(amount)})</span>`.
+   - Free Express Delivery is unlocked at `$24 USD (₹2,000+)`.
+2. **Backend Order Processing:**
+   - Server validates item prices strictly from SQLite catalog in INR, converts securely to USD with 2 decimal places, and creates the PayPal order with `currency_code: 'USD'`.
+   - Never trusts price or currency parameters sent by the client.
+
+---
+
+## 2. Root Cause & Solution: Personal vs Business Sandbox Accounts
 
 When testing PayPal Sandbox checkout, the error:  
-> **“Things don't appear to be working at the moment. Please try again later and go back to the merchant.”**
+> **“You are logging in to the account of the seller for this purchase. Please change your login information and try again.”**
 
-is PayPal's catch-all message in the Sandbox modal. We investigated and resolved the underlying issues:
+occurs when PayPal detects that the account attempting to pay is the merchant/seller that created the order.
 
-### Root Causes Confirmed:
-1. **Self-Payment via Business Account:**
-   The REST App credentials configured in `.env` are owned by the **Business** account (`sb-oaffh53089456@business.example.com`). When a developer attempts to log into the PayPal checkout popup using that Business account (or any Business account acting as the payee), PayPal strictly blocks the self-purchase with that generic error message. Purchases must be made with a **Personal** Sandbox account.
-2. **Missing Orders v2 `experience_context`:**
-   In PayPal Orders v2 API, creating an order without `payment_source.paypal.experience_context` causes PayPal's modern checkout UI to miss required parameters (`shipping_preference`, `user_action`, `return_url`, and `cancel_url`), leading to session crashes in the popup.
-3. **Browser Cookie / Session Collision:**
-   If you have `developer.paypal.com` or `sandbox.paypal.com` open in the same browser, active cookies from the Business account clash with the Personal buyer account session inside the popup.
+### Investigation & Account Verification:
+- **Configured Seller / Payee Account:** `sb-oaffh53089456@business.example.com` (Merchant ID: `XA5BTBFB5K7ME`)  
+  *This is the Business Sandbox account that owns the configured Client ID.*
+- **Configured Buyer Account:** `sb-lg72c53550049@personal.example.com`  
+  *This is a separate, valid Personal Sandbox Buyer account.*
+- **The Mismatch / Issue:**  
+  The two accounts are separate. The error occurs when the browser profile has active session cookies for the seller (`sb-oaffh53089456@business.example.com` or the main developer account) from `developer.paypal.com` or `sandbox.paypal.com`. When the PayPal popup opens, PayPal checks the active session cookies before the buyer login completes, triggering the seller self-payment block.
 
----
-
-## 2. Changes Implemented
-
-1. **`server/paypal.js`:**
-   - Injected `payment_source.paypal.experience_context` into the Orders API payload with `brand_name: 'AgentCart AI'`, `locale: 'en-US'`, `shipping_preference: 'GET_FROM_FILE'`, `user_action: 'PAY_NOW'`, `return_url: 'http://localhost:3000/#paypal-return'`, and `cancel_url: 'http://localhost:3000/#paypal-cancel'`.
-   - Added safe diagnostic logging extracting PayPal's internal `paypal-debug-id` header on both create-order and capture-order requests.
-   - Added strict positive integer validation for item quantities and positive numeric validation for catalog prices.
-   - Enforced 3-letter currency sanitization.
-
-2. **`app.js`:**
-   - Added `&intent=capture` parameter to the dynamic PayPal JS SDK script URL.
-   - Added a clear guidance notice inside the checkout modal warning testers to use their **Personal** Sandbox Buyer account and test in an **Incognito / Private** window to avoid cookie clashing.
-   - Added debug console logs for `createOrder`, `onApprove`, `onCancel`, and `onError`.
-
-3. **`tests/run_tests.js`:**
-   - Added focused tests for invalid quantities (negative, fractional, non-numeric).
-   - Added test for `experience_context` payload integrity and return/cancel URLs.
-   - Added test for order creation failure with debug ID tracking.
-   - 29/29 tests pass (100%).
+### Solutions Applied:
+1. **Payer Binding:** Added `payer: { email_address: order.customer_email }` in [`server/paypal.js`](file:///D:/AgentCart-AI/server/paypal.js) so PayPal explicitly expects the personal buyer account (`sb-lg72c53550049@personal.example.com`).
+2. **Pre-filled Checkout Email:** Updated [`index.html`](file:///D:/AgentCart-AI/index.html) so the checkout form automatically provides `sb-lg72c53550049@personal.example.com`.
+3. **Session Isolation:** Provided clear instructions to test in an **Incognito / Private Window** (or log out of `sandbox.paypal.com` first) to eliminate seller cookie contamination.
 
 ---
 
@@ -53,17 +54,17 @@ is PayPal's catch-all message in the Sandbox modal. We investigated and resolved
 ### Step-by-Step Testing Guide:
 1. Open an **Incognito / Private Window** in your browser.
 2. Navigate to **`http://localhost:3000`**.
-3. Click on any jacket (e.g. *CyberShell Pro Stormbreaker*) and click **Add to Bag**.
-4. Open the floating cart in the top right and click **Proceed to Checkout**.
-5. Click the yellow **PayPal** button.
-6. In the PayPal popup, log in with your **Personal Sandbox Account**:
-   - Go to [PayPal Developer Dashboard > Sandbox Accounts](https://developer.paypal.com/dashboard/accounts).
-   - Locate the account of type **Personal** (e.g. `sb-buyerXXXX@personal.example.com`).
-   - Click `...` > **View/Edit account** to copy the system-generated password.
-   - Enter that Personal email and password into the checkout popup.
-7. Click **Complete Purchase** / **Pay Now**.
-8. The popup will close and the order confirmation modal will display:
+3. Notice that all products display prices in **USD** prominently with the **INR** amount beside it (e.g. `$23.52 (₹1,999)`).
+4. Click on any jacket (e.g. *CyberShell Pro Stormbreaker*) and click **Add to Bag**.
+5. Open the floating cart in the top right and click **Proceed to Checkout**.
+6. The verified total indicates the exact USD amount charged via PayPal. Click the yellow **PayPal** button.
+7. In the PayPal popup, log in with your **Personal Sandbox Account**:
+   - Email: `sb-lg72c53550049@personal.example.com`
+   - Password: `[Your Personal Sandbox password]`
+8. Click **Complete Purchase** / **Pay Now**.
+9. The popup closes and the order confirmation modal displays:
    - Status: `● PAID (PayPal Sandbox Verified)`
+   - Total Paid: `$XX.XX USD (₹X,XXX)`
    - PayPal Capture ID: `2GG...`
    - Itemized purchase receipt and delivery address.
 

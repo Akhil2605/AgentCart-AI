@@ -1173,6 +1173,17 @@ img {
   font-size: 1.25rem;
   font-weight: 800;
   color: #fff;
+  display: inline-flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.dual-inr {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: normal;
 }
 
 .card-orig-price {
@@ -1737,10 +1748,22 @@ img {
   color: #fff;
 }
 
+.modal-price-current .dual-inr {
+  font-size: 1.05rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-left: 4px;
+}
+
 .modal-price-orig {
   font-size: 1rem;
   color: var(--text-dim);
   text-decoration: line-through;
+}
+
+.modal-price-orig .dual-inr {
+  font-size: 0.85rem;
+  color: var(--text-dim);
 }
 
 .modal-desc {

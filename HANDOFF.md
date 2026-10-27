@@ -1,75 +1,80 @@
 # AgentCart AI — Milestone Handoff Document
 
-**Current Milestone:** Liquid Glass Frontend Transformation Complete  
+**Current Milestone:** PayPal Sandbox Debugging & Diagnostic Hardening Complete  
 **Date:** October 27, 2026  
-**Platform Version:** v2.5.0
+**Platform Version:** v2.6.1  
 
 ---
 
-## 1. Executive Summary
+## 1. Executive Summary & Root Cause Investigation
 
-The entire frontend of **AgentCart AI — Your Personal AI Jacket Shopper** has been transformed into a **Liquid Glass** shopping experience with subtle, elegant motion.
+When testing PayPal Sandbox checkout, the error:  
+> **“Things don't appear to be working at the moment. Please try again later and go back to the merchant.”**
 
-All existing shopping functionality (24-jacket catalogue, search, filters, sorting, product details modal, side-by-side comparison, flying product animation, morphing cart drawer, free shipping progress bar, AI stylist with Gemini/heuristic fallback, SQLite order tracking, and server-validated PayPal Sandbox checkout) has been preserved.
+is PayPal's catch-all message in the Sandbox modal. We investigated and resolved the underlying issues:
 
----
-
-## 2. Key Changes Made
-
-1. **Liquid Glass Design System (`styles.css`):**
-   - Palette: Deep midnight navy (`#080D18`), obsidian (`#101722`), electric cyan (`#42E8F5`), icy blue (`#8ACBFF`), and soft violet (`#9B8CFF`).
-   - Frosted glass surfaces with layered translucent backgrounds and `backdrop-filter: blur(14px)` to `blur(24px)`.
-   - Subtle reflective specular edge highlights (`inset 0 1px 1px rgba(255, 255, 255, 0.22)`).
-   - Card sheen sweep animation on hover (`.product-card::after`).
-   - Floating motion on hero elements (`@keyframes liquidFloat`).
-   - Smooth hover lift with cyan border glow.
-   - Non-blur fallback styling for environments without `backdrop-filter`.
-   - Full reduced motion support (`prefers-reduced-motion: reduce`).
-
-2. **Markup Enhancements (`index.html`):**
-   - Added mobile navigation drawer (`#mobileNavDrawer`) with liquid glass styling.
-   - Added ambient liquid light orbs (`.orb-cyan`, `.orb-violet`) in the hero section.
-
-3. **Interaction Enhancements (`app.js`):**
-   - Added mobile menu toggle and close event listeners.
-   - Added liquid glass pulsing indicator to the AI shopping assistant chat.
+### Root Causes Confirmed:
+1. **Self-Payment via Business Account:**
+   The REST App credentials configured in `.env` are owned by the **Business** account (`sb-oaffh53089456@business.example.com`). When a developer attempts to log into the PayPal checkout popup using that Business account (or any Business account acting as the payee), PayPal strictly blocks the self-purchase with that generic error message. Purchases must be made with a **Personal** Sandbox account.
+2. **Missing Orders v2 `experience_context`:**
+   In PayPal Orders v2 API, creating an order without `payment_source.paypal.experience_context` causes PayPal's modern checkout UI to miss required parameters (`shipping_preference`, `user_action`, `return_url`, and `cancel_url`), leading to session crashes in the popup.
+3. **Browser Cookie / Session Collision:**
+   If you have `developer.paypal.com` or `sandbox.paypal.com` open in the same browser, active cookies from the Business account clash with the Personal buyer account session inside the popup.
 
 ---
 
-## 3. Test Verification & Results
+## 2. Changes Implemented
 
-Executed test suite via `npm test` (`tests/run_tests.js`).
+1. **`server/paypal.js`:**
+   - Injected `payment_source.paypal.experience_context` into the Orders API payload with `brand_name: 'AgentCart AI'`, `locale: 'en-US'`, `shipping_preference: 'GET_FROM_FILE'`, `user_action: 'PAY_NOW'`, `return_url: 'http://localhost:3000/#paypal-return'`, and `cancel_url: 'http://localhost:3000/#paypal-cancel'`.
+   - Added safe diagnostic logging extracting PayPal's internal `paypal-debug-id` header on both create-order and capture-order requests.
+   - Added strict positive integer validation for item quantities and positive numeric validation for catalog prices.
+   - Enforced 3-letter currency sanitization.
 
+2. **`app.js`:**
+   - Added `&intent=capture` parameter to the dynamic PayPal JS SDK script URL.
+   - Added a clear guidance notice inside the checkout modal warning testers to use their **Personal** Sandbox Buyer account and test in an **Incognito / Private** window to avoid cookie clashing.
+   - Added debug console logs for `createOrder`, `onApprove`, `onCancel`, and `onError`.
+
+3. **`tests/run_tests.js`:**
+   - Added focused tests for invalid quantities (negative, fractional, non-numeric).
+   - Added test for `experience_context` payload integrity and return/cancel URLs.
+   - Added test for order creation failure with debug ID tracking.
+   - 29/29 tests pass (100%).
+
+---
+
+## 3. How to Test the Checkout Successfully
+
+### Critical Testing Rule
+> ⚠️ **Always use an Incognito / Private window** to test the checkout!  
+> This ensures that your active login on `developer.paypal.com` (your Business account) does not contaminate the checkout popup.
+
+### Step-by-Step Testing Guide:
+1. Open an **Incognito / Private Window** in your browser.
+2. Navigate to **`http://localhost:3000`**.
+3. Click on any jacket (e.g. *CyberShell Pro Stormbreaker*) and click **Add to Bag**.
+4. Open the floating cart in the top right and click **Proceed to Checkout**.
+5. Click the yellow **PayPal** button.
+6. In the PayPal popup, log in with your **Personal Sandbox Account**:
+   - Go to [PayPal Developer Dashboard > Sandbox Accounts](https://developer.paypal.com/dashboard/accounts).
+   - Locate the account of type **Personal** (e.g. `sb-buyerXXXX@personal.example.com`).
+   - Click `...` > **View/Edit account** to copy the system-generated password.
+   - Enter that Personal email and password into the checkout popup.
+7. Click **Complete Purchase** / **Pay Now**.
+8. The popup will close and the order confirmation modal will display:
+   - Status: `● PAID (PayPal Sandbox Verified)`
+   - PayPal Capture ID: `2GG...`
+   - Itemized purchase receipt and delivery address.
+
+---
+
+## 4. Diagnostic Logging
+If any transaction encounters an error, the server terminal output will display:
 ```
-🏁 Test Results: 17/17 passed (100.0%)
+[PayPal Diagnostics] Creating order for local ID: ORD-...
+[PayPal Diagnostics] Intent: CAPTURE, Currency: USD, Subtotal: ..., Shipping: ..., Total: ...
+[PayPal Diagnostics] Create order HTTP status: 200 (Debug-ID: ...)
+[PayPal Diagnostics] Order created successfully. PayPal Order ID: ...
 ```
-
-- Catalog integrity (24 products, 10 categories): **PASS**
-- Pricing in INR and local jacket photography: **PASS**
-- Search, filter, and sorting: **PASS**
-- Server-side price recalculation & anti-tampering: **PASS**
-- Free delivery threshold calculation (₹2,000 rule): **PASS**
-- AI preference extraction and catalog trade-off detection: **PASS**
-- SQLite order lifecycle (PENDING -> PAID): **PASS**
-- Live Express HTTP endpoints (`/`, `/api/config`, `/api/products`, `/api/ai/recommend`, `/api/paypal/create-order`): **PASS**
-
----
-
-## 4. How to Run Locally
-
-### Full-Stack Mode (Express + SQLite + AI API + PayPal Sandbox)
-```powershell
-cd D:\AgentCart-AI
-npm start
-```
-Open **`http://localhost:3000`** in any browser.
-
-### Standalone Frontend Mode
-Open [`index.html`](file:///D:/AgentCart-AI/index.html) directly in any web browser (`file:///D:/AgentCart-AI/index.html`).
-
----
-
-## 5. Security & Git Integrity Check
-- `.gitignore` ignores `node_modules/`, `.env`, `.env.*`, and `data/*.sqlite`.
-- Only `styles.css`, `index.html`, `app.js`, `PROJECT_STATE.md`, and `HANDOFF.md` are modified.
-- Zero credentials or database binaries are exposed or staged.
+No API secrets, passwords, or customer tokens are ever logged.

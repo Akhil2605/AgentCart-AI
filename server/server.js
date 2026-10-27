@@ -21,16 +21,19 @@ app.use(express.static(path.join(__dirname, '..')));
 // Public configuration status
 app.get('/api/config', (req, res) => {
   const hasGemini = Boolean(process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'your_gemini_api_key_here');
+  const { clientId, clientSecret } = paypal.getSanitizedCredentials();
   const hasPayPal = Boolean(
-    process.env.PAYPAL_CLIENT_ID && 
-    process.env.PAYPAL_CLIENT_SECRET && 
-    process.env.PAYPAL_CLIENT_ID !== 'your_paypal_client_id_here'
+    clientId && 
+    clientSecret && 
+    clientId !== 'your_paypal_client_id_here' &&
+    clientSecret !== 'your_paypal_client_secret_here'
   );
 
   res.json({
     ai_configured: hasGemini,
     paypal_configured: hasPayPal,
-    paypal_client_id: hasPayPal ? process.env.PAYPAL_CLIENT_ID : null,
+    paypal_client_id: hasPayPal ? clientId : null,
+    paypal_currency: (process.env.PAYPAL_CURRENCY || 'USD').toUpperCase(),
     free_shipping_threshold: paypal.FREE_SHIPPING_THRESHOLD,
     standard_shipping_fee: paypal.STANDARD_SHIPPING_FEE
   });
@@ -113,14 +116,31 @@ app.post('/api/paypal/capture-order', async (req, res) => {
   try {
     const { order_id, paypal_order_id } = req.body;
 
-    if (!order_id || !paypal_order_id) {
-      return res.status(400).json({ success: false, error: 'order_id and paypal_order_id are required.' });
+    if (!order_id && !paypal_order_id) {
+      return res.status(400).json({ success: false, error: 'order_id or paypal_order_id is required.' });
     }
 
     const result = await paypal.capturePayPalSandboxOrder(order_id, paypal_order_id);
     res.json(result);
   } catch (err) {
     console.error('Capture Order Error:', err.message);
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/paypal/cancel-order — record buyer cancellation
+app.post('/api/paypal/cancel-order', (req, res) => {
+  try {
+    const { order_id, paypal_order_id } = req.body;
+
+    if (!order_id && !paypal_order_id) {
+      return res.status(400).json({ success: false, error: 'order_id or paypal_order_id is required.' });
+    }
+
+    const result = paypal.cancelPayPalOrder(order_id, paypal_order_id);
+    res.json(result);
+  } catch (err) {
+    console.error('Cancel Order Error:', err.message);
     res.status(400).json({ success: false, error: err.message });
   }
 });

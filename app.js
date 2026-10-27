@@ -929,18 +929,56 @@ function closeCheckoutModal() {
   modal.setAttribute('aria-hidden', 'true');
 }
 
+let currentLocalOrderId = null;
+
 function setupPayPal() {
   if (!State.config.paypal_configured || !State.config.paypal_client_id) {
     console.log('PayPal Sandbox SDK omitted in demo mode.');
     return;
   }
 
-  // Dynamically inject official PayPal JS SDK
+  // Update guidance UI
+  const guidanceEl = $('#paypalGuidance');
+  if (guidanceEl) {
+    guidanceEl.innerHTML = `
+      <div style="line-height:1.45;">
+        <strong style="color:var(--accent-cyan); display:flex; align-items:center; gap:6px;">
+          <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#10b981;"></span>
+          PayPal Sandbox Active
+        </strong>
+        <div style="font-size:0.75rem; color:var(--text-secondary); margin-top:4px;">
+          ⚠️ <strong>Testing Instructions:</strong> Log in with your <strong>Personal</strong> Sandbox Buyer account (<code style="color:var(--accent-cyan);">sb-buyerXXXX@personal.example.com</code>).<br>
+          <em style="color:#ef4444;">Do NOT log in with your Business/Merchant account</em> — PayPal forbids merchants from buying from themselves and will show <em>“Things don't appear to be working”</em>.<br>
+          <em>Tip:</em> Test in an <strong>Incognito/Private window</strong> if your browser has an active PayPal developer session.
+        </div>
+      </div>
+    `;
+  }
+
+  // Dynamically inject official PayPal JS SDK with explicit capture intent
   const script = document.createElement('script');
-  script.src = `https://www.paypal.com/sdk/js?client-id=${State.config.paypal_client_id}&currency=USD`;
+  const currency = State.config.paypal_currency || 'USD';
+  script.src = `https://www.paypal.com/sdk/js?client-id=${State.config.paypal_client_id}&currency=${currency}&intent=capture`;
+  
+  script.onerror = () => {
+    console.error('Failed to load PayPal JS SDK.');
+    if (guidanceEl) {
+      guidanceEl.innerHTML = `
+        <strong>⚠️ PayPal SDK Loading Issue</strong><br>
+        Could not load PayPal SDK. Please ensure your Sandbox Client ID is from the Sandbox tab at <a href="https://developer.paypal.com/dashboard/applications/sandbox" target="_blank" style="color:var(--accent-cyan); text-decoration:underline;">developer.paypal.com</a>. You can also test using the Demo Mode button below.
+      `;
+    }
+  };
+
   script.onload = () => {
     if (window.paypal && $('#paypalButtonContainer')) {
       window.paypal.Buttons({
+        style: {
+          layout: 'vertical',
+          color: 'gold',
+          shape: 'rect',
+          label: 'paypal'
+        },
         createOrder: async () => {
           const shipping = getShippingFormData();
           const items = [...State.cart.values()].map(it => ({
@@ -950,6 +988,8 @@ function setupPayPal() {
             quantity: it.quantity
           }));
 
+          console.log('[PayPal SDK] Calling /api/paypal/create-order with items:', items);
+
           const res = await fetch('/api/paypal/create-order', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -957,29 +997,58 @@ function setupPayPal() {
           });
 
           const data = await res.json();
-          if (!data.success) throw new Error(data.error);
+          if (!data.success) {
+            console.error('[PayPal SDK] /api/paypal/create-order rejected:', data);
+            alert('Order creation failed: ' + (data.error || 'Server rejected order creation.'));
+            throw new Error(data.error || 'Order creation failed');
+          }
+
+          console.log('[PayPal SDK] Order created successfully. PayPal Order ID:', data.paypal_order_id);
+          currentLocalOrderId = data.order_id;
           return data.paypal_order_id;
         },
         onApprove: async (data) => {
-          const captureRes = await fetch('/api/paypal/capture-order', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              order_id: data.orderID,
-              paypal_order_id: data.orderID
-            })
-          });
+          console.log('[PayPal SDK] onApprove triggered by PayPal popup:', data);
+          try {
+            const captureRes = await fetch('/api/paypal/capture-order', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                order_id: currentLocalOrderId,
+                paypal_order_id: data.orderID
+              })
+            });
 
-          const captureData = await captureRes.json();
-          if (captureData.success) {
-            handleOrderSuccess(captureData.order);
-          } else {
-            alert('PayPal capture error: ' + captureData.error);
+            const captureData = await captureRes.json();
+            if (captureData.success) {
+              console.log('[PayPal SDK] Capture verified successfully:', captureData);
+              handleOrderSuccess(captureData.order);
+            } else {
+              console.error('[PayPal SDK] Capture rejected by backend:', captureData);
+              alert('PayPal capture error: ' + (captureData.error || 'Payment capture failed.'));
+            }
+          } catch (err) {
+            console.error('[PayPal SDK] Network error during capture:', err);
+            alert('Payment capture failed: ' + err.message);
           }
         },
+        onCancel: async (data) => {
+          console.log('[PayPal SDK] onCancel triggered:', data);
+          if (currentLocalOrderId) {
+            await fetch('/api/paypal/cancel-order', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                order_id: currentLocalOrderId,
+                paypal_order_id: data?.orderID || null
+              })
+            }).catch(() => {});
+          }
+          alert('PayPal checkout was cancelled. Your items remain in your cart.');
+        },
         onError: (err) => {
-          console.error('PayPal button error:', err);
-          alert('PayPal Checkout encountered an error.');
+          console.error('[PayPal SDK] onError triggered:', err);
+          alert('PayPal encountered an error during checkout. Please verify you are logged into your Sandbox Personal Buyer account (not your Business merchant account).');
         }
       }).render('#paypalButtonContainer');
     }
@@ -1041,8 +1110,20 @@ function handleOrderSuccess(order) {
   $('#confOrderRef').textContent = `Order Reference: ${order.id}`;
   const receiptCard = $('#confReceiptCard');
 
+  const isPaid = order.status === 'PAID';
+  const statusBadge = isPaid
+    ? '<span style="color:#10b981; font-weight:700; background:rgba(16,185,129,0.12); padding:3px 8px; border-radius:6px; border:1px solid rgba(16,185,129,0.3);">● PAID (PayPal Sandbox Verified)</span>'
+    : `<span style="color:var(--accent-cyan); font-weight:700; background:rgba(66,232,245,0.12); padding:3px 8px; border-radius:6px;">● ${order.status}</span>`;
+  
+  const txnLine = order.payment_id
+    ? `<div style="font-size:0.75rem; color:var(--text-muted); margin-top:8px; word-break:break-all;">PayPal Capture ID: <code style="color:var(--accent-cyan); font-family:var(--font-mono);">${order.payment_id}</code></div>`
+    : '';
+
   receiptCard.innerHTML = `
-    <div style="font-weight:800; margin-bottom:8px;">Purchased Items (${order.items.length}):</div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+      <span style="font-weight:800;">Purchased Items (${order.items.length}):</span>
+      ${statusBadge}
+    </div>
     ${order.items.map(it => `
       <div class="receipt-item-line">
         <span>${it.product_name} (${it.size} / ${it.color}) × ${it.quantity}</span>
@@ -1057,6 +1138,7 @@ function handleOrderSuccess(order) {
       <span>Total Paid</span>
       <span style="color:var(--accent-cyan);">${inr(order.total_amount)}</span>
     </div>
+    ${txnLine}
     <div style="margin-top:12px; font-size:0.75rem; color:var(--text-muted);">
       Ship To: <strong>${order.customer_name}</strong><br>
       ${order.shipping_address}, ${order.city}, ${order.state} - ${order.postal_code}

@@ -1,6 +1,6 @@
 /**
  * Comprehensive Automated Test Suite for AgentCart AI
- * Tests Database, Logic, Server Endpoints, AI Recommender, and PayPal Checkout
+ * Tests Database, Logic, Server Endpoints, AI Recommender, and PayPal Sandbox Checkout
  */
 const assert = require('assert');
 const http = require('http');
@@ -10,6 +10,105 @@ const paypal = require('../server/paypal');
 const { app } = require('../server/server');
 
 const TEST_PORT = 3001;
+const originalFetch = global.fetch;
+let lastOrderPayload = null;
+
+// Helper to install mock PayPal Sandbox API interceptor strictly for PayPal domains
+function setupMockPayPalSandbox(options = {}) {
+  global.fetch = async (url, init = {}) => {
+    const urlStr = String(url);
+
+    // Only intercept PayPal Sandbox API requests
+    if (!urlStr.includes('api-m.sandbox.paypal.com')) {
+      return originalFetch(url, init);
+    }
+
+    // 1. PayPal OAuth2 Token endpoint
+    if (urlStr.includes('/v1/oauth2/token')) {
+      if (options.failAuth) {
+        return new Response(JSON.stringify({
+          error: 'invalid_client',
+          error_description: 'Client Authentication failed'
+        }), { 
+          status: 401, 
+          headers: { 'Content-Type': 'application/json', 'paypal-debug-id': 'DBG-AUTH-401' } 
+        });
+      }
+      return new Response(JSON.stringify({
+        access_token: 'MOCK_SANDBOX_ACCESS_TOKEN_ABC123',
+        token_type: 'Bearer',
+        app_id: 'APP-80W284485P519543T',
+        expires_in: 32400
+      }), { 
+        status: 200, 
+        headers: { 'Content-Type': 'application/json', 'paypal-debug-id': 'DBG-AUTH-200' } 
+      });
+    }
+
+    // 2. PayPal Orders API (Creation)
+    if (urlStr.includes('/v2/checkout/orders') && !urlStr.includes('/capture')) {
+      if (options.failCreate) {
+        return new Response(JSON.stringify({
+          name: 'UNPROCESSABLE_ENTITY',
+          message: 'The requested action failed business validation.',
+          details: [{ issue: 'CURRENCY_NOT_ALLOWED', description: 'Currency not allowed.' }]
+        }), { 
+          status: 422, 
+          headers: { 'Content-Type': 'application/json', 'paypal-debug-id': 'DBG-FAIL-CREATE-999' } 
+        });
+      }
+      const payload = init.body ? JSON.parse(init.body) : {};
+      lastOrderPayload = payload;
+      const mockOrderId = '5C' + Math.floor(10000000000 + Math.random() * 90000000000);
+      return new Response(JSON.stringify({
+        id: mockOrderId,
+        status: 'CREATED',
+        intent: payload.intent || 'CAPTURE',
+        purchase_units: payload.purchase_units || []
+      }), { 
+        status: 201, 
+        headers: { 'Content-Type': 'application/json', 'paypal-debug-id': 'DBG-ORD-' + Date.now() } 
+      });
+    }
+
+    // 3. PayPal Orders API (Capture)
+    if (urlStr.includes('/capture')) {
+      if (options.failCapture) {
+        return new Response(JSON.stringify({
+          name: 'UNPROCESSABLE_ENTITY',
+          message: 'The requested action could not be performed, payment instrument declined.',
+          details: [{ issue: 'INSTRUMENT_DECLINED', description: 'The card was declined.' }]
+        }), { 
+          status: 422, 
+          headers: { 'Content-Type': 'application/json', 'paypal-debug-id': 'DBG-FAIL-CAP-888' } 
+        });
+      }
+      const captureId = '2GG' + Math.floor(10000000000 + Math.random() * 90000000000);
+      return new Response(JSON.stringify({
+        id: 'CAP-' + Date.now(),
+        status: 'COMPLETED',
+        purchase_units: [{
+          payments: {
+            captures: [{
+              id: captureId,
+              status: 'COMPLETED',
+              amount: { currency_code: 'USD', value: '47.03' }
+            }]
+          }
+        }]
+      }), { 
+        status: 201, 
+        headers: { 'Content-Type': 'application/json', 'paypal-debug-id': 'DBG-CAP-' + Date.now() } 
+      });
+    }
+
+    return originalFetch(url, init);
+  };
+}
+
+function restoreFetch() {
+  global.fetch = originalFetch;
+}
 
 async function runAllTests() {
   console.log('🧪 Starting AgentCart AI Test Suite...\n');
@@ -157,6 +256,35 @@ async function runAllTests() {
     }, /Product not found in catalog/);
   });
 
+  test('Missing shipping address is rejected with descriptive error', () => {
+    assert.throws(() => {
+      paypal.validateAndCalculateOrder(
+        [{ id: 'cyber-shell-black', quantity: 1 }],
+        { name: '', email: '', address: '' }
+      );
+    }, /Valid shipping details/);
+  });
+
+  test('Invalid item quantities (negative, fractional, or non-numeric) are rejected', () => {
+    const shipping = { name: 'Q Buyer', email: 'q@test.com', address: '1 Street' };
+    
+    assert.throws(() => {
+      paypal.validateAndCalculateOrder([{ id: 'cyber-shell-black', quantity: 0 }], shipping);
+    }, /Invalid item or quantity/);
+
+    assert.throws(() => {
+      paypal.validateAndCalculateOrder([{ id: 'cyber-shell-black', quantity: -3 }], shipping);
+    }, /Invalid item or quantity/);
+
+    assert.throws(() => {
+      paypal.validateAndCalculateOrder([{ id: 'cyber-shell-black', quantity: 1.5 }], shipping);
+    }, /Invalid item or quantity/);
+
+    assert.throws(() => {
+      paypal.validateAndCalculateOrder([{ id: 'cyber-shell-black', quantity: 'five' }], shipping);
+    }, /Invalid item or quantity/);
+  });
+
   // --- 4. AI Jacket Recommender Tests ---
   console.log('\n🤖 Testing AI Jacket Stylist & Grounded Recommendations:');
 
@@ -179,24 +307,219 @@ async function runAllTests() {
     assert.ok(result.recommendations.length >= 2, 'Should provide at least two items for comparison');
   });
 
-  // --- 5. Order Lifecycle & SQLite Persistence ---
-  console.log('\n💾 Testing Order Lifecycle & SQLite Persistence:');
+  // --- 5. PayPal Sandbox Orders, Capture, Cancellation & Security ---
+  console.log('\n💳 Testing PayPal Sandbox Checkout Engine:');
 
-  test('Order status transitions properly from PENDING to PAID', () => {
+  await testAsync('PayPal order creation and database linkage with provider_order_id', async () => {
+    setupMockPayPalSandbox();
+    try {
+      const shipping = {
+        name: 'Sandbox Buyer',
+        email: 'sandbox-buyer@agentcart.ai',
+        address: '500 Tech Boulevard',
+        city: 'Bengaluru',
+        state: 'Karnataka',
+        postal_code: '560001'
+      };
+      const order = paypal.validateAndCalculateOrder([{ id: 'hyperion-mountain-shell', quantity: 1 }], shipping);
+      const res = await paypal.createPayPalSandboxOrder(order);
+
+      assert.strictEqual(res.success, true);
+      assert.ok(res.paypal_order_id.startsWith('5C'));
+      assert.strictEqual(res.order_id, order.id);
+
+      // Verify database updated with provider_order_id
+      const fromDb = db.getOrderById(order.id);
+      assert.strictEqual(fromDb.provider_order_id, res.paypal_order_id);
+    } finally {
+      restoreFetch();
+    }
+  });
+
+  await testAsync('Order creation payload includes experience_context, user_action PAY_NOW, and valid return/cancel URLs', async () => {
+    setupMockPayPalSandbox();
+    try {
+      const shipping = {
+        name: 'Context Test Buyer',
+        email: 'context@agentcart.ai',
+        address: '600 Tech Boulevard',
+        city: 'Bengaluru',
+        state: 'Karnataka',
+        postal_code: '560001'
+      };
+      const order = paypal.validateAndCalculateOrder([{ id: 'cobalt-storm-shield', quantity: 1 }], shipping);
+      await paypal.createPayPalSandboxOrder(order);
+
+      assert.ok(lastOrderPayload, 'Payload must be intercepted');
+      assert.ok(lastOrderPayload.payment_source?.paypal?.experience_context, 'Must include experience_context');
+      const exp = lastOrderPayload.payment_source.paypal.experience_context;
+      assert.strictEqual(exp.brand_name, 'AgentCart AI');
+      assert.strictEqual(exp.user_action, 'PAY_NOW');
+      assert.strictEqual(exp.shipping_preference, 'GET_FROM_FILE');
+      assert.ok(exp.return_url.includes('http'), 'Return URL must be valid HTTP');
+      assert.ok(exp.cancel_url.includes('http'), 'Cancel URL must be valid HTTP');
+    } finally {
+      restoreFetch();
+    }
+  });
+
+  await testAsync('PayPal order creation failure throws descriptive error with debug ID', async () => {
+    setupMockPayPalSandbox({ failCreate: true });
+    try {
+      const shipping = {
+        name: 'Fail Order Buyer',
+        email: 'failorder@agentcart.ai',
+        address: '700 Tech Boulevard',
+        city: 'Bengaluru',
+        state: 'Karnataka',
+        postal_code: '560001'
+      };
+      const order = paypal.validateAndCalculateOrder([{ id: 'aerogrid-windrunner', quantity: 1 }], shipping);
+
+      await assert.rejects(async () => {
+        await paypal.createPayPalSandboxOrder(order);
+      }, err => {
+        assert.ok(err.message.includes('PayPal Order Creation Failed'));
+        assert.ok(err.message.includes('DBG-FAIL-CREATE-999'));
+        return true;
+      });
+    } finally {
+      restoreFetch();
+    }
+  });
+
+  await testAsync('PayPal order capture verifies status, sets PAID, and records payment_id in DB', async () => {
+    setupMockPayPalSandbox();
+    try {
+      const shipping = {
+        name: 'Capture Test Buyer',
+        email: 'buyer-capture@agentcart.ai',
+        address: '101 Cyber Way',
+        city: 'Bengaluru',
+        state: 'Karnataka',
+        postal_code: '560001'
+      };
+      const order = paypal.validateAndCalculateOrder([{ id: 'apex-blaze-orange', quantity: 1 }], shipping);
+      const created = await paypal.createPayPalSandboxOrder(order);
+
+      const captured = await paypal.capturePayPalSandboxOrder(order.id, created.paypal_order_id);
+      assert.strictEqual(captured.success, true);
+      assert.strictEqual(captured.status, 'PAID');
+      assert.ok(captured.paypal_capture_id.startsWith('2GG'));
+
+      // Check SQLite DB reflects PAID status and payment_id
+      const dbOrder = db.getOrderById(order.id);
+      assert.strictEqual(dbOrder.status, 'PAID');
+      assert.strictEqual(dbOrder.payment_id, captured.paypal_capture_id);
+    } finally {
+      restoreFetch();
+    }
+  });
+
+  await testAsync('Duplicate capture on already PAID order is safely prevented', async () => {
+    setupMockPayPalSandbox();
+    try {
+      const shipping = {
+        name: 'Duplicate Test Buyer',
+        email: 'buyer-dup@agentcart.ai',
+        address: '102 Cyber Way',
+        city: 'Bengaluru',
+        state: 'Karnataka',
+        postal_code: '560001'
+      };
+      const order = paypal.validateAndCalculateOrder([{ id: 'aerogrid-windrunner', quantity: 1 }], shipping);
+      const created = await paypal.createPayPalSandboxOrder(order);
+      await paypal.capturePayPalSandboxOrder(order.id, created.paypal_order_id);
+
+      // Attempt second capture on same order
+      await assert.rejects(async () => {
+        await paypal.capturePayPalSandboxOrder(order.id, created.paypal_order_id);
+      }, /Duplicate capture prevented/);
+    } finally {
+      restoreFetch();
+    }
+  });
+
+  await testAsync('Failed PayPal capture marks order as FAILED in SQLite with debug ID', async () => {
+    setupMockPayPalSandbox({ failCapture: true });
+    try {
+      const shipping = {
+        name: 'Declined Buyer',
+        email: 'buyer-declined@agentcart.ai',
+        address: '103 Cyber Way',
+        city: 'Bengaluru',
+        state: 'Karnataka',
+        postal_code: '560001'
+      };
+      const order = paypal.validateAndCalculateOrder([{ id: 'veloce-commuter-softshell', quantity: 1 }], shipping);
+      const created = await paypal.createPayPalSandboxOrder(order);
+
+      await assert.rejects(async () => {
+        await paypal.capturePayPalSandboxOrder(order.id, created.paypal_order_id);
+      }, err => {
+        assert.ok(err.message.includes('PayPal Capture Failed'));
+        assert.ok(err.message.includes('DBG-FAIL-CAP-888'));
+        return true;
+      });
+
+      const dbOrder = db.getOrderById(order.id);
+      assert.strictEqual(dbOrder.status, 'FAILED');
+    } finally {
+      restoreFetch();
+    }
+  });
+
+  test('Order cancellation transitions status to CANCELLED', () => {
     const shipping = {
-      name: 'Order Lifecycle Test',
-      email: 'order@test.com',
-      address: '42 Matrix Lane',
+      name: 'Cancel Test Buyer',
+      email: 'buyer-cancel@agentcart.ai',
+      address: '104 Cyber Way',
       city: 'Bengaluru',
       state: 'Karnataka',
-      postal_code: '560002'
+      postal_code: '560001'
     };
-    const order = paypal.validateAndCalculateOrder([{ id: 'apex-blaze-orange', quantity: 1 }], shipping);
+    const order = paypal.validateAndCalculateOrder([{ id: 'arctic-expedition-down', quantity: 1 }], shipping);
     assert.strictEqual(order.status, 'PENDING');
 
-    const updated = db.updateOrderStatus(order.id, 'PAID', 'TEST-TXN-12345');
-    assert.strictEqual(updated.status, 'PAID');
-    assert.strictEqual(updated.payment_id, 'TEST-TXN-12345');
+    const cancelled = paypal.cancelPayPalOrder(order.id);
+    assert.strictEqual(cancelled.status, 'CANCELLED');
+    assert.strictEqual(cancelled.order.status, 'CANCELLED');
+
+    const dbOrder = db.getOrderById(order.id);
+    assert.strictEqual(dbOrder.status, 'CANCELLED');
+  });
+
+  test('Cannot cancel an already PAID order', () => {
+    const shipping = {
+      name: 'Paid Cancel Buyer',
+      email: 'buyer-paidcancel@agentcart.ai',
+      address: '105 Cyber Way',
+      city: 'Bengaluru',
+      state: 'Karnataka',
+      postal_code: '560001'
+    };
+    const order = paypal.validateAndCalculateOrder([{ id: 'stealth-bomber-ma1', quantity: 1 }], shipping);
+    db.updateOrderStatus(order.id, 'PAID', 'TEST-PAID-TXN');
+
+    assert.throws(() => {
+      paypal.cancelPayPalOrder(order.id);
+    }, /payment has already been captured/);
+  });
+
+  await testAsync('PayPal authentication failure returns clear, helpful error without exposing secrets', async () => {
+    setupMockPayPalSandbox({ failAuth: true });
+    try {
+      await assert.rejects(async () => {
+        await paypal.getPayPalAccessToken();
+      }, err => {
+        assert.ok(err.message.includes('PayPal Sandbox Authentication Failed (invalid_client'));
+        assert.ok(err.message.includes('developer.paypal.com/dashboard/applications/sandbox'));
+        assert.ok(!err.message.includes(process.env.PAYPAL_CLIENT_SECRET || 'SECRET_SHOULD_NOT_LEAK'));
+        return true;
+      });
+    } finally {
+      restoreFetch();
+    }
   });
 
   // --- 6. Live HTTP Endpoint Tests ---
@@ -207,7 +530,7 @@ async function runAllTests() {
   });
 
   async function httpReq(path, method = 'GET', body = null) {
-    const res = await fetch(`http://localhost:${TEST_PORT}${path}`, {
+    const res = await originalFetch(`http://localhost:${TEST_PORT}${path}`, {
       method,
       headers: { 'Content-Type': 'application/json' },
       body: body ? JSON.stringify(body) : null
@@ -225,11 +548,17 @@ async function runAllTests() {
     assert.ok(res.text.includes('Find Your Style. Shop Smarter.'));
   });
 
-  await testAsync('GET /api/config returns shipping rules & provider status', async () => {
+  await testAsync('GET /api/config returns config, verified currency, and NEVER leaks PAYPAL_CLIENT_SECRET', async () => {
     const res = await httpReq('/api/config');
     assert.strictEqual(res.status, 200);
     assert.strictEqual(res.json.free_shipping_threshold, 2000);
     assert.strictEqual(res.json.standard_shipping_fee, 150);
+    assert.strictEqual(res.json.paypal_currency, 'USD');
+    assert.strictEqual(res.json.client_secret, undefined);
+    assert.strictEqual(res.json.paypal_client_secret, undefined);
+
+    const serialized = JSON.stringify(res.json);
+    assert.ok(!serialized.includes(process.env.PAYPAL_CLIENT_SECRET), 'Secret MUST NOT leak in /api/config');
   });
 
   await testAsync('GET /api/products returns 24 products', async () => {
@@ -247,31 +576,98 @@ async function runAllTests() {
     assert.ok(res.json.recommendations.length > 0);
   });
 
-  await testAsync('POST /api/paypal/create-order and /api/paypal/demo-simulate completes order', async () => {
-    const createRes = await httpReq('/api/paypal/create-order', 'POST', {
-      items: [{ id: 'cyber-shell-black', size: 'L', color: 'Onyx', quantity: 2 }],
-      shipping_address: {
-        name: 'Integration Test User',
-        email: 'test@agentcart.ai',
-        address: '100 Outer Ring Road',
-        city: 'Bengaluru',
-        state: 'Karnataka',
-        postal_code: '560103'
-      }
-    });
+  await testAsync('POST /api/paypal/create-order and /api/paypal/capture-order complete full order flow', async () => {
+    setupMockPayPalSandbox();
+    try {
+      const createRes = await httpReq('/api/paypal/create-order', 'POST', {
+        items: [{ id: 'cyber-shell-black', size: 'L', color: 'Onyx', quantity: 2 }],
+        shipping_address: {
+          name: 'Integration Test User',
+          email: 'test@agentcart.ai',
+          address: '100 Outer Ring Road',
+          city: 'Bengaluru',
+          state: 'Karnataka',
+          postal_code: '560103'
+        }
+      });
 
-    assert.strictEqual(createRes.status, 200);
-    assert.ok(createRes.json.success);
-    const orderId = createRes.json.order.id;
-    assert.strictEqual(createRes.json.order.subtotal, 1999 * 2);
+      assert.strictEqual(createRes.status, 200);
+      assert.ok(createRes.json.success);
+      const localOrderId = createRes.json.order_id;
+      const paypalOrderId = createRes.json.paypal_order_id;
+      assert.strictEqual(createRes.json.order.subtotal, 1999 * 2);
 
-    const simRes = await httpReq('/api/paypal/demo-simulate', 'POST', { order_id: orderId });
+      const captureRes = await httpReq('/api/paypal/capture-order', 'POST', {
+        order_id: localOrderId,
+        paypal_order_id: paypalOrderId
+      });
+
+      assert.strictEqual(captureRes.status, 200);
+      assert.ok(captureRes.json.success);
+      assert.strictEqual(captureRes.json.status, 'PAID');
+      assert.ok(captureRes.json.paypal_capture_id);
+
+      // Verify order receipt via GET /api/orders/:id
+      const receiptRes = await httpReq(`/api/orders/${localOrderId}`);
+      assert.strictEqual(receiptRes.status, 200);
+      assert.strictEqual(receiptRes.json.order.status, 'PAID');
+      assert.strictEqual(receiptRes.json.order.payment_id, captureRes.json.paypal_capture_id);
+    } finally {
+      restoreFetch();
+    }
+  });
+
+  await testAsync('POST /api/paypal/cancel-order updates status to CANCELLED', async () => {
+    setupMockPayPalSandbox();
+    try {
+      const createRes = await httpReq('/api/paypal/create-order', 'POST', {
+        items: [{ id: 'cobalt-storm-shield', size: 'M', color: 'Blue', quantity: 1 }],
+        shipping_address: {
+          name: 'Cancel Endpoint User',
+          email: 'cancel@agentcart.ai',
+          address: '200 Outer Ring Road',
+          city: 'Bengaluru',
+          state: 'Karnataka',
+          postal_code: '560103'
+        }
+      });
+
+      assert.strictEqual(createRes.status, 200);
+      const localOrderId = createRes.json.order_id;
+
+      const cancelRes = await httpReq('/api/paypal/cancel-order', 'POST', {
+        order_id: localOrderId
+      });
+
+      assert.strictEqual(cancelRes.status, 200);
+      assert.strictEqual(cancelRes.json.status, 'CANCELLED');
+    } finally {
+      restoreFetch();
+    }
+  });
+
+  await testAsync('POST /api/paypal/demo-simulate completes fallback offline order', async () => {
+    const shipping = {
+      name: 'Demo User',
+      email: 'demo@agentcart.ai',
+      address: '300 Outer Ring Road',
+      city: 'Bengaluru',
+      state: 'Karnataka',
+      postal_code: '560103'
+    };
+    const order = paypal.validateAndCalculateOrder([{ id: 'obsidian-tactical-bomber', quantity: 1 }], shipping);
+
+    const simRes = await httpReq('/api/paypal/demo-simulate', 'POST', { order_id: order.id });
     assert.strictEqual(simRes.status, 200);
     assert.ok(simRes.json.success);
     assert.strictEqual(simRes.json.order.status, 'PAID_DEMO_TEST');
   });
 
-  await new Promise(resolve => testServer.close(resolve));
+  await new Promise(resolve => {
+    testServer.closeIdleConnections();
+    testServer.close(resolve);
+  });
+  await new Promise(resolve => setTimeout(resolve, 80));
   try {
     db.getDb().close();
   } catch (e) {}
@@ -279,6 +675,10 @@ async function runAllTests() {
   console.log(`\n========================================`);
   console.log(`🏁 Test Results: ${passed}/${total} passed (${((passed/total)*100).toFixed(1)}%)`);
   console.log(`========================================\n`);
+
+  if (passed !== total) {
+    process.exit(1);
+  }
 }
 
 runAllTests().catch(err => {

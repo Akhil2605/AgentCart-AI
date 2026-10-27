@@ -250,21 +250,42 @@ function createOrder(orderData, items) {
 
 function updateOrderStatus(orderId, status, paymentId = null) {
   const db = getDb();
+  const existing = getOrderById(orderId);
+  if (!existing) {
+    throw new Error(`Order ${orderId} not found.`);
+  }
   const stmt = db.prepare(`
     UPDATE orders 
     SET status = ?, payment_id = COALESCE(?, payment_id), updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
   `);
-  stmt.run(status, paymentId, orderId);
-  return getOrderById(orderId);
+  stmt.run(status, paymentId, existing.id);
+  return getOrderById(existing.id);
 }
 
 function getOrderById(orderId) {
+  if (!orderId) return null;
   const db = getDb();
-  const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
+  let order = db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
+  if (!order) {
+    order = db.prepare('SELECT * FROM orders WHERE provider_order_id = ?').get(orderId);
+  }
   if (!order) return null;
 
-  const items = db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(orderId);
+  const items = db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(order.id);
+  return {
+    ...order,
+    items
+  };
+}
+
+function getOrderByProviderOrderId(providerOrderId) {
+  if (!providerOrderId) return null;
+  const db = getDb();
+  const order = db.prepare('SELECT * FROM orders WHERE provider_order_id = ?').get(providerOrderId);
+  if (!order) return null;
+
+  const items = db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(order.id);
   return {
     ...order,
     items
@@ -278,5 +299,6 @@ module.exports = {
   getProductById,
   createOrder,
   updateOrderStatus,
-  getOrderById
+  getOrderById,
+  getOrderByProviderOrderId
 };

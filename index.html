@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AgentCart AI — Your Personal AI Jacket Shopper | Find Your Style. Shop Smarter.</title>
+  <meta name="description" content="Discover premium futuristic outerwear engineered for extreme elements. Grounded AI recommendations, interactive comparisons, and seamless checkout.">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  
+  <!-- Main Stylesheet -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- 1. ANNOUNCEMENT BAR -->
+  <div class="announcement-bar">
+    <strong>⚡ AgentCart AI v2.4 Live</strong> · Free Express Shipping on orders over ₹2,000 · PayPal Sandbox Ready
+    <span class="pill-badge">Test Mode Active</span>
+  </div>
+
+  <!-- 2. STICKY NAVBAR -->
+  <header class="site-header" id="siteHeader">
+    <div class="container">
+      <div class="nav-row">
+        <!-- Brand Logo -->
+        <a href="#" class="brand-logo" aria-label="AgentCart AI Homepage">
+          <div class="brand-icon">
+            <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+          </div>
+          <div class="brand-text">AgentCart <span>AI</span></div>
+        </a>
+
+        <!-- Desktop Navigation Links -->
+        <nav class="nav-links" aria-label="Primary Navigation">
+          <a href="#catalogue" class="nav-link active">Jackets</a>
+          <a href="#aiAssistant" class="nav-link">AI Stylist</a>
+          <a href="#comparison" class="nav-link" id="navCompareLink">Compare <span class="badge-count" id="navCompareCount" style="display:none">0</span></a>
+          <a href="#materials" class="nav-link">Materials & Tech</a>
+          <a href="#reviews" class="nav-link">Reviews</a>
+        </nav>
+
+        <!-- Right Header Actions -->
+        <div class="nav-actions">
+          <button class="nav-btn primary" id="headerAiBtn" aria-label="Launch AI Stylist">
+            <svg viewBox="0 0 24 24"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3z"/></svg>
+            <span>Ask AI</span>
+          </button>
+          
+          <button class="nav-btn" id="headerCartBtn" aria-label="View Cart">
+            <svg viewBox="0 0 24 24"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+            <span class="badge-count" id="headerCartCount">0</span>
+          </button>
+
+          <button class="mobile-toggle" id="mobileMenuToggle" aria-label="Toggle mobile menu">
+            <svg viewBox="0 0 24 24"><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- 3. HERO CINEMATIC SECTION -->
+    <section class="hero-section" id="hero">
+      <div class="hero-glow-sphere"></div>
+      <div class="container">
+        <div class="hero-grid">
+          <!-- Left Content -->
+          <div class="hero-content">
+            <div class="hero-badge">
+              <i></i> NEXT-GEN TECHNICAL OUTERWEAR
+            </div>
+            <h1 class="hero-title">
+              Find Your Style. <br>
+              <span class="gradient-text">Shop Smarter with AI.</span>
+            </h1>
+            <p class="hero-desc">
+              Experience technical jackets engineered for unyielding weather defense. From 28,000mm stormbreakers to featherlight packable windrunners, our AI assistant tailors recommendations strictly to your budget, size, and styling needs.
+            </p>
+            <div class="hero-cta-group">
+              <a href="#catalogue" class="btn-hero-primary">
+                <span>Explore 24 Styles</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
+              </a>
+              <button class="btn-hero-secondary" id="heroTryAiBtn">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3z"/></svg>
+                <span>Launch AI Stylist</span>
+              </button>
+            </div>
+            <!-- Spec Highlights -->
+            <div class="hero-specs-row">
+              <div class="hero-spec-item">
+                <span class="hero-spec-val">28,000 mm</span>
+                <span class="hero-spec-label">Peak Waterproof Tech</span>
+              </div>
+              <div class="hero-spec-item">
+                <span class="hero-spec-val">₹2,000</span>
+                <span class="hero-spec-label">Free Delivery Threshold</span>
+              </div>
+              <div class="hero-spec-item">
+                <span class="hero-spec-val">10 Styles</span>
+                <span class="hero-spec-label">Distinct Outerwear Categories</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Showcase Stage -->
+          <div class="hero-card-wrap">
+            <div class="hero-jacket-stage" id="heroStageCard">
+              <img src="assets/images/jackets/cyber-shell-black.png" alt="CyberShell Pro Stormbreaker Technical Outerwear" class="hero-jacket-img" id="heroJacketImg">
+              <div class="hero-floating-badge">
+                <div>
+                  <div class="hero-flagship-title">CyberShell Pro Stormbreaker</div>
+                  <div class="hero-flagship-meta">3-Layer Ripstop · Waterproof 28,000mm</div>
+                </div>
+                <div>
+                  <div class="hero-flagship-price">₹1,999</div>
+                  <button class="btn-card-add" id="heroQuickAddBtn" data-id="cyber-shell-black">Quick Add</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. SPOTLIGHT STRIP -->
+    <div class="spotlight-bar">
+      <div class="container">
+        <div class="spotlight-items">
+          <div class="spotlight-box">
+            <div class="spotlight-icon">
+              <svg viewBox="0 0 24 24"><path d="M2 7h11v9H2zM13 10h4l3 3v3h-7"/><circle cx="7" cy="17.5" r="1.7"/><circle cx="17" cy="17.5" r="1.7"/></svg>
+            </div>
+            <div>
+              <div class="spotlight-title">Free Express Delivery</div>
+              <div class="spotlight-sub">On all orders above ₹2,000 across India</div>
+            </div>
+          </div>
+
+          <div class="spotlight-box">
+            <div class="spotlight-icon">
+              <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
+            <div>
+              <div class="spotlight-title">Technical Weather Shield</div>
+              <div class="spotlight-sub">Seam-sealed membranes & YKK AquaGuard®</div>
+            </div>
+          </div>
+
+          <div class="spotlight-box">
+            <div class="spotlight-icon">
+              <svg viewBox="0 0 24 24"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3z"/></svg>
+            </div>
+            <div>
+              <div class="spotlight-title">Grounded AI Stylist</div>
+              <div class="spotlight-sub">Natural language recommendations matching real inventory</div>
+            </div>
+          </div>
+
+          <div class="spotlight-box">
+            <div class="spotlight-icon">
+              <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+            </div>
+            <div>
+              <div class="spotlight-title">PayPal Sandbox Ready</div>
+              <div class="spotlight-sub">Server-verified test purchases & instant receipts</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. PRODUCT CATALOGUE SECTION -->
+    <section class="catalogue-section" id="catalogue">
+      <div class="container">
+        <div class="catalogue-header">
+          <div class="section-head-row">
+            <div>
+              <h2 class="section-title">Outerwear Collection</h2>
+              <p class="section-subtitle">24 precision-tailored jackets engineered for performance, city commute, and alpine storms.</p>
+            </div>
+            <button class="nav-btn" id="resetFiltersTopBtn">Reset Filters</button>
+          </div>
+
+          <!-- Filter & Search Controls Bar -->
+          <div class="filter-bar">
+            <!-- Search & Sort Row -->
+            <div class="search-sort-row">
+              <div class="search-field">
+                <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="search" id="searchInput" placeholder="Search jackets by name, color, material, specs…" aria-label="Search jackets">
+              </div>
+
+              <div class="sort-select-wrap">
+                <select id="sortSelect" class="sort-select" aria-label="Sort products">
+                  <option value="featured">Featured First</option>
+                  <option value="price-asc">Price: Low to High</option>
+                  <option value="price-desc">Price: High to Low</option>
+                  <option value="name-asc">Name: A to Z</option>
+                  <option value="rating-desc">Highest Rated</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Category Chips -->
+            <div class="category-chips" id="categoryChips" role="tablist" aria-label="Filter by category">
+              <button class="chip-btn active" data-cat="All">All Jackets</button>
+              <button class="chip-btn" data-cat="Technical Windbreakers">Technical Windbreakers</button>
+              <button class="chip-btn" data-cat="Lightweight Rain Jackets">Lightweight Rain</button>
+              <button class="chip-btn" data-cat="Bomber Jackets">Bomber Jackets</button>
+              <button class="chip-btn" data-cat="Denim Jackets">Denim Jackets</button>
+              <button class="chip-btn" data-cat="Puffer Jackets">Puffer Jackets</button>
+              <button class="chip-btn" data-cat="Hooded Jackets">Hooded Jackets</button>
+              <button class="chip-btn" data-cat="Casual Everyday Jackets">Casual Everyday</button>
+              <button class="chip-btn" data-cat="Sports and Outdoor Jackets">Sports & Outdoor</button>
+              <button class="chip-btn" data-cat="Minimalist Urban Jackets">Minimalist Urban</button>
+              <button class="chip-btn" data-cat="Insulated Winter Jackets">Insulated Winter</button>
+            </div>
+
+            <!-- Secondary Filters: Size & Price Slider -->
+            <div class="secondary-filters-row">
+              <div class="size-chips-group">
+                <span class="size-filter-label">Size:</span>
+                <button class="size-btn" data-size="XS">XS</button>
+                <button class="size-btn" data-size="S">S</button>
+                <button class="size-btn" data-size="M">M</button>
+                <button class="size-btn" data-size="L">L</button>
+                <button class="size-btn" data-size="XL">XL</button>
+                <button class="size-btn" data-size="XXL">XXL</button>
+              </div>
+
+              <div class="price-filter-group">
+                <span class="size-filter-label">Max Price:</span>
+                <input type="range" id="priceRange" class="price-range-slider" min="1400" max="5000" step="100" value="5000">
+                <span id="priceRangeVal" style="font-weight:700; color:#fff; min-width: 60px;">₹5,000</span>
+              </div>
+
+              <button class="btn-clear-filters" id="clearAllFiltersBtn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                <span>Clear All</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Results Metadata Bar -->
+          <div class="results-meta-bar">
+            <div>Showing <strong id="productCount">24</strong> jackets</div>
+            <div style="font-size: 0.75rem;">Prices in Indian Rupees (₹) · Sample demo data</div>
+          </div>
+        </div>
+
+        <!-- Product Cards Grid -->
+        <div class="product-grid" id="productGrid" aria-live="polite">
+          <!-- Populated dynamically via app.js -->
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. DEDICATED AI SHOPPING ASSISTANT SECTION -->
+    <section class="ai-assistant-section" id="aiAssistant">
+      <div class="container">
+        <div class="ai-assistant-card">
+          <!-- Chat Header Bar -->
+          <div class="ai-header-bar">
+            <div class="ai-header-title-wrap">
+              <div class="ai-avatar">
+                <svg viewBox="0 0 24 24"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3z"/></svg>
+              </div>
+              <div>
+                <h3 style="font-size: 1.05rem; font-weight: 800;">AgentCart AI Personal Stylist</h3>
+                <p style="font-size: 0.75rem; color: var(--text-muted);">Grounded in genuine catalog inventory · Budget & Fit Analysis</p>
+              </div>
+            </div>
+
+            <div id="aiStatusPill" class="ai-status-pill">
+              <i></i> <span id="aiStatusText">AI Stylist Ready</span>
+            </div>
+          </div>
+
+          <!-- Chat Body Reel -->
+          <div class="ai-chat-body" id="aiChatBody">
+            <div class="chat-bubble ai">
+              Hello! I'm your AgentCart AI Outerwear Concierge. Tell me what kind of jacket you're looking for, your budget, preferred color, size, and intended use.
+              <div style="margin-top: 8px; font-size: 0.8rem; color: var(--accent-cyan);">
+                Try typing: "Find me a black waterproof-style jacket under ₹2,000 in size M for everyday use"
+              </div>
+            </div>
+          </div>
+
+          <!-- Suggested Quick Prompt Pills -->
+          <div class="chat-suggestions-bar">
+            <button class="suggestion-pill" data-prompt="Find me a black waterproof-style jacket under ₹2,000 in size M for everyday use">
+              ⚡ Black waterproof under ₹2,000 (M)
+            </button>
+            <button class="suggestion-pill" data-prompt="Recommend the warmest insulated down parka for sub-zero winter temperatures">
+              ❄️ Warmest winter down parka
+            </button>
+            <button class="suggestion-pill" data-prompt="Show me lightweight packable rain jackets for daily city commuting">
+              🌧️ Lightweight packable rain jackets
+            </button>
+            <button class="suggestion-pill" data-prompt="Compare CyberShell Stormbreaker and Alpine Shift for outdoor hiking">
+              ⚖️ Compare CyberShell vs Alpine Shift
+            </button>
+          </div>
+
+          <!-- Chat Input Form -->
+          <form class="ai-input-form" id="aiInputForm">
+            <input type="text" id="aiPromptInput" class="ai-input-field" placeholder="Ask your personal AI stylist (e.g. 'Jacket under ₹2,500 in size L with deep pockets')..." autocomplete="off" aria-label="AI shopping request">
+            <button type="submit" class="btn-ai-send" id="aiSendBtn" aria-label="Send message to AI">
+              <svg viewBox="0 0 24 24"><path d="m5 12 14-7-7 14-2-5-5-2z"/></svg>
+            </button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7. TECHNICAL MATERIALS & QUALITY SECTION -->
+    <section class="materials-section" id="materials">
+      <div class="container">
+        <div style="text-align: center; max-width: 680px; margin: 0 auto;">
+          <h2 class="section-title">Engineered For The Elements</h2>
+          <p class="section-subtitle">Every jacket in our collection is crafted with laboratory-grade weather barriers, welded seams, and high-tenacity ripstop fabrics.</p>
+        </div>
+
+        <div class="materials-grid">
+          <div class="material-card">
+            <div class="material-icon-box">
+              <svg viewBox="0 0 24 24"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+            </div>
+            <h3>28,000mm Hydrostatic Head</h3>
+            <p>Our flagship storm membranes repel monsoon deluges and driving snow while remaining fully breathable to prevent internal condensation.</p>
+          </div>
+
+          <div class="material-card">
+            <div class="material-icon-box">
+              <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
+            <h3>YKK AquaGuard® Sealing</h3>
+            <p>Polyurethane-laminated water-repellent zippers ensure zero water ingress across chest compartments, pit vents, and main closures.</p>
+          </div>
+
+          <div class="material-card">
+            <div class="material-icon-box">
+              <svg viewBox="0 0 24 24"><path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 0 1-2.827 0l-4.244-4.243a8 8 0 1 1 11.314 0z"/></svg>
+            </div>
+            <h3>800-Fill AeroTherm™ Down</h3>
+            <p>Hydrophobic down clusters treated with fluorocarbon-free water repellents retain high loft and warmth even in high humidity and drizzle.</p>
+          </div>
+
+          <div class="material-card">
+            <div class="material-icon-box">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24M14.83 9.17l4.24-4.24M14.83 14.83l4.24 4.24M9.17 14.83l-4.24 4.24"/></svg>
+            </div>
+            <h3>Ultrasonic Welded Seams</h3>
+            <p>Molecular bonding replaces traditional needle punctures along critical stress zones, eliminating stitch friction and seam blowout.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 8. CUSTOMER REVIEWS (SAMPLE DEMO) -->
+    <section class="reviews-section" id="reviews">
+      <div class="container">
+        <div style="text-align: center; max-width: 640px; margin: 0 auto;">
+          <h2 class="section-title">Field Tested. Commuter Approved.</h2>
+          <p class="section-subtitle">Real feedback from verified adventurers, urban cyclists, and tech professionals.</p>
+        </div>
+
+        <div class="reviews-grid">
+          <div class="review-card">
+            <div class="review-stars-row">★★★★★</div>
+            <p class="review-quote">"The CyberShell Stormbreaker kept me completely bone-dry during torrential monsoon rains in Bengaluru. The YKK zips and underarm vents are incredible."</p>
+            <div class="review-author-meta">
+              <div class="review-author-avatar">AK</div>
+              <div>
+                <div class="review-author-name">Arjun Krishnamurthy</div>
+                <div class="review-author-city">Bengaluru · Verified Buyer</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="review-card">
+            <div class="review-stars-row">★★★★★</div>
+            <p class="review-quote">"I used the AI shopping prompt asking for a lightweight jacket under ₹2,000 for city biking, and it recommended the Veloce Softshell. Spot on fit and finish!"</p>
+            <div class="review-author-meta">
+              <div class="review-author-avatar">PS</div>
+              <div>
+                <div class="review-author-name">Pooja Sharma</div>
+                <div class="review-author-city">Pune · Verified Buyer</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="review-card">
+            <div class="review-stars-row">★★★★★</div>
+            <p class="review-quote">"The Alpine Shift Hardshell in white is pure cyberpunk aesthetics. Lightweight, zero crinkle noise, and folds tiny into my commuter pack."</p>
+            <div class="review-author-meta">
+              <div class="review-author-avatar">RD</div>
+              <div>
+                <div class="review-author-name">Rohan Deshmukh</div>
+                <div class="review-author-city">Mumbai · Verified Buyer</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="review-card">
+            <div class="review-stars-row">★★★★★</div>
+            <p class="review-quote">"Arctic Expedition 800 Down saved me during my Ladakh winter trek at -18°C. Thermal insulation without feeling like a bulky sleeping bag."</p>
+            <div class="review-author-meta">
+              <div class="review-author-avatar">SN</div>
+              <div>
+                <div class="review-author-name">Sameer Nair</div>
+                <div class="review-author-city">Delhi · Verified Buyer</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="review-demo-disclaimer">
+          * Notice: The customer testimonials above are illustrative sample/demo reviews created for testing and demonstration purposes.
+        </div>
+      </div>
+    </section>
+
+    <!-- 9. STYLE UPDATES / NEWSLETTER -->
+    <section class="newsletter-section">
+      <div class="container">
+        <div class="newsletter-card">
+          <h2>Stay Ahead of the Weather</h2>
+          <p>Receive exclusive alerts on seasonal technical drops, prototype outer-shell previews, and private styling drops.</p>
+          <form class="newsletter-form" id="newsletterForm">
+            <input type="email" class="newsletter-input" id="newsletterEmail" placeholder="Enter your email address" required aria-label="Email address for style updates">
+            <button type="submit" class="btn-newsletter-sub">Get Drops</button>
+          </form>
+          <div class="newsletter-disclaimer">
+            Demo notice: Subscriptions are acknowledged locally for demonstration without external data collection.
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- 10. FOOTER -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-col">
+          <div class="brand-logo" style="margin-bottom: 12px;">
+            <div class="brand-icon">
+              <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+            </div>
+            <div class="brand-text">AgentCart <span>AI</span></div>
+          </div>
+          <p style="color: var(--text-muted); line-height: 1.6; max-width: 320px;">
+            Your personal AI jacket shopper. Grounded in weather engineering, tailored to your budget and fit.
+          </p>
+        </div>
+
+        <div class="footer-col">
+          <h4>Collection</h4>
+          <ul>
+            <li><a href="#catalogue">Technical Windbreakers</a></li>
+            <li><a href="#catalogue">Lightweight Rain Shells</a></li>
+            <li><a href="#catalogue">Aero Bombers</a></li>
+            <li><a href="#catalogue">Down Puffers & Parkas</a></li>
+            <li><a href="#catalogue">Urban Minimalist Coats</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h4>Technology</h4>
+          <ul>
+            <li><a href="#aiAssistant">AI Jacket Concierge</a></li>
+            <li><a href="#comparison">Side-by-Side Comparison</a></li>
+            <li><a href="#materials">GORE-TEX & StormGrid™</a></li>
+            <li><a href="#materials">Hydrophobic Down Specs</a></li>
+            <li><a href="#">PayPal Sandbox Testing</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h4>Customer Care</h4>
+          <ul>
+            <li><a href="#">Free Shipping Policy (₹2,000+)</a></li>
+            <li><a href="#">Size & Fit Guide</a></li>
+            <li><a href="#">Returns & Exchanges</a></li>
+            <li><a href="#">Developer API Docs</a></li>
+            <li><a href="#">Demo Disclosures</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom-row">
+        <div>© 2026 AgentCart AI Outerwear Inc. All rights reserved.</div>
+        <div>Sample Pricing in INR (₹) · Fictional Brand Demo · PayPal Sandbox Integration</div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ==========================================================================
+       MODALS & FLOATING CONTROLS
+       ========================================================================== -->
+
+  <!-- A. PRODUCT DETAILS MODAL -->
+  <div class="modal-backdrop" id="productModal" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal-content-box" id="productModalContent">
+      <button class="modal-close-btn" id="modalCloseBtn" aria-label="Close product details">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+
+      <div class="modal-grid">
+        <!-- Image stage -->
+        <div class="modal-img-stage">
+          <img src="" alt="" id="modalImg">
+        </div>
+
+        <!-- Details -->
+        <div class="modal-details-col">
+          <div class="modal-cat-tag" id="modalCategory">Category</div>
+          <h2 class="modal-product-title" id="modalTitle">Product Title</h2>
+          
+          <div class="modal-price-row">
+            <span class="modal-price-current" id="modalPrice">₹0</span>
+            <span class="modal-price-orig" id="modalOrigPrice">₹0</span>
+            <span class="card-discount-badge" id="modalDiscountBadge">-25% OFF</span>
+          </div>
+
+          <p class="modal-desc" id="modalDesc">Detailed description...</p>
+
+          <!-- Color Swatches -->
+          <div class="modal-option-label">Available Colorways:</div>
+          <div class="modal-swatches-row" id="modalSwatches"></div>
+
+          <!-- Size Selector -->
+          <div class="modal-option-label">Select Size:</div>
+          <div class="modal-sizes-row" id="modalSizes"></div>
+          <div class="modal-stock-indicator" id="modalStockStatus">In Stock (12 units)</div>
+
+          <!-- Actions -->
+          <div class="modal-actions-row">
+            <div class="modal-qty-control">
+              <button class="modal-qty-btn" id="modalQtyMinus" aria-label="Decrease quantity">−</button>
+              <span id="modalQtyVal" style="font-weight: 800; min-width: 20px; text-align: center;">1</span>
+              <button class="modal-qty-btn" id="modalQtyPlus" aria-label="Increase quantity">+</button>
+            </div>
+
+            <button class="btn-modal-add" id="modalAddToCartBtn">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+              <span>Add to Cart</span>
+            </button>
+
+            <button class="btn-card-compare" id="modalCompareToggleBtn" aria-label="Compare jacket">
+              <svg viewBox="0 0 24 24"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- B. PRODUCT COMPARISON MODAL -->
+  <div class="modal-backdrop" id="compareModal" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="compare-modal-box">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 14px;">
+        <h2 style="font-size: 1.4rem; font-weight: 800;">Side-by-Side Outerwear Comparison</h2>
+        <button class="modal-close-btn" id="compareModalCloseBtn" aria-label="Close comparison">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <p style="font-size: 0.82rem; color: var(--text-muted);">Comparing technical specifications, waterproof ratings, materials, and pricing.</p>
+
+      <div style="overflow-x: auto;">
+        <table class="compare-table" id="compareTable">
+          <!-- Dynamically generated in app.js -->
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- C. CHECKOUT MODAL (PAYPAL SANDBOX) -->
+  <div class="modal-backdrop" id="checkoutModal" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="checkout-modal-box">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px;">
+        <h3 class="checkout-step-title" style="margin-bottom:0;">
+          <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Secure PayPal Sandbox Checkout
+        </h3>
+        <button class="modal-close-btn" id="checkoutCloseBtn" aria-label="Close checkout">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 20px;">
+        Order totals are calculated securely on the server using trusted catalog pricing.
+      </p>
+
+      <!-- Shipping Form -->
+      <form id="shippingForm">
+        <div class="checkout-form-grid">
+          <div class="checkout-input-group form-full-col">
+            <label for="shipName">Full Name *</label>
+            <input type="text" id="shipName" class="checkout-input" required placeholder="e.g. Rahul Sharma" value="Rahul Sharma">
+          </div>
+
+          <div class="checkout-input-group form-full-col">
+            <label for="shipEmail">Email Address *</label>
+            <input type="email" id="shipEmail" class="checkout-input" required placeholder="name@example.com" value="rahul.sharma@example.com">
+          </div>
+
+          <div class="checkout-input-group form-full-col">
+            <label for="shipAddress">Street Address *</label>
+            <input type="text" id="shipAddress" class="checkout-input" required placeholder="Flat / Building / Street" value="402 Cyber Tech Residences, Indiranagar">
+          </div>
+
+          <div class="checkout-input-group">
+            <label for="shipCity">City *</label>
+            <input type="text" id="shipCity" class="checkout-input" required value="Bengaluru">
+          </div>
+
+          <div class="checkout-input-group">
+            <label for="shipState">State *</label>
+            <input type="text" id="shipState" class="checkout-input" required value="Karnataka">
+          </div>
+
+          <div class="checkout-input-group">
+            <label for="shipPostal">PIN Code *</label>
+            <input type="text" id="shipPostal" class="checkout-input" required value="560038">
+          </div>
+
+          <div class="checkout-input-group">
+            <label for="shipPhone">Phone Number</label>
+            <input type="tel" id="shipPhone" class="checkout-input" placeholder="+91 98765 43210" value="+91 98765 43210">
+          </div>
+        </div>
+
+        <!-- Summary -->
+        <div class="checkout-summary-card">
+          <div class="checkout-summary-row">
+            <span>Subtotal</span>
+            <span id="checkoutSubtotal">₹0</span>
+          </div>
+          <div class="checkout-summary-row">
+            <span>Delivery Fee (Free over ₹2,000)</span>
+            <span id="checkoutDelivery">Free</span>
+          </div>
+          <div class="checkout-summary-row total">
+            <span>Verified Server Total</span>
+            <span id="checkoutTotal">₹0</span>
+          </div>
+        </div>
+
+        <!-- PayPal Container / Demo Guidance -->
+        <div id="paypalContainerWrap">
+          <div class="paypal-demo-guidance" id="paypalGuidance">
+            <strong>ℹ️ PayPal Sandbox Test Mode</strong><br>
+            To link your official PayPal Sandbox merchant account, set <code>PAYPAL_CLIENT_ID</code> and <code>PAYPAL_CLIENT_SECRET</code> in <code>.env</code>. You can also execute a server-verified demo order right now to test the full SQLite ordering lifecycle!
+          </div>
+
+          <!-- Official PayPal Button Container -->
+          <div id="paypalButtonContainer" class="paypal-buttons-wrap"></div>
+
+          <!-- Offline / Demo Fallback Button -->
+          <button type="button" class="btn-demo-test-pay" id="btnDemoCheckout">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>
+            <span>Complete Verified Test Purchase (Demo Mode)</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- D. ORDER CONFIRMATION MODAL -->
+  <div class="modal-backdrop" id="confirmationModal" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal-content-box" style="width: min(540px, 95vw); padding: 32px;">
+      <div class="order-success-box">
+        <div class="success-check-icon">
+          <svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>
+        </div>
+        <h2 style="font-size: 1.5rem; font-weight: 800; margin-bottom: 6px;">Order Confirmed!</h2>
+        <p style="font-size: 0.85rem; color: var(--text-muted);" id="confOrderRef">Order Reference: ORD-12345</p>
+
+        <!-- Receipt Card -->
+        <div class="order-receipt-card" id="confReceiptCard">
+          <!-- Dynamically populated -->
+        </div>
+
+        <div style="font-size: 0.75rem; color: var(--text-dim); margin-bottom: 20px;">
+          Fulfillment: Dispatched from AgentCart Bengaluru Logistics Hub.<br>
+          Estimated Delivery: 2-3 Business Days.
+        </div>
+
+        <button class="btn-hero-primary" style="width: 100%; justify-content: center;" id="confDoneBtn">
+          Continue Shopping
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- E. FLOATING COMPARISON TRAY -->
+  <div class="compare-sticky-bar" id="compareStickyBar">
+    <div class="compare-thumbs-strip" id="compareThumbsStrip"></div>
+    <div>
+      <div style="font-size: 0.85rem; font-weight: 800;"><span id="compareCountVal">0</span> / 4 Selected</div>
+      <div style="font-size: 0.72rem; color: var(--accent-cyan);">Ready to compare</div>
+    </div>
+    <button class="btn-open-compare" id="btnLaunchCompare">Compare Now</button>
+  </div>
+
+  <!-- F. FLOATING CART PILL (PRESERVED & UPGRADED FROM APMC) -->
+  <button class="cart-floating-pill hide" id="cartPill" aria-label="View Cart">
+    <span class="cart-pill-stack" id="cartPillStack"></span>
+    <span class="cart-pill-tx">
+      <b>View Cart</b>
+      <small id="cartPillCount">0 items</small>
+    </span>
+    <span class="cart-pill-chev">
+      <svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>
+    </span>
+  </button>
+
+  <!-- G. CART DRAWER / PANEL (MORPHING APMC UPGRADE) -->
+  <section class="cart-drawer-panel" id="cartDrawer" hidden aria-label="Your Outerwear Cart">
+    <div class="cart-head">
+      <svg viewBox="0 0 24 24"><path d="M6 8h12l-1 12H7L6 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>
+      <b>Outerwear Cart</b>
+      <span class="cart-head-cnt" id="cartDrawerCount">0</span>
+      <button class="cart-close-x" id="cartCloseBtn" aria-label="Close cart">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <!-- Items Reel -->
+    <div class="cart-items-list" id="cartItemsList"></div>
+
+    <!-- Free Delivery Progress Bar -->
+    <div class="cart-delivery-status" id="cartDeliveryStatus">
+      <svg viewBox="0 0 24 24"><path d="M2 7h11v9H2zM13 10h4l3 3v3h-7"/><circle cx="7" cy="17.5" r="1.7"/><circle cx="17" cy="17.5" r="1.7"/></svg>
+      <span id="cartDeliveryText">Checking delivery eligibility…</span>
+      <div class="cart-delivery-bar" id="cartDeliveryBar"></div>
+    </div>
+
+    <!-- Financial Totals -->
+    <div class="cart-sum-row">
+      <span>Subtotal</span>
+      <span id="cartSubtotal" style="font-weight: 700; color: #fff;">₹0</span>
+    </div>
+    <div class="cart-sum-row">
+      <span>Express Delivery</span>
+      <span id="cartDeliveryFee">₹0</span>
+    </div>
+    <div class="cart-sum-row total-row">
+      <span>Final Total</span>
+      <strong id="cartFinalTotal">₹0</strong>
+    </div>
+
+    <button class="btn-cart-checkout" id="cartCheckoutBtn">
+      <span>Proceed to Checkout</span>
+      <span style="display:flex; align-items:center; gap:6px;">
+        <span id="checkoutBtnAmt">₹0</span>
+        <svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>
+      </span>
+    </button>
+  </section>
+
+  <!-- JavaScript Application Entry -->
+  <script src="app.js"></script>
+</body>
+</html>

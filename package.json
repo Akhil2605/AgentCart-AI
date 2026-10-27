@@ -1,0 +1,19 @@
+{
+  "name": "agentcart-ai",
+  "version": "1.0.0",
+  "description": "AgentCart AI — Your Personal AI Jacket Shopper",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "seed": "node server/seed.js",
+    "test": "node tests/run_tests.js"
+  },
+  "keywords": ["ai", "ecommerce", "outerwear", "jackets", "paypal", "gemini"],
+  "author": "AgentCart AI Team",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2"
+  }
+}

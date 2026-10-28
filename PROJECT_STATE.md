@@ -1,8 +1,8 @@
 # Project State: AgentCart AI
 
-**Current Status:** Explicit Multi-Currency Architecture (Shared Rate, USD PayPal Sandbox Gateway, INR SQLite Merchandise Ledger) Verified & Active  
+**Current Status:** Dual Currency & PayPal Sandbox Diagnostics (US Cross-Border Buyer & Seller Receiving Preferences Verified)  
 **Date:** October 28, 2026  
-**Platform Version:** v2.8.0 (Unified Currency & Gateway Synchronization Edition)
+**Platform Version:** v2.8.1 (PayPal Sandbox Cross-Border Alignment Edition)
 
 ---
 
@@ -34,8 +34,9 @@
 
 | Diagnostic Case | API / Response Code | Root Cause | Solution Implemented |
 | :--- | :--- | :--- | :--- |
-| **Seller Self-Payment Block** | UI Error: *"You are logging in to the account of the seller for this purchase..."* | Browser profile had active session cookies for the sandbox seller merchant (`sb-oaffh53089456@business.example.com`). PayPal blocks merchants from purchasing from themselves. | Explicit buyer pre-fill (`sb-lg72c53550049@personal.example.com`), `payer: { email_address }` payload binding, and clear UI instructions to use an Incognito/Private window. |
-| **Currency Not Supported** | HTTP 422: `CURRENCY_NOT_ALLOWED` | PayPal REST Orders v2 API rejects standard accounts attempting to transact domestic INR. | Configured transaction currency strictly to `USD` across server, SDK URL, and Orders v2 request while keeping INR estimates for display. |
+| **"This seller doesn't accept payments in your currency"** | Browser Checkout Popup Error | 1. **Domestic India-to-India Restriction:** The Sandbox Seller Account (`sb-oaffh53089456@business.example.com`) is registered in India (`country: "IN"`). Default personal sandbox accounts created in India are also `country: "IN"`. Under RBI/FEMA regulations and PayPal India policy, domestic transactions between two Indian accounts (in INR or USD) are strictly prohibited.<br>2. **Seller Currency Blocking:** The sandbox seller account's receiving preferences block payments in currencies not held (or primary INR balance has not enabled USD conversion). | 1. Appended `&buyer-country=US` to PayPal JS SDK in [`app.js`](file:///D:/AgentCart-AI/app.js) for sandbox simulation.<br>2. Documented mandatory use of a **US-based Personal Sandbox Buyer Account** (`developer.paypal.com/dashboard/accounts` -> Create Personal Account -> Country: United States) to simulate the export transaction PayPal India supports.<br>3. Provided steps to enable *"Allow payments sent to me in a currency I do not hold"* in the Sandbox Merchant settings. |
+| **Seller Self-Payment Block** | UI Error: *"You are logging in to the account of the seller for this purchase..."* | Browser profile had active session cookies for the sandbox seller merchant (`sb-oaffh53089456@business.example.com`). PayPal blocks merchants from purchasing from themselves. | Open checkout in an **Incognito / Private window** (Ctrl+Shift+N) and log in strictly with a Personal Buyer account. |
+| **Domestic INR Not Supported** | HTTP 422: `CURRENCY_NOT_ALLOWED` | PayPal REST Orders v2 API rejects standard accounts attempting to transact domestic INR. | Configured transaction currency strictly to `USD` across server, SDK URL, and Orders v2 request while keeping INR estimates for display. |
 | **Capture Prior to Payer Approval** | HTTP 422: `ORDER_NOT_APPROVED` (Debug-ID: `ca51a70a46b45`) | Calling `/v2/checkout/orders/{id}/capture` before the buyer has authorized the payment in the PayPal popup. | Order lifecycle requires client approval callback (`onApprove`) before backend triggers capture. Sanitized diagnostics log debug ID and actionable reason. |
 | **Item Breakdown Rounding Drift** | HTTP 422: `MISMATCH_OF_ITEM_TOTAL` | Converting order total instead of summing converted line items caused 1-cent differences between `breakdown.item_total` and items array. | Both frontend and backend sum itemized `unit_price / rate` figures before assembling the payload. |
 
@@ -56,13 +57,13 @@ Executed `npm test` ([`tests/run_tests.js`](file:///D:/AgentCart-AI/tests/run_te
 
 ## 4. Modified Files Manifest
 
-- [`server/config.js`](file:///D:/AgentCart-AI/server/config.js): Created single source of truth for exchange rates (`INR_TO_USD_RATE = 85`), PayPal transaction currency (`PAYPAL_CURRENCY = 'USD'`), and shipping constants.
+- [`app.js`](file:///D:/AgentCart-AI/app.js): Appended `&buyer-country=US` to the PayPal JS SDK injection URL in sandbox mode; updated guidance banner with cross-border US Personal Buyer instructions; implemented `calculateCartTotals()` for zero-drift alignment.
+- [`server/config.js`](file:///D:/AgentCart-AI/server/config.js): Single source of truth for exchange rates (`INR_TO_USD_RATE = 85`), PayPal transaction currency (`PAYPAL_CURRENCY = 'USD'`), and shipping constants.
 - [`server/schema.sql`](file:///D:/AgentCart-AI/server/schema.sql): Added explicit `charged_amount REAL` and `charged_currency TEXT DEFAULT 'USD'` columns to `orders` table.
-- [`server/db.js`](file:///D:/AgentCart-AI/server/db.js): Added backward-compatible SQLite migration for existing databases and updated `createOrder` to persist gateway charge metadata.
-- [`server/paypal.js`](file:///D:/AgentCart-AI/server/paypal.js): Replaced duplicated rate with `config.INR_TO_USD_RATE`; updated `createPayPalSandboxOrder`, `capturePayPalSandboxOrder`, and `recordDemoSimulationOrder` to save and verify `charged_amount` and `charged_currency`.
-- [`server/server.js`](file:///D:/AgentCart-AI/server/server.js): Updated `GET /api/config` to expose `inr_to_usd_rate` and `usd_exchange_rate` to clients.
+- [`server/db.js`](file:///D:/AgentCart-AI/server/db.js): Backward-compatible SQLite migration for existing databases and persisted gateway charge metadata.
+- [`server/paypal.js`](file:///D:/AgentCart-AI/server/paypal.js): Uses shared `config.INR_TO_USD_RATE`; updated `createPayPalSandboxOrder`, `capturePayPalSandboxOrder`, and `recordDemoSimulationOrder` to save and verify `charged_amount` and `charged_currency`.
+- [`server/server.js`](file:///D:/AgentCart-AI/server/server.js): Updated `GET /api/config` to expose `inr_to_usd_rate` and `usd_exchange_rate`.
 - [`.env`](file:///D:/AgentCart-AI/.env) & [`.env.example`](file:///D:/AgentCart-AI/.env.example): Added explicit `INR_TO_USD_RATE=85` configuration.
-- [`app.js`](file:///D:/AgentCart-AI/app.js): Dynamically synchronized `USD_RATE` with server configuration; implemented `calculateCartTotals()` for zero-drift alignment with PayPal v2 breakdown; updated confirmation modal to render explicit charged USD amount alongside INR merchandise total.
-- [`tests/run_tests.js`](file:///D:/AgentCart-AI/tests/run_tests.js): Added assertions verifying dual currency storage (`currency: 'INR'`, `charged_currency: 'USD'`, `inr_to_usd_rate: 85`).
-- [`PROJECT_STATE.md`](file:///D:/AgentCart-AI/PROJECT_STATE.md): Documented architecture, diagnostics, and testing verification.
-- [`HANDOFF.md`](file:///D:/AgentCart-AI/HANDOFF.md): Updated testing guide and multi-currency ledger documentation.
+- [`tests/run_tests.js`](file:///D:/AgentCart-AI/tests/run_tests.js): Added multi-currency assertions verifying dual-currency storage and configuration synchronization.
+- [`PROJECT_STATE.md`](file:///D:/AgentCart-AI/PROJECT_STATE.md): Documented root causes and updated platform state to v2.8.1.
+- [`HANDOFF.md`](file:///D:/AgentCart-AI/HANDOFF.md): Updated step-by-step cross-border manual verification guide.

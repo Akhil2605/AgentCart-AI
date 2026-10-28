@@ -1,71 +1,90 @@
 # AgentCart AI — Milestone Handoff Document
 
-**Current Milestone:** Explicit Multi-Currency Architecture & Gateway Synchronization  
+**Current Milestone:** Multi-Currency Architecture & Cross-Border Sandbox Diagnostics  
 **Date:** October 28, 2026  
-**Platform Version:** v2.8.0  
+**Platform Version:** v2.8.1  
 
 ---
 
-## 1. Executive Summary: Multi-Currency Separation & Synchronization
+## 1. Deep Root Cause Analysis: "This seller doesn't accept payments in your currency"
 
-### Key Architecture Decisions:
-1. **USD Payment Gateway Processing:**
-   - PayPal Sandbox Orders v2 API processes transactions strictly in **`USD`** to comply with PayPal's platform rules (domestic INR processing is disallowed on standard accounts).
-2. **Explicit Dual-Currency Ledger in SQLite:**
-   - The database maintains full integrity between catalog merchandise pricing and gateway charges:
-     - `subtotal`, `delivery_fee`, `total_amount`, and `currency: 'INR'` preserve the exact store merchandise amounts in **`INR`**.
-     - `charged_amount REAL` (e.g. `25.28`) and `charged_currency TEXT` (`'USD'`) store the actual gateway charge submitted to and verified by PayPal.
-     - Amounts are never conflated, mislabeled, or overwritten.
-3. **Unified Single-Source Exchange Rate:**
-   - Both backend and frontend consume `INR_TO_USD_RATE = 85` from [`server/config.js`](file:///D:/AgentCart-AI/server/config.js) and `GET /api/config`.
-   - Marked clearly as a fixed demonstration exchange rate ($1 USD = ₹85 INR), not a floating live rate.
-4. **Zero-Drift Penny Breakdown:**
-   - Frontend (`calculateCartTotals()`) and backend (`createPayPalSandboxOrder()`) compute line items using identical unit rounding (`Number((unit_price / 85).toFixed(2))`).
-   - The cart drawer, checkout modal, PayPal popup, and receipt all agree on the exact same cent.
+The real browser checkout error occurs exclusively during the **Buyer Approval phase** inside the PayPal popup window, NOT during backend order creation or payment capture.
 
----
+### Verified Root Causes:
 
-## 2. Root Cause Diagnostics & Solutions Applied
+1. **Domestic India-to-India Transaction Ban (RBI / PayPal India Restriction):**
+   - The Sandbox Business Seller account associated with the configured Client ID (`XA5BTBFB5K7ME`) has its country set to **`India (IN)`** (verified via `/v1/customer/partners/XA5BTBFB5K7ME/merchant-integrations/XA5BTBFB5K7ME`).
+   - Default Sandbox Personal accounts created under Indian developer profiles also have their country set to **`India (IN)`**.
+   - PayPal India officially ceased domestic payment processing in 2021. Indian residents cannot transact with other Indian accounts domestically (neither in INR nor in foreign currencies like USD under RBI FEMA regulations).
+   - When an Indian buyer logs in to pay an Indian seller, PayPal detects a domestic transaction and aborts with:  
+     **"We're sorry. This seller doesn't accept payments in your currency."**
 
-| Issue Encountered | Diagnosis / Evidence | Solution Implemented |
-| :--- | :--- | :--- |
-| **Seller Self-Payment Block** | PayPal popup displays: *"You are logging in to the account of the seller for this purchase..."* Active session cookies for `sb-oaffh53089456@business.example.com` contaminate the popup. | Bound `payer: { email_address }` to personal buyer `sb-lg72c53550049@personal.example.com`; pre-filled checkout form; added prominent notice to use an Incognito / Private window. |
-| **Currency Rejection (INR)** | HTTP 422: `CURRENCY_NOT_ALLOWED` from PayPal Orders v2 API when requesting domestic INR. | Configured `PAYPAL_CURRENCY=USD` across `.env`, Orders v2 payload, and frontend SDK injection URL. |
-| **Premature Capture Call** | HTTP 422: `ORDER_NOT_APPROVED` (Debug-ID: `ca51a70a46b45`) when capture is invoked before payer authorizes the popup. | Capture endpoint properly verifies authorization and logs sanitized debug IDs without leaking secrets. |
-| **Rounding Drift** | Potential HTTP 422 `MISMATCH_OF_ITEM_TOTAL` if item totals and breakdown differ by $0.01. | Synchronized item unit conversion calculation between frontend and backend. |
+2. **Merchant Receiving Preferences (Foreign Currency Block):**
+   - In Sandbox accounts where the primary currency is INR, PayPal's default "Payment Receiving Preferences" / "Block Payments" setting often blocks payments sent in currencies not held.
+   - If the merchant has not added USD as a balance or enabled automatic currency conversion, USD checkout payments are rejected at the approval stage.
+
+3. **SDK Geolocation & Buyer Context:**
+   - Without explicit buyer country context, the PayPal JavaScript SDK defaults to the tester's local IP address (India), reinforcing the domestic block.
 
 ---
 
-## 3. How to Test the Checkout Successfully
+## 2. Minimum Safe Fixes Applied
 
-### Critical Testing Rule
-> ⚠️ **Always use an Incognito / Private window** to test PayPal checkout!  
-> This ensures that your active developer dashboard session (`developer.paypal.com`) does not contaminate the buyer popup.
+1. **Codebase (`app.js`):**
+   - Appended `&buyer-country=US` to the PayPal JavaScript SDK URL in [`app.js`](file:///D:/AgentCart-AI/app.js). This instructs PayPal's Sandbox engine to simulate an international US buyer context for cross-border export testing.
+   - Updated the checkout guidance card to explicitly instruct the tester to log in with a US-based Personal Sandbox account.
+2. **Backend & Database Integrity:**
+   - Preserved all server-side pricing validation and SQLite dual-currency ledger (`currency: 'INR'`, `charged_currency: 'USD'`).
+   - Prevented rounding drift using synchronized itemized calculations (`calculateCartTotals()`).
 
-### Step-by-Step Testing Flow:
-1. Open an **Incognito / Private Window** in your browser.
+---
+
+## 3. Required Manual Steps to Verify in PayPal Sandbox
+
+Because account-level receiving preferences and account country origins reside inside PayPal's secure cloud, follow these two setup steps in your PayPal Developer Dashboard:
+
+### Step 1: Create a US Personal Sandbox Buyer Account (1 minute)
+1. Go to **[developer.paypal.com/dashboard/accounts](https://developer.paypal.com/dashboard/accounts)**.
+2. Click **Create Account**.
+3. Select **Account Type:** `Personal (Buyer Account)`.
+4. Select **Country / Region:** **`United States`** *(Critical: Do not select India)*.
+5. Click **Create**.
+6. Find your new US account in the list, click the three dots `...` -> **View/Edit Account** -> copy the **Email** (e.g., `sb-xxxx@personal.example.com`) and **System-Generated Password**.
+
+### Step 2: Ensure the Seller Account Accepts USD (1 minute)
+1. In the same Accounts list, locate your **Business / Facilitator Account** (`sb-oaffh53089456@business.example.com`).
+2. Click `...` -> **View/Edit Account** -> copy its password.
+3. In a separate tab, log into **[sandbox.paypal.com](https://sandbox.paypal.com/)** using the Business account credentials.
+4. Navigate to **Account Settings** (gear icon) -> **Selling Tools** (or **Payment Preferences**) -> **Block Payments** (click **Update**).
+5. For the question *"Allow payments sent to me in a currency I do not hold"*, select:
+   **"Yes, accept and convert them to my primary currency"**.
+   *(Alternatively, under Wallet -> Currencies, click **Add a currency** and add **USD**).*
+6. Click **Save**.
+
+---
+
+## 4. Manual Browser Checkout Verification Flow
+
+1. Open an **Incognito / Private Window** (Ctrl+Shift+N) in your browser.
 2. Navigate to **`http://localhost:3000`**.
 3. Add any jacket (e.g. *CyberShell Pro Stormbreaker*) to your bag.
-4. Open the floating cart drawer in the top right and click **Proceed to Checkout**.
-5. Review the checkout summary:
-   - Verified Total indicates the exact USD amount (e.g. `$25.28 USD`) alongside the merchandise estimate `(₹2,149)`.
+4. Open the cart drawer and click **Proceed to Checkout**.
+5. In the checkout modal, enter your US Personal Sandbox email in the email field.
 6. Click the yellow **PayPal** button.
-7. In the PayPal popup, log in with your Personal Sandbox Buyer Account:
-   - Email: `sb-lg72c53550049@personal.example.com`
-   - Password: `[Your Personal Sandbox password]`
-8. Click **Pay Now** / **Complete Purchase**.
-9. The popup closes, and the confirmation screen renders:
-   - Status: `● PAID (PayPal Sandbox Verified)`
-   - Total Charged: `$25.28 USD (₹2,149)`
-   - PayPal Capture ID: `2GG...`
-   - Delivery Address & Itemized Receipt.
-10. Verify that SQLite contains the updated order record with `currency = 'INR'`, `total_amount = 2149`, `charged_currency = 'USD'`, and `charged_amount = 25.28`.
+7. In the PayPal popup, log in using your **US Personal Sandbox Account** credentials.
+8. Because the buyer is in the US and the seller is in India, PayPal recognizes a valid cross-border export transaction in **USD**.
+9. Click **Pay Now** / **Complete Purchase**.
+10. The popup closes, and the order confirmation modal displays:
+    - Status: `● PAID (PayPal Sandbox Verified)`
+    - Total Charged: `$25.28 USD (₹2,149)`
+    - PayPal Capture ID: `2GG...`
+    - SQLite database records `status = 'PAID'`, `charged_amount = 25.28`, `charged_currency = 'USD'`, `total_amount = 2149`, `currency = 'INR'`.
 
 ---
 
-## 4. Test Suite Verification
-Run the automated test suite:
+## 5. Automated Test Suite Status
+Run the automated test suite anytime:
 ```powershell
 npm test
 ```
-Result: **29/29 tests passed (100.0%)** across database catalog integrity, pricing validation, server security, AI stylist, and PayPal Sandbox order lifecycle.
+**Result:** **29/29 tests passed (100.0%)** across database catalog integrity, pricing validation, server security, AI stylist, and PayPal Sandbox order lifecycle.

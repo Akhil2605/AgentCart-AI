@@ -984,21 +984,21 @@ function setupPayPal() {
       <div style="line-height:1.45;">
         <strong style="color:var(--accent-cyan); display:flex; align-items:center; gap:6px;">
           <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#10b981;"></span>
-          PayPal Sandbox Active
+          PayPal Sandbox Active (USD Checkout)
         </strong>
         <div style="font-size:0.75rem; color:var(--text-secondary); margin-top:4px;">
-          👤 <strong>Target Personal Buyer Account:</strong><br>
-          Email: <code style="color:var(--accent-cyan); font-weight:700;">sb-lg72c53550049@personal.example.com</code><br>
-          <span style="color:#f59e0b;">⚠️ If PayPal says <em>"You are logging in to the account of the seller"</em>, open an <strong>Incognito / Private window</strong> (Ctrl+Shift+N) to clear active merchant dashboard cookies.</span>
+          🌐 <strong>Cross-Border Testing Requirement:</strong><br>
+          Because the Sandbox seller account is registered in India, PayPal restricts domestic India-to-India payments. Please log into the popup using a <strong>US-based Personal Sandbox Buyer Account</strong> (Country: US) from <a href="https://developer.paypal.com/dashboard/accounts" target="_blank" style="color:var(--accent-cyan); text-decoration:underline;">developer.paypal.com/dashboard/accounts</a>.<br>
+          <span style="color:#f59e0b;">⚠️ Open checkout in an <strong>Incognito / Private window</strong> (Ctrl+Shift+N) to avoid seller dashboard cookie collisions.</span>
         </div>
       </div>
     `;
   }
 
-  // Dynamically inject official PayPal JS SDK with explicit capture intent
+  // Dynamically inject official PayPal JS SDK with explicit capture intent and US buyer context for cross-border sandbox simulation
   const script = document.createElement('script');
   const currency = State.config.paypal_currency || 'USD';
-  script.src = `https://www.paypal.com/sdk/js?client-id=${State.config.paypal_client_id}&currency=${currency}&intent=capture`;
+  script.src = `https://www.paypal.com/sdk/js?client-id=${State.config.paypal_client_id}&currency=${currency}&intent=capture&buyer-country=US`;
   
   script.onerror = () => {
     console.error('Failed to load PayPal JS SDK.');

@@ -162,7 +162,7 @@ function renderProductGrid() {
     grid.innerHTML = `
       <div class="catalogue-empty">
         <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
-        <h3 style="font-size:1.1rem; color:#fff; margin-bottom:6px;">No technical jackets match your filters</h3>
+        <h3 style="font-size:1.1rem; color:var(--text-primary); margin-bottom:6px;">No technical jackets match your filters</h3>
         <p style="font-size:0.85rem; margin-bottom:16px;">Try adjusting your search terms, increasing your max budget, or resetting filters.</p>
         <button class="nav-btn primary" id="emptyResetBtn">Reset All Filters</button>
       </div>
@@ -1117,7 +1117,7 @@ function handleOrderSuccess(order) {
   const isPaid = order.status === 'PAID';
   const statusBadge = isPaid
     ? '<span style="color:#10b981; font-weight:700; background:rgba(16,185,129,0.12); padding:3px 8px; border-radius:6px; border:1px solid rgba(16,185,129,0.3);">● PAID (PayPal Sandbox Verified)</span>'
-    : `<span style="color:var(--accent-cyan); font-weight:700; background:rgba(66,232,245,0.12); padding:3px 8px; border-radius:6px;">● ${order.status}</span>`;
+    : `<span style="color:var(--accent-cyan); font-weight:700; background:var(--accent-orange-soft); padding:3px 8px; border-radius:6px; border:1px solid var(--accent-orange-border);">● ${order.status}</span>`;
   
   const txnLine = order.payment_id
     ? `<div style="font-size:0.75rem; color:var(--text-muted); margin-top:8px; word-break:break-all;">PayPal Capture ID: <code style="color:var(--accent-cyan); font-family:var(--font-mono);">${order.payment_id}</code></div>`
@@ -1138,7 +1138,7 @@ function handleOrderSuccess(order) {
       <span>Delivery Fee</span>
       <span>${order.delivery_fee === 0 ? 'Free' : dualPrice(order.delivery_fee)}</span>
     </div>
-    <div class="receipt-item-line" style="font-weight:800; font-size:1rem; border-top:1px solid rgba(255,255,255,0.1); padding-top:8px;">
+    <div class="receipt-item-line" style="font-weight:800; font-size:1rem; border-top:1px solid var(--glass-border); padding-top:8px;">
       <span>Total Paid</span>
       <span style="color:var(--accent-cyan);">${usd(order.total_amount)} USD <span class="dual-inr">(${inr(order.total_amount)})</span></span>
     </div>

@@ -5,6 +5,7 @@ const path = require('path');
 const db = require('./db');
 const gemini = require('./gemini');
 const paypal = require('./paypal');
+const config = require('./config');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -33,9 +34,11 @@ app.get('/api/config', (req, res) => {
     ai_configured: hasGemini,
     paypal_configured: hasPayPal,
     paypal_client_id: hasPayPal ? clientId : null,
-    paypal_currency: (process.env.PAYPAL_CURRENCY || 'USD').toUpperCase(),
-    free_shipping_threshold: paypal.FREE_SHIPPING_THRESHOLD,
-    standard_shipping_fee: paypal.STANDARD_SHIPPING_FEE
+    paypal_currency: config.PAYPAL_CURRENCY,
+    inr_to_usd_rate: config.INR_TO_USD_RATE,
+    usd_exchange_rate: config.INR_TO_USD_RATE,
+    free_shipping_threshold: config.FREE_SHIPPING_THRESHOLD,
+    standard_shipping_fee: config.STANDARD_SHIPPING_FEE
   });
 });
 

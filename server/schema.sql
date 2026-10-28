@@ -44,6 +44,8 @@ CREATE TABLE IF NOT EXISTS orders (
   delivery_fee INTEGER NOT NULL,
   total_amount INTEGER NOT NULL,
   currency TEXT DEFAULT 'INR',
+  charged_amount REAL,
+  charged_currency TEXT DEFAULT 'USD',
   status TEXT DEFAULT 'PENDING', -- PENDING, PAID, CANCELLED, FAILED
   payment_provider TEXT DEFAULT 'PAYPAL_SANDBOX',
   provider_order_id TEXT,

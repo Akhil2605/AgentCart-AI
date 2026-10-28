@@ -1,8 +1,13 @@
 const db = require('./db');
+const config = require('./config');
 
-const FREE_SHIPPING_THRESHOLD = 2000;
-const STANDARD_SHIPPING_FEE = 150;
-const PAYPAL_API_BASE = 'https://api-m.sandbox.paypal.com';
+const {
+  FREE_SHIPPING_THRESHOLD,
+  STANDARD_SHIPPING_FEE,
+  PAYPAL_API_BASE,
+  PAYPAL_CURRENCY,
+  INR_TO_USD_RATE
+} = config;
 
 /**
  * Clean environment credentials (strip quotes, trim whitespace)
@@ -146,10 +151,10 @@ async function createPayPalSandboxOrder(order) {
     };
   }
 
-  const rawCurrency = (process.env.PAYPAL_CURRENCY || 'USD').trim().toUpperCase();
+  const rawCurrency = (process.env.PAYPAL_CURRENCY || PAYPAL_CURRENCY || 'USD').trim().toUpperCase();
   const currency = /^[A-Z]{3}$/.test(rawCurrency) ? rawCurrency : 'USD';
-  // Standard conversion rate for Sandbox testing if USD selected (1 USD = ~85 INR)
-  const rate = currency === 'USD' ? 85 : 1;
+  // Use shared fixed exchange rate for USD conversion (1 USD = 85 INR)
+  const rate = currency === 'USD' ? INR_TO_USD_RATE : 1;
 
   // Ensure item totals strictly match breakdown.item_total without penny rounding drift
   let itemTotalSum = 0;
@@ -169,6 +174,7 @@ async function createPayPalSandboxOrder(order) {
   const subtotalInCurrency = itemTotalSum.toFixed(2);
   const shippingInCurrency = (order.delivery_fee / rate).toFixed(2);
   const totalInCurrency = (Number(subtotalInCurrency) + Number(shippingInCurrency)).toFixed(2);
+  const chargedAmountNum = Number(totalInCurrency);
 
   console.log(`[PayPal Diagnostics] Creating order for local ID: ${order.id}`);
   console.log(`[PayPal Diagnostics] Intent: CAPTURE, Currency: ${currency}, Subtotal: ${subtotalInCurrency}, Shipping: ${shippingInCurrency}, Total: ${totalInCurrency}`);
@@ -234,14 +240,20 @@ async function createPayPalSandboxOrder(order) {
   const paypalData = await res.json();
   console.log(`[PayPal Diagnostics] Order created successfully. PayPal Order ID: ${paypalData.id}`);
   
-  // Link paypal order id to local SQLite order
-  db.getDb().prepare('UPDATE orders SET provider_order_id = ? WHERE id = ?').run(paypalData.id, order.id);
+  // Link paypal order id and explicitly record charged gateway amount and currency in SQLite
+  db.getDb().prepare(`
+    UPDATE orders 
+    SET provider_order_id = ?, charged_amount = ?, charged_currency = ?, updated_at = CURRENT_TIMESTAMP 
+    WHERE id = ?
+  `).run(paypalData.id, chargedAmountNum, currency, order.id);
 
   return {
     success: true,
     is_configured: true,
     paypal_order_id: paypalData.id,
     order_id: order.id,
+    charged_amount: chargedAmountNum,
+    charged_currency: currency,
     order: db.getOrderById(order.id)
   };
 }
@@ -305,16 +317,23 @@ async function capturePayPalSandboxOrder(localOrderId, paypalOrderId) {
 
   const captureItem = captureData.purchase_units?.[0]?.payments?.captures?.[0];
   const captureId = captureItem?.id || captureData.id;
+  const capturedAmountVal = captureItem?.amount?.value ? Number(captureItem.amount.value) : localOrder.charged_amount;
+  const capturedCurrencyVal = captureItem?.amount?.currency_code || localOrder.charged_currency || 'USD';
 
-  // Update order as PAID in SQLite
-  const updatedOrder = db.updateOrderStatus(localOrder.id, 'PAID', captureId);
-  console.log(`[PayPal Diagnostics] Order ${localOrder.id} marked as PAID. Capture ID: ${captureId}`);
+  // Update order as PAID in SQLite, storing captured payment ID, charged amount and currency
+  db.getDb().prepare(`
+    UPDATE orders 
+    SET status = 'PAID', payment_id = ?, charged_amount = COALESCE(?, charged_amount), charged_currency = ?, updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `).run(captureId, capturedAmountVal, capturedCurrencyVal, localOrder.id);
+  const updatedOrder = db.getOrderById(localOrder.id);
+  console.log(`[PayPal Diagnostics] Order ${localOrder.id} marked as PAID. Capture ID: ${captureId}, Charged: ${capturedCurrencyVal} ${capturedAmountVal}`);
 
   return {
     success: true,
     status: 'PAID',
     paypal_capture_id: captureId,
-    amount_captured: captureItem?.amount || null,
+    amount_captured: captureItem?.amount || { currency_code: capturedCurrencyVal, value: capturedAmountVal != null ? capturedAmountVal.toFixed(2) : null },
     order: updatedOrder
   };
 }
@@ -359,7 +378,14 @@ function recordDemoSimulationOrder(localOrderId) {
     throw new Error(`Local order ${localOrderId} not found.`);
   }
   
-  const updatedOrder = db.updateOrderStatus(localOrder.id, 'PAID_DEMO_TEST', 'DEMO-TXN-' + Date.now());
+  const demoChargedAmount = Number((localOrder.total_amount / INR_TO_USD_RATE).toFixed(2));
+  db.getDb().prepare(`
+    UPDATE orders 
+    SET status = 'PAID_DEMO_TEST', payment_id = ?, charged_amount = ?, charged_currency = 'USD', updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `).run('DEMO-TXN-' + Date.now(), demoChargedAmount, localOrder.id);
+
+  const updatedOrder = db.getOrderById(localOrder.id);
   return {
     success: true,
     is_demo_test: true,
@@ -373,6 +399,8 @@ module.exports = {
   FREE_SHIPPING_THRESHOLD,
   STANDARD_SHIPPING_FEE,
   PAYPAL_API_BASE,
+  PAYPAL_CURRENCY,
+  INR_TO_USD_RATE,
   getSanitizedCredentials,
   validateAndCalculateOrder,
   getPayPalAccessToken,

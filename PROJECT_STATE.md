@@ -1,71 +1,68 @@
 # Project State: AgentCart AI
 
-**Current Status:** Dual Currency Experience (USD Primary + INR Secondary, PayPal USD Processing) Verified & Active  
-**Date:** October 27, 2026  
-**Platform Version:** v2.7.0 (Dual Currency & Global Checkout Edition)
+**Current Status:** Explicit Multi-Currency Architecture (Shared Rate, USD PayPal Sandbox Gateway, INR SQLite Merchandise Ledger) Verified & Active  
+**Date:** October 28, 2026  
+**Platform Version:** v2.8.0 (Unified Currency & Gateway Synchronization Edition)
 
 ---
 
-## 1. Dual Currency Architecture (USD Primary + INR Secondary)
+## 1. Unified Multi-Currency Architecture
 
-### 🔍 User Requirement & PayPal Restriction:
-- **PayPal Restriction:** PayPal REST Orders v2 API does not support `INR` (`CURRENCY_NOT_SUPPORTED` 422 error / `This seller doesn't accept payments in your currency`). All international orders charged through standard PayPal accounts must use a supported transaction currency such as `USD`.
-- **User Experience Requirement:** Present pricing in USD prominently as primary currency across the entire website, while clearly displaying the INR estimate beside it (e.g. `$23.52 (₹1,999)`). When checking out, payment is processed strictly in USD (`$1 USD = ₹85 INR`).
-
-### 🛠️ Frontend & Design Implementation:
-1. **Consistent Dual Price Formatting:**
-   - Implemented helper functions `usd(n)`, `inr(n)`, `dualPrice(n)` (with `<span class="dual-inr">(₹...)</span>`), and `dualPricePlain(n)` in [`app.js`](file:///D:/AgentCart-AI/app.js).
-   - Styled `.dual-inr` in [`styles.css`](file:///D:/AgentCart-AI/styles.css) with subtle secondary opacity and muted tones so the primary USD price stands out cleanly while keeping the INR value immediately visible.
-2. **Comprehensive Dual Pricing Coverage:**
-   - **Hero Flagship Card & Specs:** Shows `$23.52 (₹1,999)` and Free Delivery threshold `$24 / ₹2,000+`.
-   - **Product Catalogue Grid:** Every product card renders prominent USD bold price accompanied by `(₹...)`.
-   - **Product Details Modal:** Main price renders prominent `$XX.XX` with adjacent `(₹...)` and strike-through original comparison price.
-   - **Filter Price Slider & Reset:** Displays `$58.82 (₹5,000)` max range.
-   - **Cart Drawer:** Line items, subtotal, delivery fee, and grand total show dual pricing; checkout button emphasizes `Proceed to Checkout ($XX.XX USD)`.
-   - **Checkout Modal:** Subtotal, delivery fee, and verified total clearly indicate USD payment (`Verified Total (Charged in USD)`).
-   - **Comparison Matrix:** Comparison table displays dual prices for each selected jacket.
-   - **AI Stylist:** Identified budget constraints and recommendation cards render dual USD/INR amounts.
-   - **Order Confirmation Receipt:** Purchased items and grand total render in USD with INR beside it, accompanied by the PayPal capture ID.
+### 🔍 System Architecture & Separation of Concerns:
+1. **Local Merchandise Ledger (INR):**
+   - Base product prices, catalog definitions, and internal store accounting operate strictly in **`INR`** (`₹`).
+   - SQLite orders table stores `subtotal`, `delivery_fee`, `total_amount`, and `currency: 'INR'`.
+   - Merchandise amounts are never overwritten by gateway converted values.
+2. **Payment Gateway Ledger (USD):**
+   - PayPal Sandbox Orders v2 API processes transactions exclusively in **`USD`** (`$`) to avoid PayPal's domestic INR restriction (`CURRENCY_NOT_ALLOWED` / `CURRENCY_NOT_SUPPORTED`).
+   - Order records in SQLite store `charged_amount REAL` (e.g. `25.28`) and `charged_currency TEXT` (`'USD'`) separately from the INR merchandise fields.
+   - The PayPal SDK, order creation payload, capture verification, and order confirmation receipt all agree on the exact USD figure charged.
+3. **Single Source of Truth Exchange Rate:**
+   - Defined in [`server/config.js`](file:///D:/AgentCart-AI/server/config.js):
+     - `INR_TO_USD_RATE = Number(process.env.INR_TO_USD_RATE) || 85` (fixed demonstration rate: 1 USD = 85 INR; not a live floating market rate).
+     - `PAYPAL_CURRENCY = (process.env.PAYPAL_CURRENCY || 'USD').trim().toUpperCase()`.
+   - Shared with the frontend dynamically via `GET /api/config` (`inr_to_usd_rate` and `usd_exchange_rate`).
+   - Documented in [`.env`](file:///D:/AgentCart-AI/.env) and [`.env.example`](file:///D:/AgentCart-AI/.env.example).
+4. **Penny Rounding Drift Prevention:**
+   - Frontend (`calculateCartTotals()` in [`app.js`](file:///D:/AgentCart-AI/app.js)) and backend (`createPayPalSandboxOrder()` in [`server/paypal.js`](file:///D:/AgentCart-AI/server/paypal.js)) compute USD line items at unit level (`Number((price / rate).toFixed(2))`) and aggregate item totals.
+   - Eliminates single-penny discrepancies (`MISMATCH_OF_ITEM_TOTAL`) between the cart drawer, checkout modal, PayPal popup, and capture response.
+   - Client never sends prices or totals; all calculations are strictly enforced server-side.
 
 ---
 
-## 2. PayPal Sandbox Debugging & Root Cause Analysis
+## 2. PayPal Sandbox Error Diagnostics & Sanitize Root-Cause Log
 
-### 🔍 Specific Error Investigation:
-> “You are logging in to the account of the seller for this purchase. Please change your login information and try again.”
-
-1. **Payee & Merchant Verification:**
-   - **Backend Client ID:** `AcDu4sttyx2W1pJEH7djvFyCNwCwXkllBoMo4KQETR2AWOOma53MyxBr-YKEm4rpYPsJSL9HIpNjw6MU`
-   - **Order Payee / Merchant Account:** `sb-oaffh53089456@business.example.com` (Merchant ID: `XA5BTBFB5K7ME`)
-   - **Customer Buyer Account:** `sb-lg72c53550049@personal.example.com` (Type: Personal Buyer)
-   - **Root Cause Confirmed:** The error occurred because the browser previously had active session cookies for `sb-oaffh53089456@business.example.com` (from logging into `developer.paypal.com`), causing PayPal's popup to automatically bind to the merchant session instead of initiating a fresh buyer login.
-
-2. **Fixes Applied:**
-   - **Explicit Payer Binding:** Added `payer: { email_address: order.customer_email }` in [`server/paypal.js`](file:///D:/AgentCart-AI/server/paypal.js) so PayPal's popup pre-populates and binds the order to the buyer account (`sb-lg72c53550049@personal.example.com`).
-   - **Pre-filled Checkout Email:** Updated [`index.html`](file:///D:/AgentCart-AI/index.html) to pre-fill the customer email with `sb-lg72c53550049@personal.example.com`.
-   - **Updated Guidance Banner:** Updated the UI banner in [`app.js`](file:///D:/AgentCart-AI/app.js) with explicit instructions to test in an Incognito/Private window (or log out of `sandbox.paypal.com`).
-   - **Security Guarantee:** Never log or display secrets, buyer passwords, or access tokens in terminal output, codebase, or git history.
+| Diagnostic Case | API / Response Code | Root Cause | Solution Implemented |
+| :--- | :--- | :--- | :--- |
+| **Seller Self-Payment Block** | UI Error: *"You are logging in to the account of the seller for this purchase..."* | Browser profile had active session cookies for the sandbox seller merchant (`sb-oaffh53089456@business.example.com`). PayPal blocks merchants from purchasing from themselves. | Explicit buyer pre-fill (`sb-lg72c53550049@personal.example.com`), `payer: { email_address }` payload binding, and clear UI instructions to use an Incognito/Private window. |
+| **Currency Not Supported** | HTTP 422: `CURRENCY_NOT_ALLOWED` | PayPal REST Orders v2 API rejects standard accounts attempting to transact domestic INR. | Configured transaction currency strictly to `USD` across server, SDK URL, and Orders v2 request while keeping INR estimates for display. |
+| **Capture Prior to Payer Approval** | HTTP 422: `ORDER_NOT_APPROVED` (Debug-ID: `ca51a70a46b45`) | Calling `/v2/checkout/orders/{id}/capture` before the buyer has authorized the payment in the PayPal popup. | Order lifecycle requires client approval callback (`onApprove`) before backend triggers capture. Sanitized diagnostics log debug ID and actionable reason. |
+| **Item Breakdown Rounding Drift** | HTTP 422: `MISMATCH_OF_ITEM_TOTAL` | Converting order total instead of summing converted line items caused 1-cent differences between `breakdown.item_total` and items array. | Both frontend and backend sum itemized `unit_price / rate` figures before assembling the payload. |
 
 ---
 
 ## 3. Verified Automated Test Suite Status
 
-Executed `npm test` (`tests/run_tests.js`):
+Executed `npm test` ([`tests/run_tests.js`](file:///D:/AgentCart-AI/tests/run_tests.js)):
 - **Database & Catalog Integrity:** 3/3 passed
 - **Search, Filter & Sort:** 3/3 passed
-- **Server-Side Pricing & Quantity Security:** 5/5 passed (including negative, float, and non-numeric quantity guards)
+- **Server-Side Pricing & Security Validation:** 5/5 passed (tampering rejection, free delivery threshold, quantity guards)
 - **AI Recommender:** 2/2 passed
-- **PayPal Sandbox Checkout Engine:** 9/9 passed (order creation with `experience_context`, capture verification, declined payment, duplicate capture prevention, debug ID tracking)
-- **Live HTTP Endpoints:** 7/7 passed (including config, currency consistency, and order receipts)
+- **PayPal Sandbox Checkout Engine:** 9/9 passed (order creation, experience context, debug ID reporting, capture verification, dual-currency storage verification, duplicate capture guard)
+- **Live HTTP Endpoints:** 7/7 passed (config currency, secret redaction, catalog, AI, create-order, capture-order, cancel-order, demo fallback)
 - **Total:** 29/29 passed (100.0%)
 
 ---
 
 ## 4. Modified Files Manifest
 
-- [`app.js`](file:///D:/AgentCart-AI/app.js): Standardized all price rendering to prominent USD with INR secondary (`dualPrice`, `dualPricePlain`), updated checkout summary, modal pricing, cart drawer, AI stylist cards, comparison matrix, and confirmation modal.
-- [`styles.css`](file:///D:/AgentCart-AI/styles.css): Added `.dual-inr` styling, flex baseline alignment for price rows, and modal pricing typography adjustments.
-- [`index.html`](file:///D:/AgentCart-AI/index.html): Updated hero showcase, spotlight badge, prompt pills, filter notices, checkout headers, and footer notes to reference USD ($) and INR (₹).
-- [`server/paypal.js`](file:///D:/AgentCart-AI/server/paypal.js): Preserved USD currency calculation ($1 = ₹85), `payment_source.paypal.experience_context`, safe debug-id logging, and buyer pre-fill.
-- [`PROJECT_STATE.md`](file:///D:/AgentCart-AI/PROJECT_STATE.md): Documented architecture and testing status.
-- [`HANDOFF.md`](file:///D:/AgentCart-AI/HANDOFF.md): Updated handoff with checkout validation steps.
+- [`server/config.js`](file:///D:/AgentCart-AI/server/config.js): Created single source of truth for exchange rates (`INR_TO_USD_RATE = 85`), PayPal transaction currency (`PAYPAL_CURRENCY = 'USD'`), and shipping constants.
+- [`server/schema.sql`](file:///D:/AgentCart-AI/server/schema.sql): Added explicit `charged_amount REAL` and `charged_currency TEXT DEFAULT 'USD'` columns to `orders` table.
+- [`server/db.js`](file:///D:/AgentCart-AI/server/db.js): Added backward-compatible SQLite migration for existing databases and updated `createOrder` to persist gateway charge metadata.
+- [`server/paypal.js`](file:///D:/AgentCart-AI/server/paypal.js): Replaced duplicated rate with `config.INR_TO_USD_RATE`; updated `createPayPalSandboxOrder`, `capturePayPalSandboxOrder`, and `recordDemoSimulationOrder` to save and verify `charged_amount` and `charged_currency`.
+- [`server/server.js`](file:///D:/AgentCart-AI/server/server.js): Updated `GET /api/config` to expose `inr_to_usd_rate` and `usd_exchange_rate` to clients.
+- [`.env`](file:///D:/AgentCart-AI/.env) & [`.env.example`](file:///D:/AgentCart-AI/.env.example): Added explicit `INR_TO_USD_RATE=85` configuration.
+- [`app.js`](file:///D:/AgentCart-AI/app.js): Dynamically synchronized `USD_RATE` with server configuration; implemented `calculateCartTotals()` for zero-drift alignment with PayPal v2 breakdown; updated confirmation modal to render explicit charged USD amount alongside INR merchandise total.
+- [`tests/run_tests.js`](file:///D:/AgentCart-AI/tests/run_tests.js): Added assertions verifying dual currency storage (`currency: 'INR'`, `charged_currency: 'USD'`, `inr_to_usd_rate: 85`).
+- [`PROJECT_STATE.md`](file:///D:/AgentCart-AI/PROJECT_STATE.md): Documented architecture, diagnostics, and testing verification.
+- [`HANDOFF.md`](file:///D:/AgentCart-AI/HANDOFF.md): Updated testing guide and multi-currency ledger documentation.

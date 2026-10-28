@@ -411,6 +411,8 @@ async function runAllTests() {
       const dbOrder = db.getOrderById(order.id);
       assert.strictEqual(dbOrder.status, 'PAID');
       assert.strictEqual(dbOrder.payment_id, captured.paypal_capture_id);
+      assert.strictEqual(dbOrder.currency, 'INR');
+      assert.strictEqual(dbOrder.charged_currency, 'USD');
     } finally {
       restoreFetch();
     }
@@ -554,6 +556,7 @@ async function runAllTests() {
     assert.strictEqual(res.json.free_shipping_threshold, 2000);
     assert.strictEqual(res.json.standard_shipping_fee, 150);
     assert.strictEqual(res.json.paypal_currency, 'USD');
+    assert.strictEqual(res.json.inr_to_usd_rate, 85);
     assert.strictEqual(res.json.client_secret, undefined);
     assert.strictEqual(res.json.paypal_client_secret, undefined);
 

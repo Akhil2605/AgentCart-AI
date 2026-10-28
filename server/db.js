@@ -17,6 +17,21 @@ function getDb() {
     dbInstance = new DatabaseSync(DB_PATH);
     const schema = fs.readFileSync(SCHEMA_PATH, 'utf-8');
     dbInstance.exec(schema);
+
+    // Schema migration: ensure explicit charged currency and amount columns exist
+    try {
+      const pragma = dbInstance.prepare("PRAGMA table_info(orders)").all();
+      const colNames = pragma.map(c => c.name);
+      if (!colNames.includes('charged_amount')) {
+        dbInstance.exec("ALTER TABLE orders ADD COLUMN charged_amount REAL;");
+      }
+      if (!colNames.includes('charged_currency')) {
+        dbInstance.exec("ALTER TABLE orders ADD COLUMN charged_currency TEXT DEFAULT 'USD';");
+      }
+    } catch (e) {
+      // Table will be created by schema if not present yet
+    }
+
     seedIfEmpty();
   }
   return dbInstance;
@@ -198,11 +213,13 @@ function createOrder(orderData, items) {
     INSERT INTO orders (
       id, customer_name, customer_email, shipping_address,
       city, state, postal_code, phone, subtotal, delivery_fee,
-      total_amount, currency, status, payment_provider, provider_order_id
+      total_amount, currency, charged_amount, charged_currency,
+      status, payment_provider, provider_order_id
     ) VALUES (
       ?, ?, ?, ?,
       ?, ?, ?, ?, ?, ?,
-      ?, ?, ?, ?, ?
+      ?, ?, ?, ?,
+      ?, ?, ?
     )
   `);
 
@@ -227,6 +244,8 @@ function createOrder(orderData, items) {
     orderData.delivery_fee,
     orderData.total_amount,
     orderData.currency || 'INR',
+    orderData.charged_amount != null ? orderData.charged_amount : null,
+    orderData.charged_currency || 'USD',
     orderData.status || 'PENDING',
     orderData.payment_provider || 'PAYPAL_SANDBOX',
     orderData.provider_order_id || null

@@ -33,7 +33,8 @@ const State = {
 // Utilities
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => document.querySelectorAll(sel);
-const USD_RATE = 85;
+// Fixed demonstration exchange rate (1 USD = 85 INR; updated dynamically via /api/config)
+let USD_RATE = 85;
 const usd = (n) => '$' + (Number(n) / USD_RATE).toFixed(2);
 const inr = (n) => '₹' + Number(n).toLocaleString('en-IN');
 const dualPrice = (n) => `${usd(n)} <span class="dual-inr">(${inr(n)})</span>`;
@@ -58,6 +59,9 @@ async function fetchAppConfig() {
     const res = await fetch('/api/config');
     if (res.ok) {
       State.config = await res.json();
+      if (State.config.inr_to_usd_rate) {
+        USD_RATE = Number(State.config.inr_to_usd_rate) || 85;
+      }
       updateConfigUI();
     }
   } catch (err) {
@@ -298,6 +302,42 @@ function getCartTotal() {
   return [...State.cart.values()].reduce((sum, item) => sum + (item.price * item.quantity), 0);
 }
 
+/**
+ * Calculates cart totals in both INR and USD matching server-side PayPal breakdown
+ * to prevent any single-penny rounding discrepancies between frontend display and checkout.
+ */
+function calculateCartTotals() {
+  const rate = USD_RATE;
+  let inrSubtotal = 0;
+  let usdItemTotalSum = 0;
+
+  for (const item of State.cart.values()) {
+    inrSubtotal += item.price * item.quantity;
+    const usdUnit = Number((item.price / rate).toFixed(2));
+    usdItemTotalSum += usdUnit * item.quantity;
+  }
+
+  const freeThreshold = State.config.free_shipping_threshold || 2000;
+  const standardFee = State.config.standard_shipping_fee || 150;
+  const isFreeShipping = inrSubtotal >= freeThreshold;
+  const inrDeliveryFee = isFreeShipping ? 0 : standardFee;
+  const inrTotal = inrSubtotal + inrDeliveryFee;
+
+  const usdSubtotal = Number(usdItemTotalSum.toFixed(2));
+  const usdDeliveryFee = isFreeShipping ? 0 : Number((inrDeliveryFee / rate).toFixed(2));
+  const usdTotal = Number((usdSubtotal + usdDeliveryFee).toFixed(2));
+
+  return {
+    inrSubtotal,
+    inrDeliveryFee,
+    inrTotal,
+    usdSubtotal,
+    usdDeliveryFee,
+    usdTotal,
+    isFreeShipping
+  };
+}
+
 function getCartCount() {
   return [...State.cart.values()].reduce((sum, item) => sum + item.quantity, 0);
 }
@@ -470,7 +510,7 @@ function renderCartDrawer(stagger) {
   const items = [...State.cart.values()].reverse();
   const list = $('#cartItemsList');
   const count = getCartCount();
-  const subtotal = getCartTotal();
+  const totals = calculateCartTotals();
 
   if (items.length === 0) {
     closeCartDrawer();
@@ -478,12 +518,10 @@ function renderCartDrawer(stagger) {
   }
 
   $('#cartDrawerCount').textContent = count;
-  $('#cartSubtotal').innerHTML = dualPrice(subtotal);
-
-  const deliveryFee = subtotal >= State.config.free_shipping_threshold ? 0 : State.config.standard_shipping_fee;
-  $('#cartDeliveryFee').innerHTML = deliveryFee === 0 ? 'Free' : dualPrice(deliveryFee);
-  $('#cartFinalTotal').innerHTML = dualPrice(subtotal + deliveryFee);
-  $('#checkoutBtnAmt').textContent = `${usd(subtotal + deliveryFee)} USD`;
+  $('#cartSubtotal').innerHTML = `$${totals.usdSubtotal.toFixed(2)} <span class="dual-inr">(${inr(totals.inrSubtotal)})</span>`;
+  $('#cartDeliveryFee').innerHTML = totals.isFreeShipping ? 'Free' : `$${totals.usdDeliveryFee.toFixed(2)} <span class="dual-inr">(${inr(totals.inrDeliveryFee)})</span>`;
+  $('#cartFinalTotal').innerHTML = `$${totals.usdTotal.toFixed(2)} <span class="dual-inr">(${inr(totals.inrTotal)})</span>`;
+  $('#checkoutBtnAmt').textContent = `$${totals.usdTotal.toFixed(2)} USD`;
 
   list.innerHTML = items.map(it => {
     const key = `${it.id}-${it.size}-${it.color}`;
@@ -912,13 +950,11 @@ function renderClientFallbackResponse(cleanPrompt) {
 function openCheckoutModal() {
   if (State.cart.size === 0) return;
 
-  const subtotal = getCartTotal();
-  const delivery = subtotal >= State.config.free_shipping_threshold ? 0 : State.config.standard_shipping_fee;
-  const total = subtotal + delivery;
+  const totals = calculateCartTotals();
 
-  $('#checkoutSubtotal').innerHTML = dualPrice(subtotal);
-  $('#checkoutDelivery').innerHTML = delivery === 0 ? 'Free' : dualPrice(delivery);
-  $('#checkoutTotal').innerHTML = `${usd(total)} USD <span class="dual-inr">(${inr(total)})</span>`;
+  $('#checkoutSubtotal').innerHTML = `$${totals.usdSubtotal.toFixed(2)} <span class="dual-inr">(${inr(totals.inrSubtotal)})</span>`;
+  $('#checkoutDelivery').innerHTML = totals.isFreeShipping ? 'Free' : `$${totals.usdDeliveryFee.toFixed(2)} <span class="dual-inr">(${inr(totals.inrDeliveryFee)})</span>`;
+  $('#checkoutTotal').innerHTML = `$${totals.usdTotal.toFixed(2)} USD <span class="dual-inr">(${inr(totals.inrTotal)})</span>`;
 
   const modal = $('#checkoutModal');
   modal.classList.add('open');
@@ -1123,6 +1159,12 @@ function handleOrderSuccess(order) {
     ? `<div style="font-size:0.75rem; color:var(--text-muted); margin-top:8px; word-break:break-all;">PayPal Capture ID: <code style="color:var(--accent-cyan); font-family:var(--font-mono);">${order.payment_id}</code></div>`
     : '';
 
+  // Determine explicit charged amount in USD and merchandise amount in INR
+  const chargedCurrency = order.charged_currency || 'USD';
+  const chargedAmountStr = typeof order.charged_amount === 'number'
+    ? `$${order.charged_amount.toFixed(2)} ${chargedCurrency}`
+    : `${usd(order.total_amount)} USD`;
+
   receiptCard.innerHTML = `
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
       <span style="font-weight:800;">Purchased Items (${order.items.length}):</span>
@@ -1139,8 +1181,8 @@ function handleOrderSuccess(order) {
       <span>${order.delivery_fee === 0 ? 'Free' : dualPrice(order.delivery_fee)}</span>
     </div>
     <div class="receipt-item-line" style="font-weight:800; font-size:1rem; border-top:1px solid var(--glass-border); padding-top:8px;">
-      <span>Total Paid</span>
-      <span style="color:var(--accent-cyan);">${usd(order.total_amount)} USD <span class="dual-inr">(${inr(order.total_amount)})</span></span>
+      <span>Total Charged (${chargedCurrency})</span>
+      <span style="color:var(--accent-cyan); font-weight:800;">${chargedAmountStr} <span class="dual-inr">(${inr(order.total_amount)})</span></span>
     </div>
     ${txnLine}
     <div style="margin-top:12px; font-size:0.75rem; color:var(--text-muted);">

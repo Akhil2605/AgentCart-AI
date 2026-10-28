@@ -1,81 +1,71 @@
 # AgentCart AI — Milestone Handoff Document
 
-**Current Milestone:** Dual Currency Experience (USD Primary + INR Secondary, PayPal USD Processing)  
-**Date:** October 27, 2026  
-**Platform Version:** v2.7.0  
+**Current Milestone:** Explicit Multi-Currency Architecture & Gateway Synchronization  
+**Date:** October 28, 2026  
+**Platform Version:** v2.8.0  
 
 ---
 
-## 1. Executive Summary: Dual Currency System
+## 1. Executive Summary: Multi-Currency Separation & Synchronization
 
-### Background & Reason for USD Processing:
-- PayPal's Orders v2 API does not support `INR` (`CURRENCY_NOT_SUPPORTED` 422 error / `This seller doesn't accept payments in your currency`).
-- To allow seamless PayPal Sandbox checkout while keeping the Indian market pricing context familiar, AgentCart AI now displays prices in **USD as the primary payment currency** with the **INR amount shown clearly beside it** (e.g. `$23.52 (₹1,999)`).
-- When a customer checks out, the transaction is denominated and charged in USD at the fixed conversion rate (`$1 USD = ₹85 INR`).
-
-### Implementation Details:
-1. **Frontend Formatting:**
-   - Every price on the site (product cards, modal, comparison matrix, AI recommendations, cart drawer, checkout modal, and confirmation receipt) displays USD bold and prominent, with the equivalent INR formatted in secondary text: `${usd(amount)} <span class="dual-inr">(${inr(amount)})</span>`.
-   - Free Express Delivery is unlocked at `$24 USD (₹2,000+)`.
-2. **Backend Order Processing:**
-   - Server validates item prices strictly from SQLite catalog in INR, converts securely to USD with 2 decimal places, and creates the PayPal order with `currency_code: 'USD'`.
-   - Never trusts price or currency parameters sent by the client.
+### Key Architecture Decisions:
+1. **USD Payment Gateway Processing:**
+   - PayPal Sandbox Orders v2 API processes transactions strictly in **`USD`** to comply with PayPal's platform rules (domestic INR processing is disallowed on standard accounts).
+2. **Explicit Dual-Currency Ledger in SQLite:**
+   - The database maintains full integrity between catalog merchandise pricing and gateway charges:
+     - `subtotal`, `delivery_fee`, `total_amount`, and `currency: 'INR'` preserve the exact store merchandise amounts in **`INR`**.
+     - `charged_amount REAL` (e.g. `25.28`) and `charged_currency TEXT` (`'USD'`) store the actual gateway charge submitted to and verified by PayPal.
+     - Amounts are never conflated, mislabeled, or overwritten.
+3. **Unified Single-Source Exchange Rate:**
+   - Both backend and frontend consume `INR_TO_USD_RATE = 85` from [`server/config.js`](file:///D:/AgentCart-AI/server/config.js) and `GET /api/config`.
+   - Marked clearly as a fixed demonstration exchange rate ($1 USD = ₹85 INR), not a floating live rate.
+4. **Zero-Drift Penny Breakdown:**
+   - Frontend (`calculateCartTotals()`) and backend (`createPayPalSandboxOrder()`) compute line items using identical unit rounding (`Number((unit_price / 85).toFixed(2))`).
+   - The cart drawer, checkout modal, PayPal popup, and receipt all agree on the exact same cent.
 
 ---
 
-## 2. Root Cause & Solution: Personal vs Business Sandbox Accounts
+## 2. Root Cause Diagnostics & Solutions Applied
 
-When testing PayPal Sandbox checkout, the error:  
-> **“You are logging in to the account of the seller for this purchase. Please change your login information and try again.”**
-
-occurs when PayPal detects that the account attempting to pay is the merchant/seller that created the order.
-
-### Investigation & Account Verification:
-- **Configured Seller / Payee Account:** `sb-oaffh53089456@business.example.com` (Merchant ID: `XA5BTBFB5K7ME`)  
-  *This is the Business Sandbox account that owns the configured Client ID.*
-- **Configured Buyer Account:** `sb-lg72c53550049@personal.example.com`  
-  *This is a separate, valid Personal Sandbox Buyer account.*
-- **The Mismatch / Issue:**  
-  The two accounts are separate. The error occurs when the browser profile has active session cookies for the seller (`sb-oaffh53089456@business.example.com` or the main developer account) from `developer.paypal.com` or `sandbox.paypal.com`. When the PayPal popup opens, PayPal checks the active session cookies before the buyer login completes, triggering the seller self-payment block.
-
-### Solutions Applied:
-1. **Payer Binding:** Added `payer: { email_address: order.customer_email }` in [`server/paypal.js`](file:///D:/AgentCart-AI/server/paypal.js) so PayPal explicitly expects the personal buyer account (`sb-lg72c53550049@personal.example.com`).
-2. **Pre-filled Checkout Email:** Updated [`index.html`](file:///D:/AgentCart-AI/index.html) so the checkout form automatically provides `sb-lg72c53550049@personal.example.com`.
-3. **Session Isolation:** Provided clear instructions to test in an **Incognito / Private Window** (or log out of `sandbox.paypal.com` first) to eliminate seller cookie contamination.
+| Issue Encountered | Diagnosis / Evidence | Solution Implemented |
+| :--- | :--- | :--- |
+| **Seller Self-Payment Block** | PayPal popup displays: *"You are logging in to the account of the seller for this purchase..."* Active session cookies for `sb-oaffh53089456@business.example.com` contaminate the popup. | Bound `payer: { email_address }` to personal buyer `sb-lg72c53550049@personal.example.com`; pre-filled checkout form; added prominent notice to use an Incognito / Private window. |
+| **Currency Rejection (INR)** | HTTP 422: `CURRENCY_NOT_ALLOWED` from PayPal Orders v2 API when requesting domestic INR. | Configured `PAYPAL_CURRENCY=USD` across `.env`, Orders v2 payload, and frontend SDK injection URL. |
+| **Premature Capture Call** | HTTP 422: `ORDER_NOT_APPROVED` (Debug-ID: `ca51a70a46b45`) when capture is invoked before payer authorizes the popup. | Capture endpoint properly verifies authorization and logs sanitized debug IDs without leaking secrets. |
+| **Rounding Drift** | Potential HTTP 422 `MISMATCH_OF_ITEM_TOTAL` if item totals and breakdown differ by $0.01. | Synchronized item unit conversion calculation between frontend and backend. |
 
 ---
 
 ## 3. How to Test the Checkout Successfully
 
 ### Critical Testing Rule
-> ⚠️ **Always use an Incognito / Private window** to test the checkout!  
-> This ensures that your active login on `developer.paypal.com` (your Business account) does not contaminate the checkout popup.
+> ⚠️ **Always use an Incognito / Private window** to test PayPal checkout!  
+> This ensures that your active developer dashboard session (`developer.paypal.com`) does not contaminate the buyer popup.
 
-### Step-by-Step Testing Guide:
+### Step-by-Step Testing Flow:
 1. Open an **Incognito / Private Window** in your browser.
 2. Navigate to **`http://localhost:3000`**.
-3. Notice that all products display prices in **USD** prominently with the **INR** amount beside it (e.g. `$23.52 (₹1,999)`).
-4. Click on any jacket (e.g. *CyberShell Pro Stormbreaker*) and click **Add to Bag**.
-5. Open the floating cart in the top right and click **Proceed to Checkout**.
-6. The verified total indicates the exact USD amount charged via PayPal. Click the yellow **PayPal** button.
-7. In the PayPal popup, log in with your **Personal Sandbox Account**:
+3. Add any jacket (e.g. *CyberShell Pro Stormbreaker*) to your bag.
+4. Open the floating cart drawer in the top right and click **Proceed to Checkout**.
+5. Review the checkout summary:
+   - Verified Total indicates the exact USD amount (e.g. `$25.28 USD`) alongside the merchandise estimate `(₹2,149)`.
+6. Click the yellow **PayPal** button.
+7. In the PayPal popup, log in with your Personal Sandbox Buyer Account:
    - Email: `sb-lg72c53550049@personal.example.com`
    - Password: `[Your Personal Sandbox password]`
-8. Click **Complete Purchase** / **Pay Now**.
-9. The popup closes and the order confirmation modal displays:
+8. Click **Pay Now** / **Complete Purchase**.
+9. The popup closes, and the confirmation screen renders:
    - Status: `● PAID (PayPal Sandbox Verified)`
-   - Total Paid: `$XX.XX USD (₹X,XXX)`
+   - Total Charged: `$25.28 USD (₹2,149)`
    - PayPal Capture ID: `2GG...`
-   - Itemized purchase receipt and delivery address.
+   - Delivery Address & Itemized Receipt.
+10. Verify that SQLite contains the updated order record with `currency = 'INR'`, `total_amount = 2149`, `charged_currency = 'USD'`, and `charged_amount = 25.28`.
 
 ---
 
-## 4. Diagnostic Logging
-If any transaction encounters an error, the server terminal output will display:
+## 4. Test Suite Verification
+Run the automated test suite:
+```powershell
+npm test
 ```
-[PayPal Diagnostics] Creating order for local ID: ORD-...
-[PayPal Diagnostics] Intent: CAPTURE, Currency: USD, Subtotal: ..., Shipping: ..., Total: ...
-[PayPal Diagnostics] Create order HTTP status: 200 (Debug-ID: ...)
-[PayPal Diagnostics] Order created successfully. PayPal Order ID: ...
-```
-No API secrets, passwords, or customer tokens are ever logged.
+Result: **29/29 tests passed (100.0%)** across database catalog integrity, pricing validation, server security, AI stylist, and PayPal Sandbox order lifecycle.

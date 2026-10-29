@@ -3,10 +3,17 @@ node_modules/
 .env.*
 !.env.example
 !.env.example.*
-!.env.example
 .DS_Store
 Thumbs.db
 npm-debug.log*
+*.bak
 
+# SQLite databases (runtime & development records)
 data/*.sqlite
 data/*.sqlite-*
+database/*.sqlite
+database/*.sqlite-*
+
+# Recovery and temporary backup archives
+*_backup*
+*backup*

@@ -4,10 +4,10 @@
  */
 const assert = require('assert');
 const http = require('http');
-const db = require('../server/db');
-const gemini = require('../server/gemini');
-const paypal = require('../server/paypal');
-const { app } = require('../server/server');
+const db = require('../database/db');
+const gemini = require('../backend/gemini');
+const paypal = require('../backend/paypal');
+const { app } = require('../backend/server');
 
 const TEST_PORT = 3001;
 const originalFetch = global.fetch;

@@ -2,10 +2,10 @@
   "name": "agentcart-ai",
   "version": "1.0.0",
   "description": "AgentCart AI — Your Personal AI Jacket Shopper",
-  "main": "server/server.js",
+  "main": "backend/server.js",
   "scripts": {
-    "start": "node server/server.js",
-    "seed": "node server/seed.js",
+    "start": "node backend/server.js",
+    "seed": "node database/seed.js",
     "test": "node tests/run_tests.js"
   },
   "keywords": ["ai", "ecommerce", "outerwear", "jackets", "paypal", "gemini"],

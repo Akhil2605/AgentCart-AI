@@ -9,7 +9,7 @@ import colorsys
 from PIL import Image, ImageEnhance, ImageMath
 
 SRC_DIR = "D:/AgentCart-AI"
-DEST_DIR = "D:/AgentCart-AI/assets/images/jackets"
+DEST_DIR = "D:/AgentCart-AI/frontend/assets/images/jackets"
 os.makedirs(DEST_DIR, exist_ok=True)
 
 # 1. Base supplied screenshots

@@ -1609,84 +1609,314 @@ function initScramblerElements() {
 }
 
 // ==========================================================================
-// 3D JACKET CURSOR-TRACKING TILT
+// 3D VIDEO ARENA CURSOR-TRACKING TILT
 // ==========================================================================
 function setup3DJacketTilt() {
   if (prefersReducedMotion) return;
 
-  const stage = $('#heroJacketStage');
-  const img = $('#heroJacketImg');
-  if (!stage || !img) return;
+  const arena = $('#heroVideoArena') || $('#heroJacketStage');
+  const viewport = $('.hero-video-viewport');
+  if (!arena || !viewport) return;
 
-  stage.addEventListener('mousemove', (e) => {
-    const rect = stage.getBoundingClientRect();
+  viewport.addEventListener('mousemove', (e) => {
+    const rect = arena.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
     const centerX = rect.width / 2;
     const centerY = rect.height / 2;
 
-    const rotateX = -((y - centerY) / centerY) * 10;
-    const rotateY = ((x - centerX) / centerX) * 14;
+    const rotateX = -((y - centerY) / centerY) * 4.5;
+    const rotateY = ((x - centerX) / centerX) * 6.5;
 
-    img.style.transform = `perspective(1000px) rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg) scale3d(1.03, 1.03, 1.03)`;
+    arena.style.transform = `perspective(1200px) rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg) scale3d(1.015, 1.015, 1.015)`;
   });
 
-  stage.addEventListener('mouseleave', () => {
-    img.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)';
+  viewport.addEventListener('mouseleave', () => {
+    arena.style.transform = 'perspective(1200px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)';
   });
 }
 
 // ==========================================================================
-// ADVANCED SCROLL-DRIVEN SHOWROOM TRANSITION
+// SCROLL-CONTROLLED VIDEO SHOWROOM ENGINE (WITH PROGRESSIVE CANVAS FALLBACK)
 // ==========================================================================
 function setupScrollDrivenShowroom() {
-  if (prefersReducedMotion) return;
-
   const heroSection = $('#hero');
-  const heroJacket = $('#heroJacketStage');
+  const video = $('#heroVideo');
+  const canvas = $('#heroCanvas');
+  const poster = $('#heroPosterImg');
+  const telemetryTime = $('#heroTelemetryTime');
+  const scrubFill = $('#heroScrubProgressFill');
+  const scrollPrompt = $('#heroScrollPrompt');
+  const leftBracket = $('.hero-bracket-callout.left-bracket');
+  const rightBracket = $('.hero-bracket-callout.right-bracket');
   const detailsSection = $('#detailsMatter');
   const detailsJacket = $('#detailsJacketVisual');
 
-  if (!heroSection || !heroJacket) return;
+  if (!heroSection) return;
 
-  let ticking = false;
+  // Video and Scrub Engine State
+  const VIDEO_DURATION = 14.567; // Duration of reference video in seconds
+  let videoDuration = VIDEO_DURATION;
+  let isVideoReady = false;
+  let useCanvasFallback = false;
+  let manifestFrames = [];
+  const preloadedFrames = new Map();
+  let targetProgress = 0;
+  let currentProgress = 0;
+  let targetTime = 0;
+  let smoothTime = 0;
+  let isVisible = true;
+  let isTicking = false;
+  let rafId = null;
+
+  // 1. Initialize Direct Video Stream
+  if (video) {
+    video.muted = true;
+    video.volume = 0;
+
+    video.addEventListener('loadedmetadata', () => {
+      if (video.duration && !isNaN(video.duration) && video.duration > 0) {
+        videoDuration = video.duration;
+      }
+      isVideoReady = true;
+    });
+
+    video.addEventListener('canplay', () => {
+      isVideoReady = true;
+      if (poster) {
+        poster.classList.add('hidden');
+      }
+    });
+
+    video.addEventListener('error', (err) => {
+      console.warn('Hero video failed to load, switching to Canvas frame scrubbing fallback:', err);
+      activateCanvasFallback();
+    });
+
+    // Fallback timer: if video doesn't become ready within 2.5s, prepare canvas fallback
+    setTimeout(() => {
+      if (!isVideoReady && video.readyState < 2) {
+        activateCanvasFallback();
+      }
+    }, 2500);
+  } else {
+    activateCanvasFallback();
+  }
+
+  // 2. Progressive Canvas Frame Scrubbing Fallback Engine
+  function activateCanvasFallback() {
+    if (useCanvasFallback) return;
+    useCanvasFallback = true;
+
+    if (canvas) {
+      canvas.classList.add('canvas-active');
+    }
+
+    // Load Manifest
+    fetch('/video/manifest.json')
+      .then(res => res.json())
+      .then(manifest => {
+        manifestFrames = manifest.frames || [];
+        if (manifestFrames.length > 0) {
+          // Preload first, middle, and last frames immediately
+          preloadFrame(0);
+          preloadFrame(Math.floor(manifestFrames.length / 2));
+          preloadFrame(manifestFrames.length - 1);
+
+          // Render first frame immediately
+          renderCanvasFrame(0);
+
+          // Progressively preload remaining frames
+          manifestFrames.forEach((_, idx) => {
+            setTimeout(() => preloadFrame(idx), idx * 60);
+          });
+        }
+      })
+      .catch(err => {
+        console.warn('Manifest load failed:', err);
+      });
+  }
+
+  function preloadFrame(index) {
+    if (!manifestFrames[index] || preloadedFrames.has(index)) return;
+    const img = new Image();
+    img.src = manifestFrames[index].url;
+    img.onload = () => {
+      preloadedFrames.set(index, img);
+      if (poster && index === 0) {
+        poster.classList.add('hidden');
+      }
+    };
+  }
+
+  function renderCanvasFrame(timeInSeconds) {
+    if (!canvas || manifestFrames.length === 0) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Find closest frame by timestamp
+    let closestIndex = 0;
+    let minDiff = Infinity;
+    for (let i = 0; i < manifestFrames.length; i++) {
+      const diff = Math.abs(manifestFrames[i].timestamp - timeInSeconds);
+      if (diff < minDiff) {
+        minDiff = diff;
+        closestIndex = i;
+      }
+    }
+
+    const cachedImg = preloadedFrames.get(closestIndex);
+    if (cachedImg && cachedImg.complete && cachedImg.naturalWidth > 0) {
+      ctx.drawImage(cachedImg, 0, 0, canvas.width, canvas.height);
+      if (poster) poster.classList.add('hidden');
+    } else {
+      preloadFrame(closestIndex);
+    }
+  }
+
+  // 3. Scroll Progress Calculation
+  function calculateScroll() {
+    const rect = heroSection.getBoundingClientRect();
+    const scrollDistance = heroSection.offsetHeight - window.innerHeight;
+
+    if (scrollDistance <= 0) {
+      targetProgress = 0;
+      targetTime = 0;
+      return;
+    }
+
+    const currentScroll = -rect.top;
+    targetProgress = Math.max(0, Math.min(1, currentScroll / scrollDistance));
+    targetTime = targetProgress * videoDuration;
+  }
+
+  // 4. Smooth Animation Loop (RAF)
+  function updateLoop() {
+    if (!isVisible) {
+      isTicking = false;
+      return;
+    }
+
+    // Smooth Lerp Interpolation for seamless forward and reverse motion
+    const progressDiff = targetProgress - currentProgress;
+    if (Math.abs(progressDiff) > 0.0005) {
+      currentProgress += progressDiff * 0.22;
+    } else {
+      currentProgress = targetProgress;
+    }
+
+    const timeDiff = targetTime - smoothTime;
+    if (Math.abs(timeDiff) > 0.002) {
+      smoothTime += timeDiff * 0.22;
+    } else {
+      smoothTime = targetTime;
+    }
+
+    // Apply to Direct Video Stream
+    if (video && video.readyState >= 1) {
+      if (!video.seeking && Math.abs(video.currentTime - smoothTime) > 0.035) {
+        try {
+          if (typeof video.fastSeek === 'function') {
+            video.fastSeek(smoothTime);
+          } else {
+            video.currentTime = smoothTime;
+          }
+        } catch (e) {}
+      }
+    }
+
+    // Apply to Canvas Scrubbing (draws frame if canvas fallback is active or video is buffering)
+    if (canvas && (useCanvasFallback || !isVideoReady)) {
+      renderCanvasFrame(smoothTime);
+    }
+
+    // Update Telemetry & Scrub Bar
+    if (telemetryTime) {
+      const secs = (smoothTime % 60).toFixed(2).padStart(5, '0');
+      telemetryTime.textContent = `REC 00:${secs} / 00:14.56`;
+    }
+
+    if (scrubFill) {
+      scrubFill.style.width = `${(currentProgress * 100).toFixed(1)}%`;
+    }
+
+    // Fade scroll prompt once user begins scrolling
+    if (scrollPrompt) {
+      scrollPrompt.style.opacity = currentProgress > 0.06 ? '0' : '1';
+    }
+
+    // Subtle fade of corner brackets as user approaches Details Matter section
+    if (leftBracket && rightBracket) {
+      if (currentProgress > 0.78) {
+        const fade = Math.max(0, 1 - (currentProgress - 0.78) * 4.5);
+        leftBracket.style.opacity = fade.toFixed(2);
+        rightBracket.style.opacity = fade.toFixed(2);
+      } else {
+        leftBracket.style.opacity = '1';
+        rightBracket.style.opacity = '1';
+      }
+    }
+
+    // Seamless parallax on Details Matter jacket visual
+    if (detailsSection && detailsJacket) {
+      const dRect = detailsSection.getBoundingClientRect();
+      if (dRect.top < window.innerHeight && dRect.bottom > 0) {
+        const relY = (window.innerHeight - dRect.top) / (window.innerHeight + dRect.height);
+        const moveY = (relY - 0.5) * 35;
+        detailsJacket.style.transform = `translate3d(0, ${moveY.toFixed(1)}px, 0) scale(1.02)`;
+      }
+    }
+
+    // Continue loop if still animating or in view
+    rafId = requestAnimationFrame(updateLoop);
+  }
 
   function onScroll() {
-    if (!ticking) {
-      requestAnimationFrame(() => {
-        const scrollY = window.scrollY;
-        const heroHeight = heroSection.offsetHeight;
-
-        // Hero scale and smooth lift as user scrolls away
-        if (scrollY > 0 && scrollY < heroHeight * 1.4) {
-          const progress = Math.min(scrollY / (heroHeight * 0.75), 1);
-          const scale = 1 - progress * 0.12;
-          const translateY = progress * 45;
-          const opacity = Math.max(1 - progress * 0.85, 0);
-          heroJacket.style.transform = `translate3d(0, ${translateY}px, 0) scale(${scale})`;
-          heroJacket.style.opacity = opacity.toFixed(2);
-        } else if (scrollY === 0) {
-          heroJacket.style.transform = 'translate3d(0, 0, 0) scale(1)';
-          heroJacket.style.opacity = '1';
-        }
-
-        // Details Matter jacket subtle parallax entrance
-        if (detailsSection && detailsJacket) {
-          const rect = detailsSection.getBoundingClientRect();
-          if (rect.top < window.innerHeight && rect.bottom > 0) {
-            const relY = (window.innerHeight - rect.top) / (window.innerHeight + rect.height);
-            const moveY = (relY - 0.5) * 35;
-            detailsJacket.style.transform = `translate3d(0, ${moveY.toFixed(1)}px, 0) scale(1.02)`;
-          }
-        }
-
-        ticking = false;
-      });
-      ticking = true;
+    calculateScroll();
+    if (!isTicking && isVisible) {
+      isTicking = true;
+      rafId = requestAnimationFrame(updateLoop);
     }
   }
 
   window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('resize', calculateScroll, { passive: true });
+
+  // 5. IntersectionObserver: Pause loop when Hero section is off-screen
+  if ('IntersectionObserver' in window) {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        isVisible = entry.isIntersecting;
+        if (isVisible) {
+          if (!isTicking) {
+            isTicking = true;
+            calculateScroll();
+            rafId = requestAnimationFrame(updateLoop);
+          }
+        } else {
+          if (rafId) {
+            cancelAnimationFrame(rafId);
+            isTicking = false;
+          }
+        }
+      });
+    }, { threshold: 0.02 });
+
+    observer.observe(heroSection);
+  }
+
+  // 6. Accessibility: Reduced Motion Compliance
+  if (prefersReducedMotion) {
+    if (video) video.currentTime = 0;
+    if (canvas) renderCanvasFrame(0);
+    if (scrubFill) scrubFill.style.width = '0%';
+    return;
+  }
+
+  // Initial calculation and kick-off
+  calculateScroll();
+  isTicking = true;
+  rafId = requestAnimationFrame(updateLoop);
 }
 
 // ==========================================================================

@@ -548,6 +548,29 @@ async function runAllTests() {
     assert.strictEqual(res.status, 200);
     assert.ok(res.text.includes('AgentCart AI'));
     assert.ok(res.text.includes('Find Your Style. Shop Smarter.'));
+    assert.ok(res.text.includes('id="heroVideo"'), 'Homepage must contain #heroVideo element');
+    assert.ok(res.text.includes('id="heroCanvas"'), 'Homepage must contain #heroCanvas fallback element');
+    assert.ok(res.text.includes('id="heroPosterImg"'), 'Homepage must contain #heroPosterImg instant fallback element');
+    assert.ok(!res.text.includes('<video id="heroVideo" controls'), 'Hero video MUST NOT have native controls');
+  });
+
+  await testAsync('GET /video/manifest.json returns valid scrubbing metadata and 30 frames', async () => {
+    const res = await httpReq('/video/manifest.json');
+    assert.strictEqual(res.status, 200);
+    assert.strictEqual(res.json.fps, 30);
+    assert.strictEqual(res.json.extracted_frame_count, 30);
+    assert.strictEqual(res.json.frames.length, 30);
+    assert.strictEqual(res.json.video_url, '/video/hero.mp4');
+    assert.ok(res.json.duration > 14);
+  });
+
+  await testAsync('GET /video/hero.mp4 serves video with HTTP range support', async () => {
+    const rangeRes = await originalFetch(`http://localhost:${TEST_PORT}/video/hero.mp4`, {
+      headers: { 'Range': 'bytes=0-1024' }
+    });
+    assert.strictEqual(rangeRes.status, 206, 'Should return HTTP 206 Partial Content for range request');
+    const rangeHeader = rangeRes.headers.get('content-range');
+    assert.ok(rangeHeader && rangeHeader.startsWith('bytes 0-1024/'));
   });
 
   await testAsync('GET /api/config returns config, verified currency, and NEVER leaks PAYPAL_CLIENT_SECRET', async () => {

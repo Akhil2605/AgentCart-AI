@@ -1,57 +1,69 @@
 # Project State: AgentCart AI
 
-**Current Status:** Safe Project Structure Reorganization & Frontend Redesign Verified  
+**Current Status:** Cinematic Scroll-Controlled Video Showroom Verified & Operational  
 **Date:** October 29, 2026  
-**Platform Version:** v3.1.0 (Clean Modular Architecture & Reorganized Structure Edition)  
+**Platform Version:** v3.2.0 (Cinematic Scroll-Controlled Video Showroom Edition)  
 **Recovery Backup Location:** `D:\AgentCart-AI-backup-pre-reorg`  
 
 ---
 
-## 1. Project Reorganization Matrix
+## 1. Actual Video Opening Scroll Animation Integration
 
-The AgentCart-AI project has been reorganized from a flat mixed layout into a clean, modular, and maintainable architectural hierarchy. All existing features, 24 jackets, SQLite dual-currency ledger, AI Stylist, PayPal Sandbox checkout, and scroll-driven showroom animations remain 100% operational.
+The reference video stored in `D:\AgentCart-AI\video` has been integrated as the primary, dominant visual experience for the opening section of the AgentCart-AI homepage, immediately below the fixed header.
 
-| Directory | Contents & Roles | Verification Status |
+| Parameter | Specification | Verification |
 | :--- | :--- | :--- |
-| **`frontend/`** | `index.html`, `styles.css`, `app.js`, and `assets/images/jackets/` (all 24 jacket renders). | ✅ Verified (HTTP 200 on all static assets; black triangle dropdown fixed; 3D material layers elevated; empty modal img glitch resolved) |
-| **`backend/`** | `server.js` (Express entry point), `config.js` (environment & currency), `gemini.js` (AI Stylist service), `paypal.js` (Orders v2 API client). | ✅ Verified (Config endpoint sanitized; price anti-tampering active; static asset mounts updated) |
-| **`database/`** | `db.js` (SQLite access module), `schema.sql`, `seed.js`, `agentcart.sqlite` (active database), and `catalog.json` (master seed). | ✅ Verified (24 jackets loaded with zero record loss; schema integrity verified) |
-| **`tests/`** | `run_tests.js` (comprehensive 29-test end-to-end and unit test runner). | ✅ Verified (**29/29 passed, 100%**) |
-| **`docs/`** | `ARCHITECTURE.md` (detailed architectural layout, data flows, and API reference). | ✅ Verified (Created & documented) |
-| **`video/`** | Reference video (`*.mp4`) and 30 OpenCV-extracted design frames (`extracted_frames/`). | ✅ Preserved intact |
-| **`Root`** | `package.json`, `package-lock.json`, `.gitignore`, `.env`, `.env.example`, `README.md`, `PROJECT_STATE.md`, `HANDOFF.md`, and `scripts/`. | ✅ Cleaned & synchronized |
+| **Source Video File** | `A futuristic e-commerce experience built to make the product feel premium before the customer ev.mp4` | ✅ File exists in `video/` (2.87 MB) |
+| **Local File Path** | `D:\AgentCart-AI\video\A futuristic e-commerce experience built to make the product feel premium before the customer ev.mp4` | ✅ Tested & verified |
+| **Format & Codec** | MP4 (H.264 / AVC video, AAC audio / muted) | ✅ Verified |
+| **Dimensions** | 1156 x 720 px (Aspect ratio: ~1.605) | ✅ Maintained |
+| **Frame Rate & Count** | 30.0 FPS, 437 total frames | ✅ Verified via OpenCV |
+| **Total Duration** | 14.567 seconds | ✅ Synchronized to scroll |
+| **Express Streaming Route** | `GET /video/hero.mp4` (HTTP 206 Partial Content / Range support) | ✅ Verified |
+| **Scrubbing Manifest** | `GET /video/manifest.json` (30 progressive fallback frames) | ✅ Verified |
 
 ---
 
-## 2. Safety & Recovery Guarantees
+## 2. Architecture & Implementation Method
 
-1. **Recovery Backup Outside Active Structure:**
-   - Full pre-reorganization snapshot created at `D:\AgentCart-AI-backup-pre-reorg` (~135 GB free space verified).
-2. **Original Database Preservation:**
-   - Original `data/agentcart.sqlite` and `data/catalog.json` remain untouched and recoverable.
-   - Active database running from `database/agentcart.sqlite`.
-3. **No Destructive Operations:**
-   - No `git commit`, `git push`, or deployment operations performed.
-   - Repository history and `.git` untouched.
-4. **Zero Secret Leakage:**
-   - `.env` preserved locally with strict `.gitignore` rules.
-   - `.env.example` provides placeholder values only.
-   - Public `/api/config` exposes only `paypalClientId`, `currency`, and `inrToUsdRate`.
+### 2.1 Hybrid Scrubbing Engine (Direct Video + Canvas Fallback)
+1. **Primary Video Engine:**
+   - HTML5 `<video>` element (`#heroVideo`) with `muted`, `playsinline`, `preload="auto"`, and strict absence of `controls`.
+   - Uses `requestAnimationFrame` with lerp damping (`currentProgress += diff * 0.22`) to smoothly synchronize video timeline to user scroll progress.
+   - Scrolling down advances the video frame-by-frame; scrolling up smoothly reverses the video frame-by-frame.
+   - Throttled seek loop avoids seek queue saturation while maintaining buttery-smooth updates.
+2. **Progressive Canvas Scrubbing Fallback Engine:**
+   - High-performance `<canvas>` element (`#heroCanvas`, 1156x720) initialized in tandem.
+   - Loads `video/manifest.json` and preloads key frames progressively.
+   - If direct video playback or rapid seek is delayed or unsupported by the browser, canvas immediately renders nearest frame without user-perceptible latency.
+3. **Instant Loading Poster:**
+   - `#heroPosterImg` displays initial frame instantly, fading out with graceful CSS opacity transition once video or canvas frame is decoded.
+4. **Performance & Energy Efficiency:**
+   - `IntersectionObserver` detects when `#hero` leaves the viewport and pauses the RAF animation loop, preventing background CPU or GPU usage.
+   - Audio is strictly muted (`video.muted = true`, `video.volume = 0`).
+   - Compliant with `prefers-reduced-motion`: pauses scrub loop and renders static hero frame if requested.
 
 ---
 
 ## 3. UI Fixes & Motion Enhancements
 
-1. **Native Black Triangle Dropdown Glitch Fixed:**
-   - Added `-webkit-appearance: none; -moz-appearance: none; appearance: none;` and `.sort-select::-ms-expand { display: none; }` to `frontend/styles.css`, eliminating native Windows/Edge chevron duplication.
-2. **Empty Modal Image Glitch Fixed:**
-   - Updated `#modalImg` in `frontend/index.html` with an inline transparent SVG placeholder (`data:image/svg+xml,...`) to avoid browser broken image icons during modal initialization.
-3. **Enhanced 3D Material Layer Separation:**
-   - Upgraded isometric material stack layer elevations (`translateZ(145px)`, `translateZ(105px)`, `translateZ(65px)`, `translateZ(25px)`) with hover `scale(1.03)` for deeper tactile feedback.
+### 3.1 "Huge Black Triangle" Issue Diagnosed & Permanently Fixed
+- **Root Cause Identified:** The inline SVG arrow in `#heroShopNowBtn` (`<svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>`) lacked explicit `width`, `height`, `fill="none"`, and `stroke="currentColor"`. In Chromium, unstyled SVG paths default to solid black fill (`fill: #000000; stroke: none;`), which filled the entire bounding box (93px wide) with a massive black triangular wedge directly next to the buttons.
+- **Fix Applied:**
+  1. Updated the SVG with explicit dimensions (`width="16" height="16"`), `fill="none"`, and `stroke="currentColor"`.
+  2. Created dedicated Liquid Glass styling in `frontend/styles.css` for `.btn-tech-shop` (vibrant laboratory orange CTA pill with specular glow and white chevron) and `.btn-tech-outline` (frosted glass pill with subtle border and orange hover accent).
+  3. Added global CSS safeguards ensuring SVG elements never collapse or blow up.
+
+### 3.2 Sticky Stage Viewport Pinning Fix
+- **Root Cause Identified:** Parent `.showroom-dark-stage` had `overflow: hidden`, which breaks CSS `position: sticky` on child elements according to the CSS specification.
+- **Fix Applied:**
+  1. Added `overflow: visible !important;` to `.hero-showroom-section`.
+  2. Set `.hero-sticky-stage` to `top: 70px; height: calc(100vh - 70px); overflow: hidden;`.
+  3. The hero stage now docks flush beneath the sticky header and stays pinned throughout the 280vh scroll track.
 
 ---
 
-## 4. Automated Test Results
+## 4. Verification & Automated Test Results
 
 Executed `npm test` ([`tests/run_tests.js`](file:///D:/AgentCart-AI/tests/run_tests.js)):
 - **Database & Catalog Integrity:** 3/3 passed
@@ -59,13 +71,13 @@ Executed `npm test` ([`tests/run_tests.js`](file:///D:/AgentCart-AI/tests/run_te
 - **Server-Side Pricing & Security Validation:** 5/5 passed
 - **AI Recommender:** 2/2 passed
 - **PayPal Sandbox Checkout Engine:** 9/9 passed
-- **Live Express HTTP Endpoints:** 7/7 passed
-- **Total:** **29/29 passed (100.0%)**
+- **Live Express HTTP Endpoints:** 9/9 passed (including `/video/hero.mp4` HTTP 206 range check, `/video/manifest.json` check, and `#heroVideo` inspection)
+- **Total:** **31/31 passed (100.0%)**
 
----
-
-## 5. Startup Commands & Verification
-
-- **Start Web Application:** `npm start` (Serves on `http://localhost:3000`)
-- **Run Automated Tests:** `npm test`
-- **Re-seed Database:** `npm run seed`
+### Headless Chrome CDP Browser Verification ([`tests/verify_browser_scroll.js`](file:///D:/AgentCart-AI/tests/verify_browser_scroll.js)):
+- **DOM Elements:** `#heroVideo`, `#heroCanvas`, `#heroPosterImg`, `#heroVideoArena` present and measured.
+- **Scroll Down (800px):** Sticky stage pinned at `top: 70px`, `video.currentTime` advanced to `7.25s`, scrub progress fill at `54.3%`, telemetry displaying `REC 00:07.91 / 00:14.56`.
+- **Scroll Down (1600px):** `video.currentTime` advanced to `13.85s`, fill at `96.2%`.
+- **Scroll Up (Reversal to 0px):** `video.currentTime` reversed to `0.09s`, telemetry returning to `REC 00:00.10 / 00:14.56`, fill resetting to `0.7%`.
+- **Console Errors:** `0` (Zero errors, zero exceptions).
+- **Visual Capture:** Screenshot verified at [`video/browser_scrolled_800px.png`](file:///D:/AgentCart-AI/video/browser_scrolled_800px.png) showing glossy blue puffer jacket, orange telemetry bar, corner brackets, and zero triangles.

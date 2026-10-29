@@ -71,72 +71,129 @@
 
   <main>
     <!-- ======================================================================
-         A. CINEMATIC PRODUCT HERO (00:00–00:04)
+         A. CINEMATIC PRODUCT HERO (00:00–00:04 — SCROLL-CONTROLLED VIDEO SHOWROOM)
          ====================================================================== -->
     <section class="showroom-dark-stage hero-showroom-section" id="hero">
-      <div class="hero-silhouette-wings"></div>
+      <div class="hero-sticky-stage" id="heroStickyStage">
+        <div class="hero-silhouette-wings"></div>
 
-      <!-- Top Technical Corner Bracket Callouts -->
-      <div class="hero-bracket-callout left-bracket">
-        <span class="bracket-symbol">┌</span>
-        <div class="bracket-callout-text scramble-text" data-scramble="ENGINEERED FOR MOTION.&#10;BUILT TO ENDURE.">
-          ENGINEERED FOR MOTION.<br>BUILT TO ENDURE.
+        <!-- Top Technical Corner Bracket Callouts -->
+        <div class="hero-bracket-callout left-bracket">
+          <span class="bracket-symbol">┌</span>
+          <div class="bracket-callout-text scramble-text" data-scramble="ENGINEERED FOR MOTION.&#10;BUILT TO ENDURE.">
+            ENGINEERED FOR MOTION.<br>BUILT TO ENDURE.
+          </div>
+          <span class="bracket-symbol">└</span>
         </div>
-        <span class="bracket-symbol">└</span>
-      </div>
 
-      <div class="hero-bracket-callout right-bracket">
-        <span class="bracket-symbol">┐</span>
-        <div class="bracket-callout-text scramble-text" data-scramble="DESIGNED FOR THE UNKNOWN.&#10;READY FOR ANYTHING.">
-          DESIGNED FOR THE UNKNOWN.<br>READY FOR ANYTHING.
+        <div class="hero-bracket-callout right-bracket">
+          <span class="bracket-symbol">┐</span>
+          <div class="bracket-callout-text scramble-text" data-scramble="DESIGNED FOR THE UNKNOWN.&#10;READY FOR ANYTHING.">
+            DESIGNED FOR THE UNKNOWN.<br>READY FOR ANYTHING.
+          </div>
+          <span class="bracket-symbol">┘</span>
         </div>
-        <span class="bracket-symbol">┘</span>
-      </div>
 
-      <!-- Central Dominant Jacket Arena -->
-      <div class="hero-viewport-arena">
-        <div class="hero-dominant-jacket-wrap" id="heroJacketStage">
-          <img src="assets/images/jackets/cyber-shell-black.png" alt="CyberShell Pro Stormbreaker Technical Outerwear" class="hero-dominant-jacket-img" id="heroJacketImg">
-        </div>
-      </div>
+        <!-- Central Dominant Video & Interactive Scrubber Arena -->
+        <div class="hero-video-viewport">
+          <div class="hero-video-arena" id="heroVideoArena">
+            <!-- Primary HTML5 Video Element (Muted, Hardware-accelerated, No Controls) -->
+            <video 
+              id="heroVideo" 
+              class="hero-media-element hero-dominant-video" 
+              src="/video/hero.mp4" 
+              muted 
+              playsinline 
+              preload="auto" 
+              disablepictureinpicture 
+              disableremoteplayback 
+              tabindex="-1"
+              aria-hidden="true">
+            </video>
 
-      <!-- Bottom Metadata & CTA Stream matching Reference -->
-      <div class="container">
-        <div class="hero-bottom-meta-row">
-          <!-- Left: Globe & Innovation Narrative -->
-          <div class="hero-meta-col-left">
-            <div class="hero-globe-wrap">
-              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-              <span>EST.2022</span>
-            </div>
-            <div class="hero-meta-narrative">
-              BUILT ON EXPERIENCE.<br>DRIVEN BY INNOVATION.<br>FOCUSED ON YOU.
+            <!-- Progressive Canvas Scrubber Fallback -->
+            <canvas 
+              id="heroCanvas" 
+              class="hero-media-element hero-dominant-canvas" 
+              width="1156" 
+              height="720" 
+              aria-hidden="true">
+            </canvas>
+
+            <!-- Instant Initial Poster (Fades gracefully once video/canvas frame is ready) -->
+            <img 
+              id="heroPosterImg" 
+              src="/video/extracted_frames/frame_00.0s.jpg" 
+              alt="CyberShell Pro Opening Presentation" 
+              class="hero-media-element hero-poster-fallback"
+            >
+
+            <!-- Hidden reference image for cart fly animation & backwards compatibility -->
+            <img 
+              src="assets/images/jackets/cyber-shell-black.png" 
+              alt="CyberShell Pro" 
+              id="heroJacketImg" 
+              style="display:none;" 
+              aria-hidden="true"
+            >
+
+            <!-- Interactive HUD Telemetry Overlay -->
+            <div class="hero-video-overlay-hud">
+              <div class="hero-scrub-telemetry">
+                <span class="telemetry-tag"><span class="telemetry-dot"></span> SHOWROOM FEED // 4K RAW</span>
+                <span class="telemetry-time" id="heroTelemetryTime">REC 00:00.00 / 00:14.56</span>
+              </div>
+
+              <div class="hero-scroll-prompt" id="heroScrollPrompt">
+                <span>SCROLL TO ADVANCE // UP TO REVERSE</span>
+                <svg viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></svg>
+              </div>
+
+              <div class="hero-scrub-progress-track">
+                <div class="hero-scrub-progress-fill" id="heroScrubProgressFill"></div>
+              </div>
             </div>
           </div>
+        </div>
 
-          <!-- Center: Feature Line & SHOP NOW CTA -->
-          <div class="hero-meta-col-center">
-            <div class="hero-features-stream scramble-text" data-scramble="WEATHER-RESISTANT. THERMAL INSULATION. OVERSIZED FIT. LIMITED QUANTITY.">
-              WEATHER-RESISTANT. THERMAL INSULATION. OVERSIZED FIT. LIMITED QUANTITY.
+        <!-- Bottom Metadata & CTA Stream matching Reference Video -->
+        <div class="container">
+          <div class="hero-bottom-meta-row">
+            <!-- Left: Globe & Innovation Narrative -->
+            <div class="hero-meta-col-left">
+              <div class="hero-globe-wrap">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                <span>EST.2022</span>
+              </div>
+              <div class="hero-meta-narrative">
+                BUILT ON EXPERIENCE.<br>DRIVEN BY INNOVATION.<br>FOCUSED ON YOU.
+              </div>
             </div>
-            <div style="display: flex; gap: 12px; align-items: center;">
-              <a href="#collections" class="btn-tech-shop" id="heroShopNowBtn">
-                <span>SHOP NOW</span>
-                <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-              </a>
-              <button class="btn-tech-outline" id="heroQuickAddBtn" data-id="cyber-shell-black">
-                <span>QUICK ADD</span>
-              </button>
-            </div>
-          </div>
 
-          <!-- Right: Crosshair & Worldwide Delivery -->
-          <div class="hero-meta-col-right">
-            <div class="hero-shipping-narrative">
-              WORLDWIDE SHIPPING<br>FAST & SECURE<br>DELIVERY
+            <!-- Center: Feature Line & SHOP NOW CTA -->
+            <div class="hero-meta-col-center">
+              <div class="hero-features-stream scramble-text" data-scramble="WEATHER-RESISTANT. THERMAL INSULATION. OVERSIZED FIT. LIMITED QUANTITY.">
+                WEATHER-RESISTANT. THERMAL INSULATION. OVERSIZED FIT. LIMITED QUANTITY.
+              </div>
+              <div style="display: flex; gap: 12px; align-items: center;">
+                <a href="#collections" class="btn-tech-shop" id="heroShopNowBtn">
+                  <span>SHOP NOW</span>
+                  <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </a>
+                <button class="btn-tech-outline" id="heroQuickAddBtn" data-id="cyber-shell-black">
+                  <span>QUICK ADD</span>
+                </button>
+              </div>
             </div>
-            <div class="hero-target-wrap">
-              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg>
+
+            <!-- Right: Crosshair & Worldwide Delivery -->
+            <div class="hero-meta-col-right">
+              <div class="hero-shipping-narrative">
+                WORLDWIDE SHIPPING<br>FAST & SECURE<br>DELIVERY
+              </div>
+              <div class="hero-target-wrap">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg>
+              </div>
             </div>
           </div>
         </div>

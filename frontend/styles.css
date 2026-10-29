@@ -3061,47 +3061,240 @@ img {
   box-shadow: var(--shadow-glass-md);
 }
 
-/* Hero Section (00:00–00:04) */
+/* ==========================================================================
+   A. CINEMATIC PRODUCT HERO (00:00–00:04 — SCROLL-CONTROLLED VIDEO SHOWROOM)
+   ========================================================================== */
+
+/* Strict suppression of all browser native video play icons, triangles, and shadow-DOM media panels */
+video::-webkit-media-controls,
+video::-webkit-media-controls-enclosure,
+video::-webkit-media-controls-panel,
+video::-webkit-media-controls-play-button,
+video::-webkit-media-controls-start-playback-button,
+video::-webkit-media-controls-overlay-play-button,
+video::-webkit-media-controls-overlay-enclosure,
+video::-webkit-media-controls-current-time-display,
+video::-webkit-media-controls-time-remaining-display,
+*::-webkit-media-controls-panel {
+  display: none !important;
+  -webkit-appearance: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* Multi-height Scroll Track for Smooth Video Timeline Scrubbing */
 .hero-showroom-section {
   position: relative;
-  min-height: calc(100vh - 70px);
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: clamp(24px, 4vw, 44px) 0;
+  height: 280vh; /* Controlled scroll distance to smoothly advance 14.5s video */
+  margin: 0;
+  padding: 0;
+  background: transparent;
   z-index: 2;
 }
 
-.hero-viewport-arena {
+/* Sticky Stage pinned to viewport during scroll */
+.hero-sticky-stage {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: clamp(14px, 2.5vh, 28px) 0;
+  background: radial-gradient(circle at 50% 45%, #1E2530 0%, #151D28 65%, #0B1017 100%);
+  box-shadow: inset 0 -30px 40px rgba(0, 0, 0, 0.45);
+  z-index: 3;
+}
+
+.hero-video-viewport {
   position: relative;
   width: 100%;
-  height: 100%;
-  min-height: 480px;
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 3;
+  padding: 0 clamp(16px, 4vw, 48px);
 }
 
-/* Central Dominant Jacket Stage */
-.hero-dominant-jacket-wrap {
+/* Central Dominant Video Arena in Liquid Glass */
+.hero-video-arena {
   position: relative;
-  width: min(560px, 88vw);
-  height: min(520px, 64vh);
-  display: grid;
-  place-items: center;
-  z-index: 3;
-  perspective: 1000px;
-  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+  width: min(1040px, 92vw);
+  aspect-ratio: 1156 / 720;
+  max-height: min(580px, 64vh);
+  border-radius: 20px;
+  background: #111722;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 
+    0 24px 60px rgba(0, 0, 0, 0.7),
+    0 0 45px rgba(225, 92, 29, 0.15),
+    inset 0 1px 1px rgba(255, 255, 255, 0.25);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color var(--tr-fast), box-shadow var(--tr-fast), transform 0.25s ease-out;
 }
 
-.hero-dominant-jacket-img {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-  filter: drop-shadow(0 24px 44px rgba(0, 0, 0, 0.65)) drop-shadow(0 0 35px rgba(225, 92, 29, 0.22));
-  transition: transform 0.15s ease-out;
-  cursor: pointer;
+.hero-video-arena:hover {
+  border-color: rgba(225, 92, 29, 0.45);
+  box-shadow: 
+    0 30px 75px rgba(0, 0, 0, 0.78),
+    0 0 55px rgba(225, 92, 29, 0.25),
+    inset 0 1px 1px rgba(255, 255, 255, 0.35);
+}
+
+/* Layered Video, Canvas, and Instant Fallback Elements */
+.hero-media-element {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+  pointer-events: none; /* Allows clicks to pass through to buttons */
+}
+
+.hero-dominant-video {
+  z-index: 2;
+  background: transparent;
+  transition: opacity 0.3s ease;
+}
+
+.hero-dominant-canvas {
+  z-index: 1;
+  opacity: 0;
+  background: transparent;
+  transition: opacity 0.3s ease;
+}
+
+.hero-dominant-canvas.canvas-active {
+  opacity: 1;
+  z-index: 3;
+}
+
+.hero-poster-fallback {
+  z-index: 0;
+  opacity: 1;
+  transition: opacity 0.5s ease;
+}
+
+.hero-poster-fallback.hidden {
+  opacity: 0;
+}
+
+/* Interactive HUD Overlay across the Video */
+.hero-video-overlay-hud {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: clamp(10px, 2vw, 18px);
+  background: linear-gradient(180deg, rgba(14, 19, 28, 0.45) 0%, transparent 22%, transparent 75%, rgba(14, 19, 28, 0.65) 100%);
+}
+
+.hero-scrub-telemetry {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: clamp(0.68rem, 1vw, 0.75rem);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.telemetry-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(225, 92, 29, 0.18);
+  color: var(--accent-orange);
+  padding: 3px 9px;
+  border-radius: 4px;
+  border: 1px solid rgba(225, 92, 29, 0.35);
+  backdrop-filter: blur(8px);
+}
+
+.telemetry-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-orange);
+  box-shadow: 0 0 8px var(--accent-orange);
+  animation: pulseRecording 1.8s infinite;
+}
+
+@keyframes pulseRecording {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(0.85); }
+}
+
+.telemetry-time {
+  color: rgba(255, 255, 255, 0.95);
+  background: rgba(14, 19, 28, 0.5);
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.hero-scroll-prompt {
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: clamp(0.64rem, 1vw, 0.72rem);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.75);
+  background: rgba(14, 19, 28, 0.65);
+  backdrop-filter: blur(10px);
+  padding: 5px 14px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  margin-bottom: 6px;
+  animation: promptFloat 2.2s infinite ease-in-out;
+  transition: opacity 0.3s ease;
+}
+
+.hero-scroll-prompt svg {
+  width: 14px;
+  height: 14px;
+  stroke: var(--accent-orange);
+  fill: none;
+  stroke-width: 2.5;
+}
+
+@keyframes promptFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(4px); }
+}
+
+.hero-scrub-progress-track {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.hero-scrub-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--accent-orange), #FFA066);
+  box-shadow: 0 0 10px rgba(225, 92, 29, 0.85);
+  transition: width 0.04s linear;
 }
 
 /* Technical Corner Bracket Callouts */
@@ -3115,15 +3308,17 @@ img {
   min-height: 80px;
   padding: 4px 8px;
   z-index: 4;
+  pointer-events: none;
+  transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
 .hero-bracket-callout.left-bracket {
-  left: clamp(12px, 5vw, 60px);
+  left: clamp(12px, 4vw, 52px);
   text-align: left;
 }
 
 .hero-bracket-callout.right-bracket {
-  right: clamp(12px, 5vw, 60px);
+  right: clamp(12px, 4vw, 52px);
   text-align: right;
 }
 
@@ -3144,6 +3339,12 @@ img {
   color: rgba(255, 255, 255, 0.9);
   text-transform: uppercase;
   margin: 6px 0;
+}
+
+/* Central Dominant Jacket Stage (Compatibility reference) */
+.hero-dominant-jacket-wrap {
+  position: relative;
+  display: none;
 }
 
 /* Bottom Metadata Badges Row */

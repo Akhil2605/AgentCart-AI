@@ -1,0 +1,869 @@
+[
+  {
+    "id": "cyber-shell-black",
+    "name": "CyberShell Pro Stormbreaker",
+    "category": "Technical Windbreakers",
+    "style": "Technical Windbreaker",
+    "price": 1999,
+    "original_price": 2899,
+    "colors": [
+      { "name": "Onyx & Electric Blue", "hex": "#0a111e" },
+      { "name": "Stealth Charcoal", "hex": "#1e2229" }
+    ],
+    "sizes": [
+      { "size": "S", "stock": 8 },
+      { "size": "M", "stock": 14 },
+      { "size": "L", "stock": 9 },
+      { "size": "XL", "stock": 5 }
+    ],
+    "material": "StormGrid™ 3-Layer Ripstop Nylon with HydroShield™ DWR Membrane",
+    "features": [
+      "28,000mm Hydrostatic Waterproof Rating",
+      "YKK AquaGuard® Dual-Direction Zippers",
+      "Ergonomic Storm Hood with Dual Shock Cords",
+      "Underarm Zippered Heat-Venting Ports",
+      "Laser-Cut Welded Chest Utility Pockets"
+    ],
+    "description": "Our flagship technical storm shell engineered for unyielding weather defense. Featuring 3-layer bonded ripstop weave, sealed taped seams, and neon cyber accents.",
+    "image": "assets/images/jackets/cyber-shell-black.png",
+    "rating": 4.9,
+    "reviews_count": 142,
+    "stock_status": "In Stock",
+    "waterproof_rating": "28,000mm",
+    "breathability": "24,000 g/m²/24h",
+    "weight": "420g",
+    "fit": "Athletic Modern",
+    "featured": true
+  },
+  {
+    "id": "alpine-white-shell",
+    "name": "Alpine Shift Hardshell",
+    "category": "Lightweight Rain Jackets",
+    "style": "Lightweight Rain Jacket",
+    "price": 2499,
+    "original_price": 3299,
+    "colors": [
+      { "name": "Glacial White", "hex": "#f1f5f9" },
+      { "name": "Monochrome Slate", "hex": "#94a3b8" }
+    ],
+    "sizes": [
+      { "size": "XS", "stock": 4 },
+      { "size": "S", "stock": 10 },
+      { "size": "M", "stock": 12 },
+      { "size": "L", "stock": 7 },
+      { "size": "XL", "stock": 3 }
+    ],
+    "material": "AeroMembrane™ 2.5L Breathable Matte Shell",
+    "features": [
+      "20,000mm Water Column Protection",
+      "Ultralight Packable Architecture (310g)",
+      "High-Collar Wind Funnel with Microfleece Chin Guard",
+      "Internal Media & Audio Routing Sleeve",
+      "Reflective Micro-Prism Hi-Vis Elements"
+    ],
+    "description": "Clean minimalist alpine rain jacket delivering high waterproof performance in a pristine arctic-white matte finish.",
+    "image": "assets/images/jackets/alpine-white-shell.png",
+    "rating": 4.8,
+    "reviews_count": 96,
+    "stock_status": "In Stock",
+    "waterproof_rating": "20,000mm",
+    "breathability": "22,000 g/m²/24h",
+    "weight": "310g",
+    "fit": "Regular Ergonomic",
+    "featured": true
+  },
+  {
+    "id": "ranger-olive-tactical",
+    "name": "Ranger Exo Tactical Shell",
+    "category": "Sports and Outdoor Jackets",
+    "style": "Sports and Outdoor Jacket",
+    "price": 2799,
+    "original_price": 3699,
+    "colors": [
+      { "name": "Tactical Olive", "hex": "#4b5320" },
+      { "name": "Cyber Lime Accent", "hex": "#84cc16" }
+    ],
+    "sizes": [
+      { "size": "S", "stock": 6 },
+      { "size": "M", "stock": 15 },
+      { "size": "L", "stock": 11 },
+      { "size": "XL", "stock": 6 },
+      { "size": "XXL", "stock": 2 }
+    ],
+    "material": "Cordura® Reinforced Ripstop Blend with Teflon™ EcoElite Finish",
+    "features": [
+      "Abrasion-Resistant Cordura Forearm Panels",
+      "Modular Molle-Compatible Gear Loops",
+      "Dual Chest Napoleon Compartments",
+      "Adjustable Hook-and-Loop Cuff Dampeners",
+      "15,000mm Hydrostatic Weather Defense"
+    ],
+    "description": "Heavy-duty outdoor exploration jacket built with reinforced tactical overlays, high-vis contrast pulls, and all-weather resilience.",
+    "image": "assets/images/jackets/ranger-olive-tactical.png",
+    "rating": 4.7,
+    "reviews_count": 118,
+    "stock_status": "In Stock",
+    "waterproof_rating": "15,000mm",
+    "breathability": "18,000 g/m²/24h",
+    "weight": "540g",
+    "fit": "Relaxed Tactical",
+    "featured": true
+  },
+  {
+    "id": "apex-blaze-orange",
+    "name": "Apex Signal Hi-Vis Shell",
+    "category": "Technical Windbreakers",
+    "style": "Technical Windbreaker",
+    "price": 1899,
+    "original_price": 2499,
+    "colors": [
+      { "name": "Blaze Orange", "hex": "#ea580c" },
+      { "name": "Obsidian Contrast", "hex": "#18181b" }
+    ],
+    "sizes": [
+      { "size": "S", "stock": 5 },
+      { "size": "M", "stock": 16 },
+      { "size": "L", "stock": 10 },
+      { "size": "XL", "stock": 4 }
+    ],
+    "material": "High-Tenacity 70D Ballistic Nylon with Polyurethane Coating",
+    "features": [
+      "High-Visibility Safety Signal Hue",
+      "Windblocker Pro 0-CFM Wind Resistance",
+      "Dual Storm Flap Zipper Protection",
+      "Contoured Elbow Articulation",
+      "Pack-Into-Pocket Travel Capability"
+    ],
+    "description": "Eye-catching high-visibility technical windbreaker designed for backcountry safety, urban cycling, and storm exposure.",
+    "image": "assets/images/jackets/apex-blaze-orange.png",
+    "rating": 4.6,
+    "reviews_count": 84,
+    "stock_status": "In Stock",
+    "waterproof_rating": "18,000mm",
+    "breathability": "16,000 g/m²/24h",
+    "weight": "380g",
+    "fit": "Athletic Modern",
+    "featured": true
+  },
+  {
+    "id": "neon-pulse-magenta",
+    "name": "Neon Pulse City Windcoat",
+    "category": "Minimalist Urban Jackets",
+    "style": "Minimalist Urban Jacket",
+    "price": 2199,
+    "original_price": 2999,
+    "colors": [
+      { "name": "Cyber Magenta", "hex": "#ec4899" },
+      { "name": "Midnight Ink", "hex": "#0f172a" }
+    ],
+    "sizes": [
+      { "size": "XS", "stock": 3 },
+      { "size": "S", "stock": 9 },
+      { "size": "M", "stock": 11 },
+      { "size": "L", "stock": 5 }
+    ],
+    "material": "ReflexWeave™ Soft-Touch Hydro-Poly Blend",
+    "features": [
+      "Futuristic Cyber Magenta Chromatic Dye",
+      "Drop-Tail Curved Hem for Commuter Coverage",
+      "Magnetic Quick-Snap Collar Latch",
+      "Concealed Zip Pockets with Fleece Lining",
+      "Water-Repellent DWR 10,000mm"
+    ],
+    "description": "Bold futuristic streetwear silhouette engineered for metropolitan night commutes with lightweight weatherproofing.",
+    "image": "assets/images/jackets/neon-pulse-magenta.png",
+    "rating": 4.9,
+    "reviews_count": 76,
+    "stock_status": "In Stock",
+    "waterproof_rating": "10,000mm",
+    "breathability": "20,000 g/m²/24h",
+    "weight": "360g",
+    "fit": "Tailored Slim",
+    "featured": true
+  },
+  {
+    "id": "shadow-camo-stealth",
+    "name": "Shadow Camo Stealth Parka",
+    "category": "Hooded Jackets",
+    "style": "Hooded Jacket",
+    "price": 2699,
+    "original_price": 3599,
+    "colors": [
+      { "name": "Dark Shadow Camo", "hex": "#27272a" },
+      { "name": "Matte Jet", "hex": "#09090b" }
+    ],
+    "sizes": [
+      { "size": "S", "stock": 4 },
+      { "size": "M", "stock": 14 },
+      { "size": "L", "stock": 8 },
+      { "size": "XL", "stock": 5 }
+    ],
+    "material": "Subdued Geometric Camouflage 3-Ply Poly Ripstop",
+    "features": [
+      "Subtle Tonal Geometric Camo Weave",
+      "Deep Helmet-Compatible Snorkel Hood",
+      "Reinforced Bicep Utility Zip Pouch",
+      "Velcro Precision Cuff Adjusters",
+      "22,000mm Water Repellency Rating"
+    ],
+    "description": "Tactical urban hooded shell wrapped in an understated tonal shadow camo pattern for covert city protection.",
+    "image": "assets/images/jackets/shadow-camo-stealth.png",
+    "rating": 4.9,
+    "reviews_count": 165,
+    "stock_status": "In Stock",
+    "waterproof_rating": "22,000mm",
+    "breathability": "19,000 g/m²/24h",
+    "weight": "490g",
+    "fit": "Relaxed Tactical",
+    "featured": true
+  },
+  {
+    "id": "stealth-bomber-ma1",
+    "name": "AeroMA-1 Technical Bomber",
+    "category": "Bomber Jackets",
+    "style": "Bomber Jacket",
+    "price": 1949,
+    "original_price": 2799,
+    "colors": [
+      { "name": "Midnight Tech Navy", "hex": "#1e293b" },
+      { "name": "Emergency Orange Inner", "hex": "#f97316" }
+    ],
+    "sizes": [
+      { "size": "S", "stock": 7 },
+      { "size": "M", "stock": 15 },
+      { "size": "L", "stock": 10 },
+      { "size": "XL", "stock": 6 }
+    ],
+    "material": "Flight-Spec Flight Satin Nylon with Primaloft® Insulation",
+    "features": [
+      "Classic Ribbed Bomber Collar and Hem",
+      "Signature Left Sleeve Cigarette/Pen Utility Zip",
+      "Reversible Emergency High-Vis Lining",
+      "Windproof Dual Weft Fabric Weave",
+      "Water-Resistant Teflon Sheen Coating"
+    ],
+    "description": "Reinvented military MA-1 bomber fused with modern technical outerwear fabrics and lightweight thermal insulation.",
+    "image": "assets/images/jackets/stealth-bomber-ma1.png",
+    "rating": 4.8,
+    "reviews_count": 132,
+    "stock_status": "In Stock",
+    "waterproof_rating": "8,000mm DWR",
+    "breathability": "15,000 g/m²/24h",
+    "weight": "510g",
+    "fit": "Classic Bomber Regular",
+    "featured": false
+  },
+  {
+    "id": "veloce-commuter-softshell",
+    "name": "Veloce Commuter Softshell",
+    "category": "Casual Everyday Jackets",
+    "style": "Casual Everyday Jacket",
+    "price": 1499,
+    "original_price": 1999,
+    "colors": [
+      { "name": "Slate Charcoal", "hex": "#334155" },
+      { "name": "Black Heather", "hex": "#18181b" }
+    ],
+    "sizes": [
+      { "size": "S", "stock": 12 },
+      { "size": "M", "stock": 20 },
+      { "size": "L", "stock": 14 },
+      { "size": "XL", "stock": 8 }
+    ],
+    "material": "4-Way Mechanical Stretch Softshell with Brushed Fleece Backing",
+    "features": [
+      "4-Way Dynamic Movement Stretch",
+      "Wind-Blocking Fleece Core Interior",
+      "Zippered Handwarmer Pockets",
+      "Drawcord Hem Cinch System",
+      "Everyday Commute Durability"
+    ],
+    "description": "The perfect everyday companion for cool mornings and urban commutes. Breathable, stretchy, and budget-friendly.",
+    "image": "assets/images/jackets/veloce-commuter-softshell.png",
+    "rating": 4.6,
+    "reviews_count": 89,
+    "stock_status": "In Stock",
+    "waterproof_rating": "5,000mm DWR",
+    "breathability": "22,000 g/m²/24h",
+    "weight": "460g",
+    "fit": "Regular Comfort",
+    "featured": false
+  },
+  {
+    "id": "arctic-expedition-down",
+    "name": "Arctic Expedition 800 Down",
+    "category": "Insulated Winter Jackets",
+    "style": "Insulated Winter Jacket",
+    "price": 4299,
+    "original_price": 5499,
+    "colors": [
+      { "name": "Crimson Glacier", "hex": "#b91c1c" },
+      { "name": "Pitch Black", "hex": "#09090b" }
+    ],
+    "sizes": [
+      { "size": "S", "stock": 3 },
+      { "size": "M", "stock": 7 },
+      { "size": "L", "stock": 5 },
+      { "size": "XL", "stock": 2 }
+    ],
+    "material": "800-Fill Responsibly Sourced Goose Down with Pertex® Quantum Shell",
+    "features": [
+      "Sub-Zero Thermal Rating to -25°C",
+      "Down-Proof Ultralight Ripstop Baffles",
+      "Insulated Baffled Storm Hood",
+      "Internal Stretch Mesh Dump Pockets for Gloves",
+      "Magnetic Storm Flap Closure"
+    ],
+    "description": "Maximum thermal efficiency for freezing expeditions. Engineered with 800 fill-power hydrophobic down.",
+    "image": "assets/images/jackets/arctic-expedition-down.png",
+    "rating": 4.9,
+    "reviews_count": 64,
+    "stock_status": "Low Stock",
+    "waterproof_rating": "12,000mm",
+    "breathability": "14,000 g/m²/24h",
+    "weight": "680g",
+    "fit": "Expedition Comfort",
+    "featured": false
+  },
+  {
+    "id": "quantum-ripstop-trench",
+    "name": "Quantum Ripstop Rain Trench",
+    "category": "Lightweight Rain Jackets",
+    "style": "Lightweight Rain Jacket",
+    "price": 2899,
+    "original_price": 3899,
+    "colors": [
+      { "name": "Glacier Mist", "hex": "#cbd5e1" },
+      { "name": "Storm Blue", "hex": "#1e3a8a" }
+    ],
+    "sizes": [
+      { "size": "S", "stock": 5 },
+      { "size": "M", "stock": 9 },
+      { "size": "L", "stock": 6 },
+      { "size": "XL", "stock": 3 }
+    ],
+    "material": "HydroWeave™ Extended Cut 3-Layer Lightweight Waterproof Fabric",
+    "features": [
+      "Extended Trench Cut for Superior Leg Protection",
+      "Dual Rear Walking Vent with Snap Fasteners",
+      "Detachable Storm Visor Hood",
+      "Waterproof Welded Flap Pockets",
+      "Taped Seams Throughout"
+    ],
+    "description": "A refined technical trench coat combining tailored sartorial silhouettes with mountain-grade waterproofing.",
+    "image": "assets/images/jackets/quantum-ripstop-trench.png",
+    "rating": 4.7,
+    "reviews_count": 52,
+    "stock_status": "In Stock",
+    "waterproof_rating": "25,000mm",
+    "breathability": "20,000 g/m²/24h",
+    "weight": "440g",
+    "fit": "Tailored Long",
+    "featured": false
+  },
+  {
+    "id": "raw-cyber-denim",
+    "name": "Raw Selvedge Cyber Denim",
+    "category": "Denim Jackets",
+    "style": "Denim Jacket",
+    "price": 2399,
+    "original_price": 3199,
+    "colors": [
+      { "name": "Deep Raw Indigo", "hex": "#1e3a5f" },
+      { "name": "Washed Cyber Blue", "hex": "#3b82f6" }
+    ],
+    "sizes": [
+      { "size": "S", "stock": 6 },
+      { "size": "M", "stock": 11 },
+      { "size": "L", "stock": 8 },
+      { "size": "XL", "stock": 4 }
+    ],
+    "material": "14oz Japanese Kurabo Selvedge Denim with Kevlar® Core Threads",
+    "features": [
+      "Kevlar-Reinforced Warp for Cut & Abrasion Resistance",
+      "Custom Matte Black Gunmetal Shank Buttons",
+      "Internal Device Pockets with Cable Pass-Through",
+      "Articulated Pleats on Rear Yoke for Shoulder Mobility",
+      "Selvedge ID Detailing on Inner Placket"
+    ],
+    "description": "Heritage denim meets cyberpunk technical outerwear. Raw unwashed 14oz selvedge woven with abrasion-resistant Kevlar.",
+    "image": "assets/images/jackets/raw-cyber-denim.png",
+    "rating": 4.8,
+    "reviews_count": 91,
+    "stock_status": "In Stock",
+    "waterproof_rating": "Water-Resistant Wax Treatment",
+    "breathability": "High Denim Breathability",
+    "weight": "720g",
+    "fit": "Slim Biker Cut",
+    "featured": false
+  },
+  {
+    "id": "aerogrid-windrunner",
+    "name": "AeroGrid Ultralight Windrunner",
+    "category": "Sports and Outdoor Jackets",
+    "style": "Sports and Outdoor Jacket",
+    "price": 1799,
+    "original_price": 2299,
+    "colors": [
+      { "name": "Cyber Volt Lime", "hex": "#a3e635" },
+      { "name": "Graphite Grey", "hex": "#3f3f46" }
+    ],
+    "sizes": [
+      { "size": "S", "stock": 8 },
+      { "size": "M", "stock": 18 },
+      { "size": "L", "stock": 12 },
+      { "size": "XL", "stock": 6 }
+    ],
+    "material": "AeroGrid™ Micro-Ripstop 20D Recycled Poly",
+    "features": [
+      "Ultra-Featherweight at just 180g",
+      "Packs Into Own Chest Pocket with Carabiner Loop",
+      "Laser-Perforated Back Air Vents for High-Output Sports",
+      "Elasticated Ergonomic Scuba Hood",
+      "360° Night-Runner 3M Reflective Trims"
+    ],
+    "description": "The ultimate jacket for trail running and high-aerobic mountain sports. Featherweight wind resistance with maximum ventilation.",
+    "image": "assets/images/jackets/aerogrid-windrunner.png",
+    "rating": 4.7,
+    "reviews_count": 104,
+    "stock_status": "In Stock",
+    "waterproof_rating": "DWR Shower-Resistant",
+    "breathability": "30,000 g/m²/24h",
+    "weight": "180g",
+    "fit": "Active Athletic",
+    "featured": false
+  },
+  {
+    "id": "hyperion-mountain-shell",
+    "name": "Hyperion 3L Expedition Shell",
+    "category": "Technical Windbreakers",
+    "style": "Technical Windbreaker",
+    "price": 3499,
+    "original_price": 4599,
+    "colors": [
+      { "name": "Electric Cyan", "hex": "#06b6d4" },
+      { "name": "Abyssal Navy", "hex": "#0f172a" }
+    ],
+    "sizes": [
+      { "size": "S", "stock": 4 },
+      { "size": "M", "stock": 8 },
+      { "size": "L", "stock": 6 },
+      { "size": "XL", "stock": 3 }
+    ],
+    "material": "GORE-TEX Pro Most Breathable 3-Layer 80D Recycled Polyamide",
+    "features": [
+      "30,000mm Extreme Expedition Waterproofing",
+      "Cohaesive™ Embedded Cord Lock System in Hood & Hem",
+      "Dual Exterior Harness-Compatible Hand Pockets",
+      "RECCO® Avalanche Rescue Reflector Embedded in Collar",
+      "Glove-Friendly Molded Zip Pullers"
+    ],
+    "description": "Built for Himalayan conditions and extreme mountaineering. Uncompromising storm-grade weather resistance with GORE-TEX Pro.",
+    "image": "assets/images/jackets/hyperion-mountain-shell.png",
+    "rating": 4.9,
+    "reviews_count": 83,
+    "stock_status": "In Stock",
+    "waterproof_rating": "30,000mm",
+    "breathability": "28,000 g/m²/24h",
+    "weight": "460g",
+    "fit": "Alpine Ergonomic",
+    "featured": false
+  },
+  {
+    "id": "obsidian-tactical-bomber",
+    "name": "Obsidian Tactical Bomber",
+    "category": "Bomber Jackets",
+    "style": "Bomber Jacket",
+    "price": 2299,
+    "original_price": 2999,
+    "colors": [
+      { "name": "Matte Jet Obsidian", "hex": "#111827" },
+      { "name": "Gunmetal Ash", "hex": "#374151" }
+    ],
+    "sizes": [
+      { "size": "S", "stock": 5 },
+      { "size": "M", "stock": 13 },
+      { "size": "L", "stock": 9 },
+      { "size": "XL", "stock": 4 }
+    ],
+    "material": "Tactile Matte Twill with C6 Fluorocarbon Free DWR",
+    "features": [
+      "Fidlock® V-Buckle Magnetic Front Fastening Strap",
+      "Heavy-Duty #10 Metal Asymmetrical Zipper",
+      "Modular Patch Attachment Hook-and-Loop Panels",
+      "Ribbed Storm Cuffs with Thumb Slot Cutouts",
+      "Internal Zippered Passport Security Pocket"
+    ],
+    "description": "A stealth tactical bomber designed with magnetic Fidlock hardware, blackout detailing, and heavy-duty urban weatherproofing.",
+    "image": "assets/images/jackets/obsidian-tactical-bomber.png",
+    "rating": 4.8,
+    "reviews_count": 115,
+    "stock_status": "In Stock",
+    "waterproof_rating": "10,000mm DWR",
+    "breathability": "16,000 g/m²/24h",
+    "weight": "580g",
+    "fit": "Tactical Boxy",
+    "featured": false
+  },
+  {
+    "id": "glacier-puffer-anorak",
+    "name": "Glacier Down Puffer Anorak",
+    "category": "Puffer Jackets",
+    "style": "Puffer Jacket",
+    "price": 2999,
+    "original_price": 3999,
+    "colors": [
+      { "name": "Frost Glacier Blue", "hex": "#7dd3fc" },
+      { "name": "Arctic Snow", "hex": "#f8fafc" }
+    ],
+    "sizes": [
+      { "size": "S", "stock": 6 },
+      { "size": "M", "stock": 10 },
+      { "size": "L", "stock": 7 },
+      { "size": "XL", "stock": 3 }
+    ],
+    "material": "AeroTherm™ 700-Fill EcoDown with Ripstop Cire Shell",
+    "features": [
+      "Half-Zip Pull-Over Anorak Silhouette with Side Entry Zip",
+      "Oversized Kangaroo Utility Pouch with Top & Side Access",
+      "Channel-Quilted Thermal Down Baffles",
+      "Elasticated Storm Seal Cuffs",
+      "High Neck Thermal Fleece Chaff Guard"
+    ],
+    "description": "Retro-futuristic pull-over puffer anorak insulated with sustainable high-loft synthetic down for sub-zero city warmth.",
+    "image": "assets/images/jackets/glacier-puffer-anorak.png",
+    "rating": 4.8,
+    "reviews_count": 78,
+    "stock_status": "In Stock",
+    "waterproof_rating": "8,000mm Hydrophobic",
+    "breathability": "15,000 g/m²/24h",
+    "weight": "590g",
+    "fit": "Relaxed Anorak",
+    "featured": false
+  },
+  {
+    "id": "subzero-thermal-parka",
+    "name": "Sub-Zero Thermal Heavy Parka",
+    "category": "Insulated Winter Jackets",
+    "style": "Insulated Winter Jacket",
+    "price": 4699,
+    "original_price": 5999,
+    "colors": [
+      { "name": "Gunmetal Slate", "hex": "#475569" },
+      { "name": "Black Void", "hex": "#020617" }
+    ],
+    "sizes": [
+      { "size": "S", "stock": 2 },
+      { "size": "M", "stock": 6 },
+      { "size": "L", "stock": 4 },
+      { "size": "XL", "stock": 2 }
+    ],
+    "material": "Dual-Layer Arctic Twill with High-Pile Sherpa Core & Microfiber Thermal Fill",
+    "features": [
+      "Tested for -30°C Extreme Arctic Exposure",
+      "Removable Faux-Shearling Hood Ruffle",
+      "Double Storm Flaps with Heavy-Duty Magnetic Closures",
+      "8-Pocket Utility System for All Field Gear",
+      "Internal Waist Drawcord to Lock in Core Heat"
+    ],
+    "description": "Our most heavily insulated winter fortress. Heavyweight dual-layer arctic twill combined with sherpa lining locks in extreme warmth.",
+    "image": "assets/images/jackets/subzero-thermal-parka.png",
+    "rating": 4.9,
+    "reviews_count": 87,
+    "stock_status": "Low Stock",
+    "waterproof_rating": "18,000mm",
+    "breathability": "12,000 g/m²/24h",
+    "weight": "1120g",
+    "fit": "Oversized Expedition Parka",
+    "featured": false
+  },
+  {
+    "id": "metro-minimalist-windcoat",
+    "name": "Metro Minimalist City Windcoat",
+    "category": "Minimalist Urban Jackets",
+    "style": "Minimalist Urban Jacket",
+    "price": 1999,
+    "original_price": 2699,
+    "colors": [
+      { "name": "Cyber Violet", "hex": "#7c3aed" },
+      { "name": "Matte Slate", "hex": "#334155" }
+    ],
+    "sizes": [
+      { "size": "S", "stock": 7 },
+      { "size": "M", "stock": 16 },
+      { "size": "L", "stock": 9 },
+      { "size": "XL", "stock": 5 }
+    ],
+    "material": "Sonic-Welded Matte Polyurethane with Micro-Vent Matrix",
+    "features": [
+      "Clean Zero-Hardware Exterior Profile",
+      "Hidden Snap Closures & Seamless Pocket Insets",
+      "Underarm Perforated Breathability Vents",
+      "Stand-Up Architectural Funnel Collar",
+      "Featherlight Wind Resistance"
+    ],
+    "description": "Purist architectural design tailored for the modern gallery and tech campus. Zero visual clutter with complete urban weather shielding.",
+    "image": "assets/images/jackets/metro-minimalist-windcoat.png",
+    "rating": 4.7,
+    "reviews_count": 68,
+    "stock_status": "In Stock",
+    "waterproof_rating": "12,000mm",
+    "breathability": "22,000 g/m²/24h",
+    "weight": "340g",
+    "fit": "Tailored Architecture",
+    "featured": false
+  },
+  {
+    "id": "cobalt-storm-shield",
+    "name": "Cobalt Storm Shield Shell",
+    "category": "Hooded Jackets",
+    "style": "Hooded Jacket",
+    "price": 2399,
+    "original_price": 3199,
+    "colors": [
+      { "name": "Vibrant Cobalt Blue", "hex": "#2563eb" },
+      { "name": "Deep Ocean", "hex": "#1e3a8a" }
+    ],
+    "sizes": [
+      { "size": "S", "stock": 5 },
+      { "size": "M", "stock": 12 },
+      { "size": "L", "stock": 8 },
+      { "size": "XL", "stock": 4 }
+    ],
+    "material": "DryShield™ 3-Layer Micro-Ripstop with Hydrophilic Polyurethane Laminate",
+    "features": [
+      "Striking Electric Cobalt Weather Armor",
+      "3-Way Adjustable Helmet-Compatible Hood",
+      "YKK AquaGuard Waterproof Center Zipper",
+      "Seam-Taped Construction Guaranteed Never to Leak",
+      "Articulated Sleeve Patterning for Unrestricted Reach"
+    ],
+    "description": "High-octane blue hooded storm shell engineered for cycling through downpours, hiking ridge tops, and making a bold visual statement.",
+    "image": "assets/images/jackets/cobalt-storm-shield.png",
+    "rating": 4.9,
+    "reviews_count": 109,
+    "stock_status": "In Stock",
+    "waterproof_rating": "24,000mm",
+    "breathability": "21,000 g/m²/24h",
+    "weight": "410g",
+    "fit": "Athletic Modern",
+    "featured": false
+  },
+  {
+    "id": "terra-hybrid-trekker",
+    "name": "Terra Hybrid Trekker Jacket",
+    "category": "Sports and Outdoor Jackets",
+    "style": "Sports and Outdoor Jacket",
+    "price": 2599,
+    "original_price": 3399,
+    "colors": [
+      { "name": "Desert Coyote Khaki", "hex": "#d97706" },
+      { "name": "Alpine Spruce", "hex": "#15803d" }
+    ],
+    "sizes": [
+      { "size": "S", "stock": 4 },
+      { "size": "M", "stock": 10 },
+      { "size": "L", "stock": 7 },
+      { "size": "XL", "stock": 3 }
+    ],
+    "material": "Hybrid Waxed Poly-Cotton Canvas with Softshell Underarm Gussets",
+    "features": [
+      "Waxable Tough-Canvas High-Wear Zones",
+      "Stretch Softshell Panels for Complete Freedom of Movement",
+      "Reinforced Shoulder Yoke for Backpack Straps",
+      "Multi-Tool Dedicated Pocket with D-Ring Clip",
+      "Dual Side Ventilation Zippers"
+    ],
+    "description": "Combines bushcraft durability with technical mountain mobility. Waxable tough canvas panels protect against thorns and heavy packs.",
+    "image": "assets/images/jackets/terra-hybrid-trekker.png",
+    "rating": 4.8,
+    "reviews_count": 94,
+    "stock_status": "In Stock",
+    "waterproof_rating": "Weather-Waxed 12,000mm",
+    "breathability": "19,000 g/m²/24h",
+    "weight": "620g",
+    "fit": "Relaxed Trekking",
+    "featured": false
+  },
+  {
+    "id": "carbon-denim-biker",
+    "name": "Carbon Waxed Denim Biker",
+    "category": "Denim Jackets",
+    "style": "Denim Jacket",
+    "price": 2899,
+    "original_price": 3799,
+    "colors": [
+      { "name": "Waxed Carbon Black", "hex": "#1c1917" },
+      { "name": "Dark Asphalt", "hex": "#292524" }
+    ],
+    "sizes": [
+      { "size": "S", "stock": 5 },
+      { "size": "M", "stock": 12 },
+      { "size": "L", "stock": 8 },
+      { "size": "XL", "stock": 3 }
+    ],
+    "material": "13.5oz Paraffin Wax Treated Denim with Dyneema® Weave",
+    "features": [
+      "Water-Shedding Paraffin Wax Protective Coating",
+      "Asymmetrical Moto Zip with Snap Lapels",
+      "Internal Armor Pockets for D3O® Impact Protectors",
+      "Gusseted Action Back for Motorcycle & Bike Posture",
+      "Heavy-Duty Antique Silver Metal Hardware"
+    ],
+    "description": "High-durability waxed carbon moto jacket woven with Dyneema fiber for 15x steel strength-to-weight ratio.",
+    "image": "assets/images/jackets/carbon-denim-biker.png",
+    "rating": 4.8,
+    "reviews_count": 123,
+    "stock_status": "In Stock",
+    "waterproof_rating": "Waxed Repellent",
+    "breathability": "Moderate",
+    "weight": "840g",
+    "fit": "Slim Moto Biker",
+    "featured": false
+  },
+  {
+    "id": "nimbus-packable-rain",
+    "name": "Nimbus Packable Emerald Anorak",
+    "category": "Lightweight Rain Jackets",
+    "style": "Lightweight Rain Jacket",
+    "price": 1699,
+    "original_price": 2199,
+    "colors": [
+      { "name": "Emerald Tech Rain", "hex": "#059669" },
+      { "name": "Charcoal Black", "hex": "#1f2937" }
+    ],
+    "sizes": [
+      { "size": "XS", "stock": 4 },
+      { "size": "S", "stock": 9 },
+      { "size": "M", "stock": 17 },
+      { "size": "L", "stock": 11 },
+      { "size": "XL", "stock": 5 }
+    ],
+    "material": "2.5L Ultralight 40D Diamond Ripstop with Eco-Shield DWR",
+    "features": [
+      "Stows Inside Own Chest Kangaroo Pocket (Fist-Sized)",
+      "Fully Taped Waterproof Seams (16,000mm Rating)",
+      "Adjustable Elastic Hood with Stiffened Peak",
+      "Reflective Safety Accents Front and Back",
+      "Breathable Pit Mesh Eyelets"
+    ],
+    "description": "Packable rain protection that easily fits in any everyday backpack. Emerald jewel tone with 16,000mm rain resistance.",
+    "image": "assets/images/jackets/nimbus-packable-rain.png",
+    "rating": 4.7,
+    "reviews_count": 82,
+    "stock_status": "In Stock",
+    "waterproof_rating": "16,000mm",
+    "breathability": "20,000 g/m²/24h",
+    "weight": "240g",
+    "fit": "Active Packable",
+    "featured": false
+  },
+  {
+    "id": "zenith-urban-shell",
+    "name": "Zenith Amber Everyday Shell",
+    "category": "Casual Everyday Jackets",
+    "style": "Casual Everyday Jacket",
+    "price": 1799,
+    "original_price": 2399,
+    "colors": [
+      { "name": "Warm Amber Gold", "hex": "#d97706" },
+      { "name": "Slate Navy", "hex": "#1e293b" }
+    ],
+    "sizes": [
+      { "size": "S", "stock": 8 },
+      { "size": "M", "stock": 15 },
+      { "size": "L", "stock": 10 },
+      { "size": "XL", "stock": 4 }
+    ],
+    "material": "Weather-Resistant Peach-Finish Microfiber Twill",
+    "features": [
+      "Soft-Touch Peached Finish for Exceptional Daily Comfort",
+      "Two-Way Front Zipper for Ease When Sitting",
+      "Dual Handwarmer and Top-Loading Flap Cargo Pockets",
+      "Interior Chest Security Pocket with RFID Shield",
+      "Adjustable Snap Cuffs"
+    ],
+    "description": "Everyday casual technical jacket designed for all-season versatility with soft microfiber comfort and warm amber styling.",
+    "image": "assets/images/jackets/zenith-urban-shell.png",
+    "rating": 4.6,
+    "reviews_count": 71,
+    "stock_status": "In Stock",
+    "waterproof_rating": "8,000mm DWR",
+    "breathability": "18,000 g/m²/24h",
+    "weight": "480g",
+    "fit": "Casual Modern",
+    "featured": false
+  },
+  {
+    "id": "solstice-thermo-down",
+    "name": "Solstice Thermo Quilted Down",
+    "category": "Puffer Jackets",
+    "style": "Puffer Jacket",
+    "price": 3199,
+    "original_price": 4199,
+    "colors": [
+      { "name": "Rust Amber Bronze", "hex": "#c2410c" },
+      { "name": "Midnight Charcoal", "hex": "#111827" }
+    ],
+    "sizes": [
+      { "size": "S", "stock": 4 },
+      { "size": "M", "stock": 9 },
+      { "size": "L", "stock": 6 },
+      { "size": "XL", "stock": 3 }
+    ],
+    "material": "750-Fill DownTek™ Water-Repellent Down in Seamless Heat-Bonded Baffles",
+    "features": [
+      "Stitch-Free Seamless Heat-Bonded Baffles Prevent Down Leakage",
+      "Water-Repellent Hydrophobic Down Stays Warm Even If Wet",
+      "Micro-Fleece Lined Hand Pockets and Collar",
+      "Elasticated Ergonomic Wrist Gaiters",
+      "Drawcord Hem Retains Core Heat"
+    ],
+    "description": "Seamless baffle construction guarantees no feather loss and zero cold spots. Packed with premium 750-fill hydrophobic down.",
+    "image": "assets/images/jackets/solstice-thermo-down.png",
+    "rating": 4.8,
+    "reviews_count": 69,
+    "stock_status": "In Stock",
+    "waterproof_rating": "10,000mm Water-Resistant",
+    "breathability": "16,000 g/m²/24h",
+    "weight": "510g",
+    "fit": "Contoured Puffer",
+    "featured": false
+  },
+  {
+    "id": "vanguard-field-jacket",
+    "name": "Vanguard Combat Tech Field Jacket",
+    "category": "Casual Everyday Jackets",
+    "style": "Casual Everyday Jacket",
+    "price": 2499,
+    "original_price": 3299,
+    "colors": [
+      { "name": "Woodland Combat Green", "hex": "#273627" },
+      { "name": "Stealth Black", "hex": "#0f172a" }
+    ],
+    "sizes": [
+      { "size": "S", "stock": 6 },
+      { "size": "M", "stock": 13 },
+      { "size": "L", "stock": 9 },
+      { "size": "XL", "stock": 5 }
+    ],
+    "material": "Heavy Ripstop 65/35 Poly-Cotton with Water-Repellent DWR Finish",
+    "features": [
+      "Four Military-Style Cargo Front Flap Pockets with Hidden Snaps",
+      "Concealed Zippered Stow-Away Storm Hood in Stand Collar",
+      "Internal Waist and Bottom Hem Drawcords for Custom Silhouette",
+      "Reinforced Elbow Patches for Extreme Wear Resistance",
+      "Two Interior Security Drop Pockets"
+    ],
+    "description": "Classic M-65 field jacket DNA upgraded with ripstop weather-resistant engineering and modern ergonomic tailoring.",
+    "image": "assets/images/jackets/vanguard-field-jacket.png",
+    "rating": 4.8,
+    "reviews_count": 99,
+    "stock_status": "In Stock",
+    "waterproof_rating": "10,000mm DWR",
+    "breathability": "17,000 g/m²/24h",
+    "weight": "790g",
+    "fit": "Field Relaxed",
+    "featured": false
+  }
+]

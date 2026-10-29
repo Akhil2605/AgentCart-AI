@@ -15,11 +15,21 @@ app.use(cors());
 app.use(express.json({ limit: '100kb' }));
 app.use(express.urlencoded({ extended: true, limit: '100kb' }));
 
-// Serve static assets and frontend files
+// Serve static assets, frontend files, and video showroom media
 const frontendPath = path.join(__dirname, '..', 'frontend');
+const videoPath = path.join(__dirname, '..', 'video');
+const videoFilename = 'A futuristic e-commerce experience built to make the product feel premium before the customer ev.mp4';
+const fullVideoPath = path.join(videoPath, videoFilename);
+
 app.use(express.static(frontendPath));
 app.use('/assets', express.static(path.join(frontendPath, 'assets')));
 app.use('/data', express.static(path.join(__dirname, '..', 'database')));
+app.use('/video', express.static(videoPath));
+
+// Clean video route alias for opening scroll animation
+app.get('/video/hero.mp4', (req, res) => {
+  res.sendFile(fullVideoPath);
+});
 
 // Root route handler for digital showroom
 app.get('/', (req, res) => {
@@ -187,7 +197,7 @@ app.get('/api/orders/:id', (req, res) => {
 
 // Root route serves index.html
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'index.html'));
+  res.sendFile(path.join(frontendPath, 'index.html'));
 });
 
 // Process-level safety handlers

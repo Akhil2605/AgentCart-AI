@@ -16,25 +16,27 @@
 </head>
 <body>
 
-  <!-- 1. STICKY NAVBAR -->
+  <!-- 1. REFINED STICKY NAVBAR -->
   <header class="site-header" id="siteHeader">
     <div class="container">
       <div class="nav-row">
         <!-- Brand Logo -->
-        <a href="#" class="brand-logo" aria-label="AgentCart AI Homepage">
+        <a href="#hero" class="brand-logo" aria-label="AgentCart AI Digital Showroom">
           <div class="brand-icon">
             <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
           </div>
           <div class="brand-text">AgentCart <span>AI</span></div>
         </a>
 
-        <!-- Desktop Navigation Links -->
-        <nav class="nav-links" aria-label="Primary Navigation">
-          <a href="#catalogue" class="nav-link active">Jackets</a>
+        <!-- Desktop Navigation Links matching Reference -->
+        <nav class="nav-links font-mono-tech" aria-label="Primary Navigation">
+          <a href="#hero" class="nav-link active">Shop</a>
+          <a href="#collections" class="nav-link">Collections</a>
+          <a href="#detailsMatter" class="nav-link">Details</a>
+          <a href="#technology" class="nav-link">Technology</a>
           <a href="#aiAssistant" class="nav-link">AI Stylist</a>
-          <a href="#comparison" class="nav-link" id="navCompareLink">Compare <span class="badge-count" id="navCompareCount" style="display:none">0</span></a>
-          <a href="#materials" class="nav-link">Materials & Tech</a>
-          <a href="#reviews" class="nav-link">Reviews</a>
+          <a href="#needToKnow" class="nav-link">Need to Know</a>
+          <a href="#comparison" class="nav-link" id="navCompareLink" style="display:none">Compare <span class="badge-count" id="navCompareCount">0</span></a>
         </nav>
 
         <!-- Right Header Actions -->
@@ -44,9 +46,8 @@
             <span>Ask AI</span>
           </button>
           
-          <button class="nav-btn" id="headerCartBtn" aria-label="View Cart">
-            <svg viewBox="0 0 24 24"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
-            <span class="badge-count" id="headerCartCount">0</span>
+          <button class="nav-tech-cart-btn" id="headerCartBtn" aria-label="View Outerwear Cart">
+            <span>CART [ <strong id="headerCartCount">0</strong> ]</span>
           </button>
 
           <button class="mobile-toggle" id="mobileMenuToggle" aria-label="Toggle mobile menu">
@@ -55,75 +56,168 @@
         </div>
       </div>
     </div>
-    <!-- Mobile Navigation Drawer in Liquid Glass -->
+
+    <!-- Mobile Navigation Drawer -->
     <div class="mobile-nav-drawer" id="mobileNavDrawer" aria-hidden="true">
-      <a href="#catalogue" class="mobile-nav-link active">Jackets</a>
+      <a href="#hero" class="mobile-nav-link active">Shop</a>
+      <a href="#collections" class="mobile-nav-link">Collections</a>
+      <a href="#detailsMatter" class="mobile-nav-link">Details</a>
+      <a href="#technology" class="mobile-nav-link">Technology</a>
       <a href="#aiAssistant" class="mobile-nav-link">AI Stylist</a>
-      <a href="#comparison" class="mobile-nav-link" id="mobileNavCompareLink">Compare</a>
-      <a href="#materials" class="mobile-nav-link">Materials & Tech</a>
-      <a href="#reviews" class="mobile-nav-link">Reviews</a>
+      <a href="#needToKnow" class="mobile-nav-link">Need to Know</a>
+      <a href="#comparison" class="mobile-nav-link" id="mobileNavCompareLink">Compare Jackets</a>
     </div>
   </header>
 
   <main>
-    <!-- 3. HERO CINEMATIC SECTION -->
-    <section class="hero-section" id="hero">
-      <div class="liquid-ambient-orb orb-cyan"></div>
-      <div class="liquid-ambient-orb orb-violet"></div>
+    <!-- ======================================================================
+         A. CINEMATIC PRODUCT HERO (00:00–00:04)
+         ====================================================================== -->
+    <section class="showroom-dark-stage hero-showroom-section" id="hero">
+      <div class="hero-silhouette-wings"></div>
+
+      <!-- Top Technical Corner Bracket Callouts -->
+      <div class="hero-bracket-callout left-bracket">
+        <span class="bracket-symbol">┌</span>
+        <div class="bracket-callout-text scramble-text" data-scramble="ENGINEERED FOR MOTION.&#10;BUILT TO ENDURE.">
+          ENGINEERED FOR MOTION.<br>BUILT TO ENDURE.
+        </div>
+        <span class="bracket-symbol">└</span>
+      </div>
+
+      <div class="hero-bracket-callout right-bracket">
+        <span class="bracket-symbol">┐</span>
+        <div class="bracket-callout-text scramble-text" data-scramble="DESIGNED FOR THE UNKNOWN.&#10;READY FOR ANYTHING.">
+          DESIGNED FOR THE UNKNOWN.<br>READY FOR ANYTHING.
+        </div>
+        <span class="bracket-symbol">┘</span>
+      </div>
+
+      <!-- Central Dominant Jacket Arena -->
+      <div class="hero-viewport-arena">
+        <div class="hero-dominant-jacket-wrap" id="heroJacketStage">
+          <img src="assets/images/jackets/cyber-shell-black.png" alt="CyberShell Pro Stormbreaker Technical Outerwear" class="hero-dominant-jacket-img" id="heroJacketImg">
+        </div>
+      </div>
+
+      <!-- Bottom Metadata & CTA Stream matching Reference -->
       <div class="container">
-        <div class="hero-grid">
-          <!-- Left Content -->
-          <div class="hero-content">
-            <div class="hero-badge">
-              <i></i> NEXT-GEN TECHNICAL OUTERWEAR
+        <div class="hero-bottom-meta-row">
+          <!-- Left: Globe & Innovation Narrative -->
+          <div class="hero-meta-col-left">
+            <div class="hero-globe-wrap">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+              <span>EST.2022</span>
             </div>
-            <h1 class="hero-title">
-              Find Your Style. <br>
-              <span class="gradient-text">Shop Smarter with AI.</span>
-            </h1>
-            <p class="hero-desc">
-              Experience technical jackets engineered for unyielding weather defense. From 28,000mm stormbreakers to featherlight packable windrunners, our AI assistant tailors recommendations strictly to your budget, size, and styling needs.
-            </p>
-            <div class="hero-cta-group">
-              <a href="#catalogue" class="btn-hero-primary">
-                <span>Explore 24 Styles</span>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
-              </a>
-              <button class="btn-hero-secondary" id="heroTryAiBtn">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3z"/></svg>
-                <span>Launch AI Stylist</span>
-              </button>
-            </div>
-            <!-- Spec Highlights -->
-            <div class="hero-specs-row">
-              <div class="hero-spec-item">
-                <span class="hero-spec-val">28,000 mm</span>
-                <span class="hero-spec-label">Peak Waterproof Tech</span>
-              </div>
-              <div class="hero-spec-item">
-                <span class="hero-spec-val">$24 USD</span>
-                <span class="hero-spec-label">Free Delivery ($24 / ₹2,000+)</span>
-              </div>
-              <div class="hero-spec-item">
-                <span class="hero-spec-val">10 Styles</span>
-                <span class="hero-spec-label">Distinct Outerwear Categories</span>
-              </div>
+            <div class="hero-meta-narrative">
+              BUILT ON EXPERIENCE.<br>DRIVEN BY INNOVATION.<br>FOCUSED ON YOU.
             </div>
           </div>
 
-          <!-- Right Showcase Stage -->
-          <div class="hero-card-wrap">
-            <div class="hero-jacket-stage" id="heroStageCard">
-              <img src="assets/images/jackets/cyber-shell-black.png" alt="CyberShell Pro Stormbreaker Technical Outerwear" class="hero-jacket-img" id="heroJacketImg">
-              <div class="hero-floating-badge">
-                <div>
-                  <div class="hero-flagship-title">CyberShell Pro Stormbreaker</div>
-                  <div class="hero-flagship-meta">3-Layer Ripstop · Waterproof 28,000mm</div>
-                </div>
-                <div>
-                  <div class="hero-flagship-price">$23.52 <span class="dual-inr">(₹1,999)</span></div>
-                  <button class="btn-card-add" id="heroQuickAddBtn" data-id="cyber-shell-black">Quick Add</button>
-                </div>
+          <!-- Center: Feature Line & SHOP NOW CTA -->
+          <div class="hero-meta-col-center">
+            <div class="hero-features-stream scramble-text" data-scramble="WEATHER-RESISTANT. THERMAL INSULATION. OVERSIZED FIT. LIMITED QUANTITY.">
+              WEATHER-RESISTANT. THERMAL INSULATION. OVERSIZED FIT. LIMITED QUANTITY.
+            </div>
+            <div style="display: flex; gap: 12px; align-items: center;">
+              <a href="#collections" class="btn-tech-shop" id="heroShopNowBtn">
+                <span>SHOP NOW</span>
+                <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              </a>
+              <button class="btn-tech-outline" id="heroQuickAddBtn" data-id="cyber-shell-black">
+                <span>QUICK ADD</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Right: Crosshair & Worldwide Delivery -->
+          <div class="hero-meta-col-right">
+            <div class="hero-shipping-narrative">
+              WORLDWIDE SHIPPING<br>FAST & SECURE<br>DELIVERY
+            </div>
+            <div class="hero-target-wrap">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================================
+         B. TECHNICAL PRODUCT DETAILS (00:04–00:06 — "DETAILS MATTER.")
+         ====================================================================== -->
+    <section class="details-matter-section" id="detailsMatter">
+      <div class="container">
+        <div class="details-matter-grid">
+          <!-- Left Column: Jacket Visual & Bold Heading -->
+          <div class="details-jacket-col">
+            <h2 class="tech-giant-title scramble-text" data-scramble="DETAILS MATTER.">DETAILS MATTER.</h2>
+            <div class="details-jacket-stage">
+              <img src="assets/images/jackets/cyber-shell-black.png" alt="CyberShell Detail Focus" class="details-jacket-img" id="detailsJacketVisual">
+            </div>
+            <p class="tech-lead-copy">
+              A technical outer layer made for motion, changing weather, and everything that happens beyond the expected. Engineered with StormGrid™ 3-layer ripstop nylon and 28,000mm hydrostatic head.
+            </p>
+            <button class="btn-tech-outline" id="btnExploreJacket">
+              <span>EXPLORE THE JACKET</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </button>
+          </div>
+
+          <!-- Right Column: 5 Verified Technical Specification Rows -->
+          <div class="details-specs-col">
+            <div class="tech-spec-row" data-spec="1">
+              <span class="tech-spec-idx">01</span>
+              <div class="tech-spec-icon-box">
+                <svg viewBox="0 0 24 24"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+              </div>
+              <div class="tech-spec-info">
+                <h4>WEATHER-RESISTANT SHELL</h4>
+                <p>28,000mm hydrostatic waterproof outer barrier with micro-taped seams for impenetrable storm defense.</p>
+              </div>
+            </div>
+
+            <div class="tech-spec-row" data-spec="2">
+              <span class="tech-spec-idx">02</span>
+              <div class="tech-spec-icon-box">
+                <svg viewBox="0 0 24 24"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>
+              </div>
+              <div class="tech-spec-info">
+                <h4>THERMAL INSULATION</h4>
+                <p>Advanced 800-fill hydrophobic padding traps body heat without unnecessary weight or bulk.</p>
+              </div>
+            </div>
+
+            <div class="tech-spec-row" data-spec="3">
+              <span class="tech-spec-idx">03</span>
+              <div class="tech-spec-icon-box">
+                <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              </div>
+              <div class="tech-spec-info">
+                <h4>REINFORCED CONSTRUCTION</h4>
+                <p>High-tenacity ripstop weave and ultrasonic bonded structural panels for maximum durability.</p>
+              </div>
+            </div>
+
+            <div class="tech-spec-row" data-spec="4">
+              <span class="tech-spec-idx">04</span>
+              <div class="tech-spec-icon-box">
+                <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+              </div>
+              <div class="tech-spec-info">
+                <h4>FUNCTIONAL STORAGE</h4>
+                <p>Multiple laser-cut zippered pockets inside and outside with YKK AquaGuard® water-repellent zips.</p>
+              </div>
+            </div>
+
+            <div class="tech-spec-row" data-spec="5">
+              <span class="tech-spec-idx">05</span>
+              <div class="tech-spec-icon-box">
+                <svg viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+              </div>
+              <div class="tech-spec-info">
+                <h4>OVERSIZED MODERN FIT</h4>
+                <p>Relaxed ergonomic silhouette engineered for articulated motion, easy posture, and cold-weather layering.</p>
               </div>
             </div>
           </div>
@@ -131,60 +225,170 @@
       </div>
     </section>
 
-    <!-- 4. SPOTLIGHT STRIP -->
-    <div class="spotlight-bar">
+    <!-- ======================================================================
+         C. PRODUCT COLLECTIONS (00:06–00:08 — "COLLECTIONS")
+         ====================================================================== -->
+    <section class="showroom-collection-section" id="collections">
       <div class="container">
-        <div class="spotlight-items">
-          <div class="spotlight-box">
-            <div class="spotlight-icon">
-              <svg viewBox="0 0 24 24"><path d="M2 7h11v9H2zM13 10h4l3 3v3h-7"/><circle cx="7" cy="17.5" r="1.7"/><circle cx="17" cy="17.5" r="1.7"/></svg>
+        <!-- Collection Heading -->
+        <div class="section-head-showroom">
+          <div>
+            <h2 class="tech-giant-title scramble-text" data-scramble="COLLECTIONS">COLLECTIONS</h2>
+            <p class="font-mono-tech" style="font-size: 0.78rem; color: rgba(255, 255, 255, 0.65);">
+              TECHNICAL JACKETS / MOVEMENT AND EVERYDAY USE
+            </p>
+          </div>
+          <div style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--accent-orange);">
+            [ 24 CURATED STYLES AVAILABLE ]
+          </div>
+        </div>
+
+        <!-- 4-Card Showroom Row matching Reference (00:07) -->
+        <div class="showroom-cards-grid">
+          <!-- Card 01: CyberShell Pro -->
+          <div class="showroom-product-card" data-id="cyber-shell-black">
+            <div>
+              <div class="showroom-product-top">
+                <span>01</span>
+                <span class="showroom-card-plus">+</span>
+              </div>
+              <div class="showroom-card-title-group">
+                <div class="showroom-card-name">CYBERSHELL PRO STORMBREAKER</div>
+                <div class="showroom-card-cost">$23.52 <span class="dual-inr" style="font-size:0.75rem; opacity:0.8;">(₹1,999)</span></div>
+              </div>
+            </div>
+            <div class="showroom-product-stage">
+              <img src="assets/images/jackets/cyber-shell-black.png" alt="CyberShell Pro" class="showroom-product-img">
+              <div class="showroom-swatches-strip">
+                <span class="showroom-swatch-box" style="background:#0a111e;" title="Onyx & Electric Blue"></span>
+                <span class="showroom-swatch-box" style="background:#1e2229;" title="Stealth Charcoal"></span>
+              </div>
             </div>
             <div>
-              <div class="spotlight-title">Free Express Delivery</div>
-              <div class="spotlight-sub">On orders above $24 USD (₹2,000)</div>
+              <div class="showroom-tags-strip">
+                <span class="showroom-tag-label">OVERSIZED FIT</span>
+                <span class="showroom-tag-label">LIMITED QUANTITY</span>
+              </div>
+              <button class="btn-tech-shop showroom-hover-cta btn-card-add" data-add="cyber-shell-black">
+                <span>QUICK ADD</span>
+                <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              </button>
             </div>
           </div>
 
-          <div class="spotlight-box">
-            <div class="spotlight-icon">
-              <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <!-- Card 02: Alpine Shift -->
+          <div class="showroom-product-card" data-id="alpine-white-shell">
+            <div>
+              <div class="showroom-product-top">
+                <span>02</span>
+                <span class="showroom-card-plus">+</span>
+              </div>
+              <div class="showroom-card-title-group">
+                <div class="showroom-card-name">ALPINE SHIFT HARDSHELL</div>
+                <div class="showroom-card-cost">$29.40 <span class="dual-inr" style="font-size:0.75rem; opacity:0.8;">(₹2,499)</span></div>
+              </div>
+            </div>
+            <div class="showroom-product-stage">
+              <img src="assets/images/jackets/alpine-white-shell.png" alt="Alpine Shift" class="showroom-product-img">
+              <div class="showroom-swatches-strip">
+                <span class="showroom-swatch-box" style="background:#f1f5f9;" title="Glacial White"></span>
+                <span class="showroom-swatch-box" style="background:#94a3b8;" title="Monochrome Slate"></span>
+              </div>
             </div>
             <div>
-              <div class="spotlight-title">Technical Weather Shield</div>
-              <div class="spotlight-sub">Seam-sealed membranes & YKK AquaGuard®</div>
+              <div class="showroom-tags-strip">
+                <span class="showroom-tag-label">LAYERING PIECE</span>
+                <span class="showroom-tag-label">UTILITY</span>
+              </div>
+              <button class="btn-tech-shop showroom-hover-cta btn-card-add" data-add="alpine-white-shell">
+                <span>QUICK ADD</span>
+                <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              </button>
             </div>
           </div>
 
-          <div class="spotlight-box">
-            <div class="spotlight-icon">
-              <svg viewBox="0 0 24 24"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3z"/></svg>
+          <!-- Card 03: Arctic Expedition Down -->
+          <div class="showroom-product-card" data-id="arctic-expedition-down">
+            <div>
+              <div class="showroom-product-top">
+                <span>03</span>
+                <span class="showroom-card-plus">+</span>
+              </div>
+              <div class="showroom-card-title-group">
+                <div class="showroom-card-name">ARCTIC EXPEDITION DOWN</div>
+                <div class="showroom-card-cost">$47.04 <span class="dual-inr" style="font-size:0.75rem; opacity:0.8;">(₹3,999)</span></div>
+              </div>
+            </div>
+            <div class="showroom-product-stage">
+              <img src="assets/images/jackets/arctic-expedition-down.png" alt="Arctic Expedition Down" class="showroom-product-img">
+              <div class="showroom-swatches-strip">
+                <span class="showroom-swatch-box" style="background:#0f172a;" title="Polar Abyss"></span>
+                <span class="showroom-swatch-box" style="background:#b91c1c;" title="Tundra Crimson"></span>
+              </div>
             </div>
             <div>
-              <div class="spotlight-title">Grounded AI Stylist</div>
-              <div class="spotlight-sub">Natural language recommendations matching real inventory</div>
+              <div class="showroom-tags-strip">
+                <span class="showroom-tag-label">800-FILL DOWN</span>
+                <span class="showroom-tag-label">SUB-ZERO</span>
+              </div>
+              <button class="btn-tech-shop showroom-hover-cta btn-card-add" data-add="arctic-expedition-down">
+                <span>QUICK ADD</span>
+                <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              </button>
             </div>
           </div>
 
-          <div class="spotlight-box">
-            <div class="spotlight-icon">
-              <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+          <!-- Card 04: Cobalt Storm Shield -->
+          <div class="showroom-product-card" data-id="cobalt-storm-shield">
+            <div>
+              <div class="showroom-product-top">
+                <span>04</span>
+                <span class="showroom-card-plus">+</span>
+              </div>
+              <div class="showroom-card-title-group">
+                <div class="showroom-card-name">COBALT STORM SHIELD</div>
+                <div class="showroom-card-cost">$27.04 <span class="dual-inr" style="font-size:0.75rem; opacity:0.8;">(₹2,299)</span></div>
+              </div>
+            </div>
+            <div class="showroom-product-stage">
+              <img src="assets/images/jackets/cobalt-storm-shield.png" alt="Cobalt Storm Shield" class="showroom-product-img">
+              <div class="showroom-swatches-strip">
+                <span class="showroom-swatch-box" style="background:#1d4ed8;" title="Electric Cobalt"></span>
+                <span class="showroom-swatch-box" style="background:#0f172a;" title="Abyssal Navy"></span>
+              </div>
             </div>
             <div>
-              <div class="spotlight-title">PayPal Sandbox Ready</div>
-              <div class="spotlight-sub">Server-verified test purchases & instant receipts</div>
+              <div class="showroom-tags-strip">
+                <span class="showroom-tag-label">WEATHER-RESISTANT</span>
+                <span class="showroom-tag-label">BREATHABLE</span>
+              </div>
+              <button class="btn-tech-shop showroom-hover-cta btn-card-add" data-add="cobalt-storm-shield">
+                <span>QUICK ADD</span>
+                <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              </button>
             </div>
           </div>
         </div>
-      </div>
-    </div>
 
-    <!-- 5. PRODUCT CATALOGUE SECTION -->
+        <!-- Center CTA: Jump to Full 24-Style Interactive Catalogue -->
+        <div style="text-align: center; margin-bottom: 60px;">
+          <a href="#catalogue" class="btn-tech-shop" id="btnViewAllJackets" style="height: 48px; padding: 0 32px;">
+            <span>VIEW ALL 24 JACKETS</span>
+            <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================================
+         D. FULL 24-JACKET INTERACTIVE CATALOGUE & FILTERS
+         ====================================================================== -->
     <section class="catalogue-section" id="catalogue">
       <div class="container">
         <div class="catalogue-header">
           <div class="section-head-row">
             <div>
-              <h2 class="section-title">Outerwear Collection</h2>
+              <h2 class="section-title">Complete Technical Outerwear Catalogue</h2>
               <p class="section-subtitle">24 precision-tailored jackets engineered for performance, city commute, and alpine storms.</p>
             </div>
             <button class="nav-btn" id="resetFiltersTopBtn">Reset Filters</button>
@@ -264,7 +468,140 @@
       </div>
     </section>
 
-    <!-- 6. DEDICATED AI SHOPPING ASSISTANT SECTION -->
+    <!-- ======================================================================
+         E. TECHNOLOGY & MATERIALS (00:08–00:12 — "TECHNOLOGY ENGINEERED TO ENDURE.")
+         ====================================================================== -->
+    <section class="technology-story-section" id="technology">
+      <div class="container">
+        <div class="technology-story-grid">
+          <!-- Left Column: Editorial Philosophy -->
+          <div>
+            <h2 class="tech-giant-title scramble-text" data-scramble="TECHNOLOGY&#10;ENGINEERED&#10;TO ENDURE">
+              TECHNOLOGY<br>ENGINEERED<br>TO ENDURE
+            </h2>
+            <p class="tech-lead-copy">
+              EVERY DETAIL HAS A PURPOSE. FROM THE PROTECTIVE OUTER SHELL TO THE INSULATION INSIDE, THE JACKET IS DESIGNED TO PERFORM WITHOUT COMPROMISE.
+            </p>
+          </div>
+
+          <!-- Center Column: 3D Exploded Isometric Material Stack -->
+          <div class="material-stack-stage">
+            <div class="material-stack-3d" id="materialStack3D">
+              <!-- Layer 1: Water-Repellent Outer Shell (Top) -->
+              <div class="material-layer-plate layer-1-outer active" data-layer="1" title="01 Outer Shell"></div>
+
+              <!-- Layer 2: StormGrid Breathable Membrane -->
+              <div class="material-layer-plate layer-2-membrane" data-layer="2" title="02 Breathable Membrane"></div>
+
+              <!-- Layer 3: AeroTherm Thermal Insulation Core -->
+              <div class="material-layer-plate layer-3-insulation" data-layer="3" title="03 Thermal Insulation Core"></div>
+
+              <!-- Layer 4: Micro-Ripstop Comfort Lining (Bottom) -->
+              <div class="material-layer-plate layer-4-lining" data-layer="4" title="04 Comfort Inner Lining"></div>
+            </div>
+          </div>
+
+          <!-- Right Column: Interactive Technical Callout Box -->
+          <div>
+            <div class="tech-callout-card active" id="activeTechCallout">
+              <div class="callout-header">
+                <span class="callout-idx" id="calloutIdx">01</span>
+                <h4 class="callout-layer-name" id="calloutName">OUTER SHELL</h4>
+              </div>
+              <p class="callout-layer-desc" id="calloutDesc">
+                DURABLE 3-LAYER OUTER SHELL THAT REPELS WATER AND PROTECTS AGAINST MONSOON WIND AND RAIN.
+              </p>
+              <div class="callout-layer-specs" id="calloutSpecs">
+                <div>• 28,000mm HYDROSTATIC WATERPROOF HEAD</div>
+                <div>• FLUOROCARBON-FREE BIONIC-FINISH® ECO DWR</div>
+                <div>• YKK AQUAGUARD® HIGH-TENACITY ZIPPERS</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================================
+         F. PRODUCT INFORMATION & FAQ (00:12–00:14 — "NEED TO KNOW.")
+         ====================================================================== -->
+    <section class="need-to-know-section" id="needToKnow">
+      <div class="container">
+        <div class="need-to-know-grid">
+          <!-- Left Column: Jacket Visual & Heading -->
+          <div class="need-to-know-visual-col">
+            <h2 class="tech-giant-title scramble-text" data-scramble="NEED&#10;TO KNOW.">
+              NEED<br>TO KNOW.
+            </h2>
+            <div class="need-to-know-img-wrap">
+              <img src="assets/images/jackets/cyber-shell-black.png" alt="Outerwear Collar Details" class="need-to-know-img">
+            </div>
+          </div>
+
+          <!-- Right Column: 5 Technical FAQ Rows matching Reference -->
+          <div class="tech-faq-list">
+            <!-- Row 01 -->
+            <div class="tech-faq-row">
+              <div class="tech-faq-question-col">
+                <span class="tech-faq-index">01</span>
+                <h4 class="tech-faq-question">HOW DO I FIND MY SIZE?</h4>
+              </div>
+              <p class="tech-faq-answer">
+                CHECK OUR SIZE GUIDE FOR MEASUREMENTS AND FIT INFORMATION. THE JACKETS FEATURE AN OVERSIZED SILHOUETTE FOR COMFORTABLE LAYERING.
+              </p>
+            </div>
+
+            <!-- Row 02 -->
+            <div class="tech-faq-row">
+              <div class="tech-faq-question-col">
+                <span class="tech-faq-index">02</span>
+                <h4 class="tech-faq-question">WHAT MATERIALS ARE USED IN THE JACKETS?</h4>
+              </div>
+              <p class="tech-faq-answer">
+                WE USE TECHNICAL FABRICS, RIPSTOP WEAVE AND ADVANCED INSULATION FOR DURABILITY, PROTECTION AND COMFORT.
+              </p>
+            </div>
+
+            <!-- Row 03 -->
+            <div class="tech-faq-row">
+              <div class="tech-faq-question-col">
+                <span class="tech-faq-index">03</span>
+                <h4 class="tech-faq-question">HOW SHOULD I CARE FOR MY JACKET?</h4>
+              </div>
+              <p class="tech-faq-answer">
+                FOLLOW THE CARE INSTRUCTIONS PROVIDED ON THE INNER LABEL. AVOID HARSH DETERGENTS AND EXCESSIVE HEAT TO PRESERVE THE MATERIALS.
+              </p>
+            </div>
+
+            <!-- Row 04 -->
+            <div class="tech-faq-row">
+              <div class="tech-faq-question-col">
+                <span class="tech-faq-index">04</span>
+                <h4 class="tech-faq-question">DO YOU SHIP INTERNATIONALLY?</h4>
+              </div>
+              <p class="tech-faq-answer">
+                YES. WE OFFER WORLDWIDE SHIPPING WITH SECURE DELIVERY AND TRACKING ON EVERY ORDER. FREE EXPRESS SHIPPING APPLIES ON ORDERS OVER $24 USD (₹2,000).
+              </p>
+            </div>
+
+            <!-- Row 05 -->
+            <div class="tech-faq-row">
+              <div class="tech-faq-question-col">
+                <span class="tech-faq-index">05</span>
+                <h4 class="tech-faq-question">CAN I RETURN OR EXCHANGE MY ORDER?</h4>
+              </div>
+              <p class="tech-faq-answer">
+                YES. UNWORN JACKETS WITH ORIGINAL TAGS CAN BE RETURNED OR EXCHANGED WITHIN THE SPECIFIED 30-DAY RETURN PERIOD.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================================
+         G. GROUNDED AI STYLIST SECTION
+         ====================================================================== -->
     <section class="ai-assistant-section" id="aiAssistant">
       <div class="container">
         <div class="ai-assistant-card">
@@ -289,7 +626,7 @@
           <div class="ai-chat-body" id="aiChatBody">
             <div class="chat-bubble ai">
               Hello! I'm your AgentCart AI Outerwear Concierge. Tell me what kind of jacket you're looking for, your budget, preferred color, size, and intended use.
-              <div style="margin-top: 8px; font-size: 0.8rem; color: var(--accent-cyan);">
+              <div style="margin-top: 8px; font-size: 0.8rem; color: var(--accent-orange);">
                 Try typing: "Find me a black waterproof-style jacket under $24 (₹2,000) in size M for everyday use"
               </div>
             </div>
@@ -322,51 +659,9 @@
       </div>
     </section>
 
-    <!-- 7. TECHNICAL MATERIALS & QUALITY SECTION -->
-    <section class="materials-section" id="materials">
-      <div class="container">
-        <div style="text-align: center; max-width: 680px; margin: 0 auto;">
-          <h2 class="section-title">Engineered For The Elements</h2>
-          <p class="section-subtitle">Every jacket in our collection is crafted with laboratory-grade weather barriers, welded seams, and high-tenacity ripstop fabrics.</p>
-        </div>
-
-        <div class="materials-grid">
-          <div class="material-card">
-            <div class="material-icon-box">
-              <svg viewBox="0 0 24 24"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
-            </div>
-            <h3>28,000mm Hydrostatic Head</h3>
-            <p>Our flagship storm membranes repel monsoon deluges and driving snow while remaining fully breathable to prevent internal condensation.</p>
-          </div>
-
-          <div class="material-card">
-            <div class="material-icon-box">
-              <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-            </div>
-            <h3>YKK AquaGuard® Sealing</h3>
-            <p>Polyurethane-laminated water-repellent zippers ensure zero water ingress across chest compartments, pit vents, and main closures.</p>
-          </div>
-
-          <div class="material-card">
-            <div class="material-icon-box">
-              <svg viewBox="0 0 24 24"><path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 0 1-2.827 0l-4.244-4.243a8 8 0 1 1 11.314 0z"/></svg>
-            </div>
-            <h3>800-Fill AeroTherm™ Down</h3>
-            <p>Hydrophobic down clusters treated with fluorocarbon-free water repellents retain high loft and warmth even in high humidity and drizzle.</p>
-          </div>
-
-          <div class="material-card">
-            <div class="material-icon-box">
-              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24M14.83 9.17l4.24-4.24M14.83 14.83l4.24 4.24M9.17 14.83l-4.24 4.24"/></svg>
-            </div>
-            <h3>Ultrasonic Welded Seams</h3>
-            <p>Molecular bonding replaces traditional needle punctures along critical stress zones, eliminating stitch friction and seam blowout.</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- 8. CUSTOMER REVIEWS (SAMPLE DEMO) -->
+    <!-- ======================================================================
+         H. CUSTOMER REVIEWS (FIELD TESTED)
+         ====================================================================== -->
     <section class="reviews-section" id="reviews">
       <div class="container">
         <div style="text-align: center; max-width: 640px; margin: 0 auto;">
@@ -423,84 +718,85 @@
             </div>
           </div>
         </div>
-
-        <div class="review-demo-disclaimer">
-          * Notice: The customer testimonials above are illustrative sample/demo reviews created for testing and demonstration purposes.
-        </div>
-      </div>
-    </section>
-
-    <!-- 9. STYLE UPDATES / NEWSLETTER -->
-    <section class="newsletter-section">
-      <div class="container">
-        <div class="newsletter-card">
-          <h2>Stay Ahead of the Weather</h2>
-          <p>Receive exclusive alerts on seasonal technical drops, prototype outer-shell previews, and private styling drops.</p>
-          <form class="newsletter-form" id="newsletterForm">
-            <input type="email" class="newsletter-input" id="newsletterEmail" placeholder="Enter your email address" required aria-label="Email address for style updates">
-            <button type="submit" class="btn-newsletter-sub">Get Drops</button>
-          </form>
-          <div class="newsletter-disclaimer">
-            Demo notice: Subscriptions are acknowledged locally for demonstration without external data collection.
-          </div>
-        </div>
       </div>
     </section>
   </main>
 
-  <!-- 10. FOOTER -->
-  <footer class="site-footer">
+  <!-- ======================================================================
+       I. TECHNICAL SHOWROOM FOOTER (00:14)
+       ====================================================================== -->
+  <footer class="tech-showroom-footer">
     <div class="container">
-      <div class="footer-grid">
-        <div class="footer-col">
-          <div class="brand-logo" style="margin-bottom: 12px;">
+      <div class="tech-footer-grid">
+        <!-- Col 1: Brand & Bio -->
+        <div>
+          <div class="brand-logo" style="margin-bottom: 14px;">
             <div class="brand-icon">
               <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
             </div>
-            <div class="brand-text">AgentCart <span>AI</span></div>
+            <div class="brand-text" style="color:#FFFFFF;">AgentCart <span style="color:var(--accent-orange);">AI</span></div>
           </div>
-          <p style="color: var(--text-muted); line-height: 1.6; max-width: 320px;">
-            Your personal AI jacket shopper. Grounded in weather engineering, tailored to your budget and fit.
+          <p style="font-family: var(--font-mono); font-size: 0.75rem; color: rgba(255, 255, 255, 0.55); line-height: 1.6; text-transform: uppercase;">
+            DIGITAL OUTERWEAR SHOWROOM POWERED BY GROUNDED AI & WEATHER DEFENSE ENGINEERING.
           </p>
         </div>
 
-        <div class="footer-col">
-          <h4>Collection</h4>
-          <ul>
-            <li><a href="#catalogue">Technical Windbreakers</a></li>
-            <li><a href="#catalogue">Lightweight Rain Shells</a></li>
-            <li><a href="#catalogue">Aero Bombers</a></li>
-            <li><a href="#catalogue">Down Puffers & Parkas</a></li>
-            <li><a href="#catalogue">Urban Minimalist Coats</a></li>
+        <!-- Col 2: Shop -->
+        <div>
+          <h4 class="footer-col-title">SHOP</h4>
+          <ul class="footer-links-list">
+            <li><a href="#collections">CORE SHOWROOM</a></li>
+            <li><a href="#catalogue">TECH WINDBREAKERS</a></li>
+            <li><a href="#catalogue">LIGHTWEIGHT RAIN</a></li>
+            <li><a href="#catalogue">DOWN PUFFERS</a></li>
+            <li><a href="#catalogue">LIMITED DROPS</a></li>
           </ul>
         </div>
 
-        <div class="footer-col">
-          <h4>Technology</h4>
-          <ul>
-            <li><a href="#aiAssistant">AI Jacket Concierge</a></li>
-            <li><a href="#comparison">Side-by-Side Comparison</a></li>
-            <li><a href="#materials">GORE-TEX & StormGrid™</a></li>
-            <li><a href="#materials">Hydrophobic Down Specs</a></li>
-            <li><a href="#">PayPal Sandbox Testing</a></li>
+        <!-- Col 3: Technology -->
+        <div>
+          <h4 class="footer-col-title">TECHNOLOGY</h4>
+          <ul class="footer-links-list">
+            <li><a href="#technology">MATERIALS</a></li>
+            <li><a href="#technology">CONSTRUCTION</a></li>
+            <li><a href="#technology">STORMGRID™ 28K</a></li>
+            <li><a href="#technology">AEROTHERM™ 800</a></li>
           </ul>
         </div>
 
-        <div class="footer-col">
-          <h4>Customer Care</h4>
-          <ul>
-            <li><a href="#">Free Shipping Policy ($24 USD / ₹2,000+)</a></li>
-            <li><a href="#">Size & Fit Guide</a></li>
-            <li><a href="#">Returns & Exchanges</a></li>
-            <li><a href="#">Developer API Docs</a></li>
-            <li><a href="#">Demo Disclosures</a></li>
+        <!-- Col 4: Support -->
+        <div>
+          <h4 class="footer-col-title">SUPPORT</h4>
+          <ul class="footer-links-list">
+            <li><a href="#needToKnow">SIZE & FIT GUIDE</a></li>
+            <li><a href="#needToKnow">SHIPPING & RETURNS</a></li>
+            <li><a href="#needToKnow">PRODUCT CARE</a></li>
+            <li><a href="#needToKnow">FAQ</a></li>
+            <li><a href="#checkoutModal">PAYPAL SANDBOX</a></li>
           </ul>
+        </div>
+
+        <!-- Col 5: Newsletter Drop matching Reference 00:14 -->
+        <div class="newsletter-drop-box">
+          <h4 class="newsletter-drop-title">STAY AHEAD OF THE DROP.</h4>
+          <form id="newsletterForm">
+            <div class="newsletter-input-group">
+              <input type="email" id="newsletterEmail" class="newsletter-tech-input" placeholder="YOUR E-MAIL" required aria-label="Subscribe to releases">
+              <button type="submit" class="btn-newsletter-arrow" aria-label="Submit newsletter">
+                <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              </button>
+            </div>
+            <div class="newsletter-consent-row" style="margin-top: 10px;">
+              <input type="checkbox" id="newsletterConsent" required>
+              <label for="newsletterConsent">I AGREE TO RECEIVE UPDATES.</label>
+            </div>
+          </form>
         </div>
       </div>
 
-      <div class="footer-bottom-row">
-        <div>© 2026 AgentCart AI Outerwear Inc. All rights reserved.</div>
-        <div>Sample Pricing in USD ($) & INR (₹) · Fictional Brand Demo · PayPal Sandbox Integration</div>
+      <div class="tech-footer-bottom">
+        <div>© 2026 AGENTCART AI OUTERWEAR INC. ALL RIGHTS RESERVED.</div>
+        <div>PAYPAL SANDBOX COMPLIANT · DUAL LEDGER USD & INR · FICTIONAL DIGITAL SHOWROOM</div>
       </div>
     </div>
   </footer>

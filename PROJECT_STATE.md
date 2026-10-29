@@ -1,69 +1,62 @@
 # Project State: AgentCart AI
 
-**Current Status:** Dual Currency & PayPal Sandbox Diagnostics (US Cross-Border Buyer & Seller Receiving Preferences Verified)  
-**Date:** October 28, 2026  
-**Platform Version:** v2.8.1 (PayPal Sandbox Cross-Border Alignment Edition)
+**Current Status:** Complete Frontend Redesign with Advanced Scroll-Driven Animations Verified  
+**Date:** October 29, 2026  
+**Platform Version:** v3.0.0 (Cinematic Showroom & Scroll-Driven Animation Edition)
 
 ---
 
-## 1. Unified Multi-Currency Architecture
+## 1. Redesign Execution & Milestone Completion Matrix
 
-### 🔍 System Architecture & Separation of Concerns:
-1. **Local Merchandise Ledger (INR):**
-   - Base product prices, catalog definitions, and internal store accounting operate strictly in **`INR`** (`₹`).
-   - SQLite orders table stores `subtotal`, `delivery_fee`, `total_amount`, and `currency: 'INR'`.
-   - Merchandise amounts are never overwritten by gateway converted values.
-2. **Payment Gateway Ledger (USD):**
-   - PayPal Sandbox Orders v2 API processes transactions exclusively in **`USD`** (`$`) to avoid PayPal's domestic INR restriction (`CURRENCY_NOT_ALLOWED` / `CURRENCY_NOT_SUPPORTED`).
-   - Order records in SQLite store `charged_amount REAL` (e.g. `25.28`) and `charged_currency TEXT` (`'USD'`) separately from the INR merchandise fields.
-   - The PayPal SDK, order creation payload, capture verification, and order confirmation receipt all agree on the exact USD figure charged.
-3. **Single Source of Truth Exchange Rate:**
-   - Defined in [`server/config.js`](file:///D:/AgentCart-AI/server/config.js):
-     - `INR_TO_USD_RATE = Number(process.env.INR_TO_USD_RATE) || 85` (fixed demonstration rate: 1 USD = 85 INR; not a live floating market rate).
-     - `PAYPAL_CURRENCY = (process.env.PAYPAL_CURRENCY || 'USD').trim().toUpperCase()`.
-   - Shared with the frontend dynamically via `GET /api/config` (`inr_to_usd_rate` and `usd_exchange_rate`).
-   - Documented in [`.env`](file:///D:/AgentCart-AI/.env) and [`.env.example`](file:///D:/AgentCart-AI/.env.example).
-4. **Penny Rounding Drift Prevention:**
-   - Frontend (`calculateCartTotals()` in [`app.js`](file:///D:/AgentCart-AI/app.js)) and backend (`createPayPalSandboxOrder()` in [`server/paypal.js`](file:///D:/AgentCart-AI/server/paypal.js)) compute USD line items at unit level (`Number((price / rate).toFixed(2))`) and aggregate item totals.
-   - Eliminates single-penny discrepancies (`MISMATCH_OF_ITEM_TOTAL`) between the cart drawer, checkout modal, PayPal popup, and capture response.
-   - Client never sends prices or totals; all calculations are strictly enforced server-side.
+| Milestone | Status | Key Deliverables & Verification |
+| :--- | :--- | :--- |
+| **Milestone 1: Audit & Baseline** | ✅ **COMPLETED** | Inspected reference video (`D:\AgentCart-AI\video`) frame-by-frame using OpenCV extraction (30 sampled frames). Documented existing Warm Liquid Glass design tokens (Ivory `#FAF8F5`, Slate Navy `#1E2530`, Lab Orange `#E15C1D`). Baseline test suite passed (29/29). |
+| **Milestone 2: Design System & Header** | ✅ **COMPLETED** | Upgraded navbar to restrained monospace styling with `CART [ 0 ]` indicator. Integrated fine technical grid textures, corner bracket callout utilities (`┌ ┐ └ ┘`), and numeric indexing (`01`–`05`). |
+| **Milestone 3: Hero & Initial Scroll** | ✅ **COMPLETED** | Implemented cinematic dominant jacket hero with technical corner bracket callouts, EST.2022 globe badge, Worldwide Shipping badge, 3D cursor-tracking tilt, and bidirectional scroll-progress scaling/lift transition. |
+| **Milestone 4: Product Details & Collections** | ✅ **COMPLETED** | Recreated Section B ("DETAILS MATTER.") with 5 verified technical specification rows and `EXPLORE THE JACKET →` action; created Section C ("COLLECTIONS") with 4-card showroom grid matching reference video frame 07.0s + seamless link to full 24-jacket catalogue explorer. |
+| **Milestone 5: Technology Storytelling** | ✅ **COMPLETED** | Recreated Section D ("TECHNOLOGY ENGINEERED TO ENDURE.") featuring 3D exploded 4-layer isometric material stack (Outer Shell, Breathable Membrane, Thermal Core, Lining) with scroll-linked auto-cycling and click/hover layer inspection. |
+| **Milestone 6: FAQ, Footer & Responsive Polish** | ✅ **COMPLETED** | Recreated Section E ("NEED TO KNOW.") featuring collar focus visual and 5 verified technical FAQ rows; created showroom footer with `STAY AHEAD OF THE DROP` newsletter form. Added full mobile/tablet responsive breakpoints and `prefers-reduced-motion` compliance. |
+| **Milestone 7: End-to-End Regression Testing** | ✅ **COMPLETED** | Verified automated test suite (29/29 passed, 100%). Validated static asset serving, catalog API (24 products), config endpoint (no secret leakage), AI stylist flow, and PayPal Sandbox dual-currency checkout. |
 
 ---
 
-## 2. PayPal Sandbox Error Diagnostics & Sanitize Root-Cause Log
-
-| Diagnostic Case | API / Response Code | Root Cause | Solution Implemented |
-| :--- | :--- | :--- | :--- |
-| **"This seller doesn't accept payments in your currency"** | Browser Checkout Popup Error | 1. **Domestic India-to-India Restriction:** The Sandbox Seller Account (`sb-oaffh53089456@business.example.com`) is registered in India (`country: "IN"`). Default personal sandbox accounts created in India are also `country: "IN"`. Under RBI/FEMA regulations and PayPal India policy, domestic transactions between two Indian accounts (in INR or USD) are strictly prohibited.<br>2. **Seller Currency Blocking:** The sandbox seller account's receiving preferences block payments in currencies not held (or primary INR balance has not enabled USD conversion). | 1. Appended `&buyer-country=US` to PayPal JS SDK in [`app.js`](file:///D:/AgentCart-AI/app.js) for sandbox simulation.<br>2. Documented mandatory use of a **US-based Personal Sandbox Buyer Account** (`developer.paypal.com/dashboard/accounts` -> Create Personal Account -> Country: United States) to simulate the export transaction PayPal India supports.<br>3. Provided steps to enable *"Allow payments sent to me in a currency I do not hold"* in the Sandbox Merchant settings. |
-| **Seller Self-Payment Block** | UI Error: *"You are logging in to the account of the seller for this purchase..."* | Browser profile had active session cookies for the sandbox seller merchant (`sb-oaffh53089456@business.example.com`). PayPal blocks merchants from purchasing from themselves. | Open checkout in an **Incognito / Private window** (Ctrl+Shift+N) and log in strictly with a Personal Buyer account. |
-| **Domestic INR Not Supported** | HTTP 422: `CURRENCY_NOT_ALLOWED` | PayPal REST Orders v2 API rejects standard accounts attempting to transact domestic INR. | Configured transaction currency strictly to `USD` across server, SDK URL, and Orders v2 request while keeping INR estimates for display. |
-| **Capture Prior to Payer Approval** | HTTP 422: `ORDER_NOT_APPROVED` (Debug-ID: `ca51a70a46b45`) | Calling `/v2/checkout/orders/{id}/capture` before the buyer has authorized the payment in the PayPal popup. | Order lifecycle requires client approval callback (`onApprove`) before backend triggers capture. Sanitized diagnostics log debug ID and actionable reason. |
-| **Item Breakdown Rounding Drift** | HTTP 422: `MISMATCH_OF_ITEM_TOTAL` | Converting order total instead of summing converted line items caused 1-cent differences between `breakdown.item_total` and items array. | Both frontend and backend sum itemized `unit_price / rate` figures before assembling the payload. |
-
----
-
-## 3. Verified Automated Test Suite Status
+## 2. Verified Automated Test Suite Status
 
 Executed `npm test` ([`tests/run_tests.js`](file:///D:/AgentCart-AI/tests/run_tests.js)):
 - **Database & Catalog Integrity:** 3/3 passed
 - **Search, Filter & Sort:** 3/3 passed
-- **Server-Side Pricing & Security Validation:** 5/5 passed (tampering rejection, free delivery threshold, quantity guards)
+- **Server-Side Pricing & Security Validation:** 5/5 passed
 - **AI Recommender:** 2/2 passed
-- **PayPal Sandbox Checkout Engine:** 9/9 passed (order creation, experience context, debug ID reporting, capture verification, dual-currency storage verification, duplicate capture guard)
-- **Live HTTP Endpoints:** 7/7 passed (config currency, secret redaction, catalog, AI, create-order, capture-order, cancel-order, demo fallback)
-- **Total:** 29/29 passed (100.0%)
+- **PayPal Sandbox Checkout Engine:** 9/9 passed
+- **Live Express HTTP Endpoints:** 7/7 passed
+- **Total:** **29/29 passed (100.0%)**
+
+---
+
+## 3. Preserved Architecture, Brand & Feature Guarantees
+
+1. **Brand Identity & Color Palette:**
+   - Canvas: Warm Ivory (`#FAF8F5`, `#F4EFEB`), Deep Canvas (`#FAF6F0`)
+   - Dark Showroom: Slate Navy (`#1E2530`, `#151D28`, `#0E131C`)
+   - Signature Accents: Vibrant Laboratory Orange (`#E15C1D`), Amber (`#F97316`)
+   - Liquid Glass: Specular edge highlights (`rgba(255, 255, 255, 0.95)`), frosted glass blur (`12px-20px`), subtle orange edge glow (`rgba(225, 92, 29, 0.16)`).
+2. **Catalog & SQLite Database:**
+   - 24 technical jackets across 10 categories (`data/catalog.json`, `data/agentcart.sqlite`).
+3. **AI Jacket Stylist:**
+   - Grounded natural language styling and inventory-matching concierge (`#aiAssistant`).
+4. **Interactive Comparison System:**
+   - Floating comparison dock and side-by-side spec comparison modal (`#compareModal`).
+5. **Cart & Flying Product Animations:**
+   - Morphing Liquid Glass cart drawer (`#cartDrawer`), floating cart pill (`#cartPill`), and free express shipping threshold at $24 USD / ₹2,000.
+6. **PayPal Sandbox Checkout Integration:**
+   - Orders v2 API with USD capture, INR merchandise accounting, dual-currency database storage, and server-side tampering prevention (`#checkoutModal`).
 
 ---
 
 ## 4. Modified Files Manifest
 
-- [`app.js`](file:///D:/AgentCart-AI/app.js): Appended `&buyer-country=US` to the PayPal JS SDK injection URL in sandbox mode; updated guidance banner with cross-border US Personal Buyer instructions; implemented `calculateCartTotals()` for zero-drift alignment.
-- [`server/config.js`](file:///D:/AgentCart-AI/server/config.js): Single source of truth for exchange rates (`INR_TO_USD_RATE = 85`), PayPal transaction currency (`PAYPAL_CURRENCY = 'USD'`), and shipping constants.
-- [`server/schema.sql`](file:///D:/AgentCart-AI/server/schema.sql): Added explicit `charged_amount REAL` and `charged_currency TEXT DEFAULT 'USD'` columns to `orders` table.
-- [`server/db.js`](file:///D:/AgentCart-AI/server/db.js): Backward-compatible SQLite migration for existing databases and persisted gateway charge metadata.
-- [`server/paypal.js`](file:///D:/AgentCart-AI/server/paypal.js): Uses shared `config.INR_TO_USD_RATE`; updated `createPayPalSandboxOrder`, `capturePayPalSandboxOrder`, and `recordDemoSimulationOrder` to save and verify `charged_amount` and `charged_currency`.
-- [`server/server.js`](file:///D:/AgentCart-AI/server/server.js): Updated `GET /api/config` to expose `inr_to_usd_rate` and `usd_exchange_rate`.
-- [`.env`](file:///D:/AgentCart-AI/.env) & [`.env.example`](file:///D:/AgentCart-AI/.env.example): Added explicit `INR_TO_USD_RATE=85` configuration.
-- [`tests/run_tests.js`](file:///D:/AgentCart-AI/tests/run_tests.js): Added multi-currency assertions verifying dual-currency storage and configuration synchronization.
-- [`PROJECT_STATE.md`](file:///D:/AgentCart-AI/PROJECT_STATE.md): Documented root causes and updated platform state to v2.8.1.
-- [`HANDOFF.md`](file:///D:/AgentCart-AI/HANDOFF.md): Updated step-by-step cross-border manual verification guide.
+- [`index.html`](file:///D:/AgentCart-AI/index.html): Reconstructed the homepage structure to faithfully match the reference video while retaining all existing modals, forms, and feature hooks.
+- [`styles.css`](file:///D:/AgentCart-AI/styles.css): Added complete Digital Showroom styling, technical grid canvas textures, 3D isometric material stack, technical FAQ list, and responsive breakpoints.
+- [`app.js`](file:///D:/AgentCart-AI/app.js): Implemented cyberpunk text scrambler/decrypt engine, 3D cursor-tracking tilt on flagship jacket, scroll-driven hero-to-details transition, 3D exploded material stack controller, showroom card quick-add interactions, and defensive DOM guards.
+- [`PROJECT_STATE.md`](file:///D:/AgentCart-AI/PROJECT_STATE.md): Updated with v3.0.0 completion state.
+- [`HANDOFF.md`](file:///D:/AgentCart-AI/HANDOFF.md): Updated with run instructions and feature verification guide.

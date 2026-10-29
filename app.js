@@ -51,6 +51,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadProducts();
   setupEventListeners();
   setupPayPal();
+  initScramblerElements();
+  setup3DJacketTilt();
+  setupScrollDrivenShowroom();
+  setupMaterialExplodedStack();
+  setupShowroomCardEvents();
 });
 
 // Load App Config from Server
@@ -264,8 +269,9 @@ function resetFilters() {
 
 function updateHeroShowcase() {
   const flagship = State.products.find(p => p.id === 'cyber-shell-black');
-  if (flagship && $('#heroJacketImg')) {
-    $('#heroJacketImg').src = flagship.image;
+  if (flagship) {
+    if ($('#heroJacketImg')) $('#heroJacketImg').src = flagship.image;
+    if ($('#detailsJacketVisual')) $('#detailsJacketVisual').src = flagship.image;
   }
 }
 
@@ -1303,23 +1309,32 @@ function setupEventListeners() {
   });
 
   // Hero Quick Add
-  $('#heroQuickAddBtn').addEventListener('click', (e) => {
-    const product = State.products.find(p => p.id === 'cyber-shell-black');
-    if (product) {
-      addToCart(product, 'M', 'Onyx & Electric Blue', 1, $('#heroJacketImg'));
-    }
-  });
+  const heroQuickAdd = $('#heroQuickAddBtn');
+  if (heroQuickAdd) {
+    heroQuickAdd.addEventListener('click', (e) => {
+      const product = State.products.find(p => p.id === 'cyber-shell-black');
+      if (product) {
+        addToCart(product, 'M', 'Onyx & Electric Blue', 1, $('#heroJacketImg'));
+      }
+    });
+  }
 
   // Hero Try AI button
-  $('#heroTryAiBtn').addEventListener('click', () => {
-    $('#aiAssistant').scrollIntoView({ behavior: 'smooth' });
-    $('#aiPromptInput').focus();
-  });
+  const heroTryAi = $('#heroTryAiBtn');
+  if (heroTryAi) {
+    heroTryAi.addEventListener('click', () => {
+      $('#aiAssistant').scrollIntoView({ behavior: 'smooth' });
+      $('#aiPromptInput').focus();
+    });
+  }
 
-  $('#headerAiBtn').addEventListener('click', () => {
-    $('#aiAssistant').scrollIntoView({ behavior: 'smooth' });
-    $('#aiPromptInput').focus();
-  });
+  const headerAi = $('#headerAiBtn');
+  if (headerAi) {
+    headerAi.addEventListener('click', () => {
+      $('#aiAssistant').scrollIntoView({ behavior: 'smooth' });
+      $('#aiPromptInput').focus();
+    });
+  }
 
   // Modal interactions
   $('#modalCloseBtn').addEventListener('click', closeProductModal);
@@ -1517,5 +1532,339 @@ function setupEventListeners() {
       closeConfirmationModal();
       closeCartDrawer();
     }
+  });
+}
+
+// ==========================================================================
+// SCRAMBLER / CYBER-TEXT DECRYPT ENGINE
+// ==========================================================================
+const SCRAMBLE_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_#*&!/<>+-$%[]';
+
+function scrambleText(element, targetText, duration = 650) {
+  if (!element) return;
+  const original = targetText || element.dataset.scramble || element.textContent.trim();
+  if (prefersReducedMotion) {
+    element.innerHTML = original.replace(/\n/g, '<br>');
+    return;
+  }
+
+  const length = original.length;
+  const startTime = performance.now();
+
+  function update(now) {
+    const elapsed = now - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    const revealedCount = Math.floor(progress * length);
+
+    let result = '';
+    for (let i = 0; i < length; i++) {
+      const char = original[i];
+      if (char === ' ') {
+        result += ' ';
+      } else if (char === '\n') {
+        result += '<br>';
+      } else if (i < revealedCount) {
+        result += char;
+      } else {
+        result += SCRAMBLE_CHARS[Math.floor(Math.random() * SCRAMBLE_CHARS.length)];
+      }
+    }
+
+    element.innerHTML = result;
+
+    if (progress < 1) {
+      requestAnimationFrame(update);
+    } else {
+      element.innerHTML = original.replace(/\n/g, '<br>');
+    }
+  }
+
+  requestAnimationFrame(update);
+}
+
+function initScramblerElements() {
+  // Scramble hero on initial load with slight stagger
+  $$('.hero-showroom-section .scramble-text').forEach((el, idx) => {
+    setTimeout(() => {
+      scrambleText(el);
+    }, idx * 110);
+  });
+
+  // IntersectionObserver for remaining sections
+  if ('IntersectionObserver' in window) {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const el = entry.target;
+          scrambleText(el);
+          observer.unobserve(el);
+        }
+      });
+    }, { threshold: 0.25 });
+
+    $$('section:not(.hero-showroom-section) .scramble-text').forEach(el => {
+      observer.observe(el);
+    });
+  }
+}
+
+// ==========================================================================
+// 3D JACKET CURSOR-TRACKING TILT
+// ==========================================================================
+function setup3DJacketTilt() {
+  if (prefersReducedMotion) return;
+
+  const stage = $('#heroJacketStage');
+  const img = $('#heroJacketImg');
+  if (!stage || !img) return;
+
+  stage.addEventListener('mousemove', (e) => {
+    const rect = stage.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+
+    const rotateX = -((y - centerY) / centerY) * 10;
+    const rotateY = ((x - centerX) / centerX) * 14;
+
+    img.style.transform = `perspective(1000px) rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg) scale3d(1.03, 1.03, 1.03)`;
+  });
+
+  stage.addEventListener('mouseleave', () => {
+    img.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)';
+  });
+}
+
+// ==========================================================================
+// ADVANCED SCROLL-DRIVEN SHOWROOM TRANSITION
+// ==========================================================================
+function setupScrollDrivenShowroom() {
+  if (prefersReducedMotion) return;
+
+  const heroSection = $('#hero');
+  const heroJacket = $('#heroJacketStage');
+  const detailsSection = $('#detailsMatter');
+  const detailsJacket = $('#detailsJacketVisual');
+
+  if (!heroSection || !heroJacket) return;
+
+  let ticking = false;
+
+  function onScroll() {
+    if (!ticking) {
+      requestAnimationFrame(() => {
+        const scrollY = window.scrollY;
+        const heroHeight = heroSection.offsetHeight;
+
+        // Hero scale and smooth lift as user scrolls away
+        if (scrollY > 0 && scrollY < heroHeight * 1.4) {
+          const progress = Math.min(scrollY / (heroHeight * 0.75), 1);
+          const scale = 1 - progress * 0.12;
+          const translateY = progress * 45;
+          const opacity = Math.max(1 - progress * 0.85, 0);
+          heroJacket.style.transform = `translate3d(0, ${translateY}px, 0) scale(${scale})`;
+          heroJacket.style.opacity = opacity.toFixed(2);
+        } else if (scrollY === 0) {
+          heroJacket.style.transform = 'translate3d(0, 0, 0) scale(1)';
+          heroJacket.style.opacity = '1';
+        }
+
+        // Details Matter jacket subtle parallax entrance
+        if (detailsSection && detailsJacket) {
+          const rect = detailsSection.getBoundingClientRect();
+          if (rect.top < window.innerHeight && rect.bottom > 0) {
+            const relY = (window.innerHeight - rect.top) / (window.innerHeight + rect.height);
+            const moveY = (relY - 0.5) * 35;
+            detailsJacket.style.transform = `translate3d(0, ${moveY.toFixed(1)}px, 0) scale(1.02)`;
+          }
+        }
+
+        ticking = false;
+      });
+      ticking = true;
+    }
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+}
+
+// ==========================================================================
+// INTERACTIVE 3D EXPLODED MATERIAL LAYER STACK
+// ==========================================================================
+const MATERIAL_LAYERS_DATA = {
+  1: {
+    idx: '01',
+    name: 'OUTER SHELL',
+    desc: 'DURABLE 3-LAYER OUTER SHELL THAT REPELS WATER AND PROTECTS AGAINST MONSOON WIND AND RAIN.',
+    specs: [
+      '• 28,000mm HYDROSTATIC WATERPROOF HEAD',
+      '• FLUOROCARBON-FREE BIONIC-FINISH® ECO DWR',
+      '• YKK AQUAGUARD® HIGH-TENACITY ZIPPERS'
+    ]
+  },
+  2: {
+    idx: '02',
+    name: 'BREATHABLE MEMBRANE',
+    desc: 'MICRO-PERFORATED STORMGRID™ MEMBRANE EXPELS HEAT AND INTERNAL MOISTURE VAPOR WHILE PREVENTING WATER INGRESS.',
+    specs: [
+      '• 24,000 g/m²/24h MOISTURE VAPOR PERMEABILITY',
+      '• ULTRASONICALLY WELDED SEAM TAPING',
+      '• TEMPERATURE BUFFERING RANGE: -5°C TO 22°C'
+    ]
+  },
+  3: {
+    idx: '03',
+    name: 'THERMAL INSULATION CORE',
+    desc: 'ADVANCED 800-FILL HYDROPHOBIC DOWN CLUSTERS TRAP ESSENTIAL BODY WARMTH WITHOUT ADDING BULK OR EXCESS WEIGHT.',
+    specs: [
+      '• 800-FILL POWER AEROTHERM™ WATER-RESISTANT DOWN',
+      '• ERGONOMIC BAFFLE ZONING ACROSS CORE ORGANS',
+      '• SUB-ZERO RETENTION TESTED DOWN TO -18°C'
+    ]
+  },
+  4: {
+    idx: '04',
+    name: 'COMFORT INNER LINING',
+    desc: 'ULTRA-SMOOTH ANTI-STATIC RIPSTOP LINING FOR EFFORTLESS ALL-DAY WEAR AND FRICTIONLESS COLD-WEATHER LAYERING.',
+    specs: [
+      '• 100% RECYCLED HIGH-DENSITY SILK-TOUCH NYLON',
+      '• ANTI-MICROBIAL ODOR-CONTROL TREATMENT',
+      '• CONCEALED SECURE PASSPORT & DEVICE SLEEVES'
+    ]
+  }
+};
+
+function setupMaterialExplodedStack() {
+  const plates = $$('.material-layer-plate');
+  const calloutIdx = $('#calloutIdx');
+  const calloutName = $('#calloutName');
+  const calloutDesc = $('#calloutDesc');
+  const calloutSpecs = $('#calloutSpecs');
+  const calloutCard = $('#activeTechCallout');
+  const techSection = $('#technology');
+
+  function activateLayer(layerId) {
+    const data = MATERIAL_LAYERS_DATA[layerId];
+    if (!data) return;
+
+    plates.forEach(p => {
+      p.classList.toggle('active', p.dataset.layer === String(layerId));
+    });
+
+    if (calloutIdx) calloutIdx.textContent = data.idx;
+    if (calloutName) calloutName.textContent = data.name;
+    if (calloutDesc) calloutDesc.textContent = data.desc;
+    if (calloutSpecs) {
+      calloutSpecs.innerHTML = data.specs.map(s => `<div>${s}</div>`).join('');
+    }
+
+    if (calloutCard) {
+      calloutCard.classList.remove('active');
+      void calloutCard.offsetWidth;
+      calloutCard.classList.add('active');
+    }
+  }
+
+  // Click & hover interactions on plates
+  plates.forEach(plate => {
+    plate.addEventListener('click', () => {
+      activateLayer(plate.dataset.layer);
+    });
+    plate.addEventListener('mouseenter', () => {
+      activateLayer(plate.dataset.layer);
+    });
+  });
+
+  // Scroll tracking through Technology Section
+  if (!prefersReducedMotion && techSection) {
+    let lastActiveLayer = 1;
+    window.addEventListener('scroll', () => {
+      const rect = techSection.getBoundingClientRect();
+      const h = window.innerHeight;
+      if (rect.top <= h * 0.6 && rect.bottom >= h * 0.2) {
+        const sectionProgress = Math.max(0, Math.min(1, (h * 0.6 - rect.top) / rect.height));
+        let layer = 1;
+        if (sectionProgress > 0.75) layer = 4;
+        else if (sectionProgress > 0.5) layer = 3;
+        else if (sectionProgress > 0.25) layer = 2;
+        else layer = 1;
+
+        if (layer !== lastActiveLayer) {
+          lastActiveLayer = layer;
+          activateLayer(layer);
+        }
+      }
+    }, { passive: true });
+  }
+}
+
+// ==========================================================================
+// SHOWROOM CARDS & INTERACTION CONTROLLER
+// ==========================================================================
+function setupShowroomCardEvents() {
+  // Showroom 4 cards: click card -> open product modal, click add button -> add to cart
+  $$('.showroom-product-card').forEach(card => {
+    card.addEventListener('click', (e) => {
+      const addBtn = e.target.closest('.btn-card-add');
+      if (addBtn) {
+        e.stopPropagation();
+        const id = addBtn.dataset.add;
+        const product = State.products.find(p => p.id === id);
+        if (product) {
+          const img = card.querySelector('img');
+          addToCart(product, null, null, 1, img);
+          addBtn.classList.add('added');
+          const span = addBtn.querySelector('span');
+          if (span) span.textContent = 'ADDED ✓';
+          setTimeout(() => {
+            addBtn.classList.remove('added');
+            if (span) span.textContent = 'QUICK ADD';
+          }, 1200);
+        }
+        return;
+      }
+
+      const productId = card.dataset.id;
+      if (productId) {
+        openProductModal(productId);
+      }
+    });
+  });
+
+  // Explore the Jacket button (opens flagship jacket in modal)
+  const btnExplore = $('#btnExploreJacket');
+  if (btnExplore) {
+    btnExplore.addEventListener('click', () => {
+      openProductModal('cyber-shell-black');
+    });
+  }
+
+  // Hero Shop Now button
+  const heroShopBtn = $('#heroShopNowBtn');
+  if (heroShopBtn) {
+    heroShopBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const target = $('#collections');
+      if (target) target.scrollIntoView({ behavior: 'smooth' });
+    });
+  }
+
+  // View All 24 Jackets button
+  const btnViewAll = $('#btnViewAllJackets');
+  if (btnViewAll) {
+    btnViewAll.addEventListener('click', (e) => {
+      e.preventDefault();
+      const cat = $('#catalogue');
+      if (cat) cat.scrollIntoView({ behavior: 'smooth' });
+    });
+  }
+
+  // FAQ row hover and click highlights
+  $$('.tech-faq-row').forEach(row => {
+    row.addEventListener('click', () => {
+      $$('.tech-faq-row').forEach(r => r.style.backgroundColor = 'transparent');
+      row.style.backgroundColor = 'rgba(225, 92, 29, 0.05)';
+    });
   });
 }

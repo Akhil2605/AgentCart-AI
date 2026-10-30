@@ -195,6 +195,160 @@ app.get('/api/orders/:id', (req, res) => {
   }
 });
 
+// ============================================================================
+// PROFILE APIS (Persistent SQLite Profile: Akhil)
+// ============================================================================
+
+// GET /api/profile — fetch Akhil's profile & statistics
+app.get('/api/profile', (req, res) => {
+  try {
+    const profile = db.getUserProfile('user_akhil');
+    const stats = db.getUserStats('user_akhil');
+    res.json({
+      success: true,
+      profile,
+      stats
+    });
+  } catch (err) {
+    console.error('Fetch profile error:', err.message);
+    res.status(500).json({ success: false, error: 'Failed to retrieve profile' });
+  }
+});
+
+// PUT /api/profile — update profile details
+app.put('/api/profile', (req, res) => {
+  try {
+    const updated = db.updateUserProfile('user_akhil', req.body);
+    const stats = db.getUserStats('user_akhil');
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      profile: updated,
+      stats
+    });
+  } catch (err) {
+    console.error('Update profile error:', err.message);
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// ============================================================================
+// ORDERS & TRACKING APIS
+// ============================================================================
+
+// GET /api/orders — list orders for profile
+app.get('/api/orders', (req, res) => {
+  try {
+    const { status, search, limit, offset } = req.query;
+    const orders = db.getUserOrders('user_akhil', { status, search, limit, offset });
+    res.json({
+      success: true,
+      count: orders.length,
+      orders
+    });
+  } catch (err) {
+    console.error('Fetch orders error:', err.message);
+    res.status(500).json({ success: false, error: 'Failed to retrieve orders' });
+  }
+});
+
+// GET /api/orders/:id/tracking — get tracking timeline and stage completion
+app.get('/api/orders/:id/tracking', (req, res) => {
+  try {
+    const tracking = db.getOrderTracking(req.params.id);
+    if (!tracking) {
+      return res.status(404).json({ success: false, error: 'Order not found' });
+    }
+    res.json({ success: true, tracking });
+  } catch (err) {
+    console.error('Fetch tracking error:', err.message);
+    res.status(500).json({ success: false, error: 'Failed to retrieve tracking details' });
+  }
+});
+
+// POST /api/orders/:id/advance-stage — advance order stage (demonstration & lifecycle testing)
+app.post('/api/orders/:id/advance-stage', (req, res) => {
+  try {
+    const { stage_number } = req.body;
+    const stageNum = Number(stage_number);
+    if (!stageNum || stageNum < 1 || stageNum > 6) {
+      return res.status(400).json({ success: false, error: 'stage_number must be an integer between 1 and 6' });
+    }
+
+    const order = db.getOrderById(req.params.id);
+    if (!order) {
+      return res.status(404).json({ success: false, error: 'Order not found' });
+    }
+
+    const stageMap = {
+      1: { status: 'PENDING', code: 'ORDER_PLACED', name: 'Order Placed', title: 'Order Placed', desc: 'Order placed by customer.' },
+      2: { status: 'PAID', code: 'PAYMENT_CONFIRMED', name: 'Payment Confirmed', title: 'Payment Confirmed', desc: 'Payment verified and captured via PayPal Sandbox.' },
+      3: { status: 'PROCESSING', code: 'ORDER_PROCESSING', name: 'Order Processing', title: 'Order Processing', desc: 'Garments inspected and packed in technical box.' },
+      4: { status: 'SHIPPED', code: 'SHIPPED', name: 'Shipped', title: 'Shipped', desc: 'Dispatched with express air courier.' },
+      5: { status: 'OUT_FOR_DELIVERY', code: 'OUT_FOR_DELIVERY', name: 'Out for Delivery', title: 'Out for Delivery', desc: 'Courier agent en route for delivery.' },
+      6: { status: 'DELIVERED', code: 'DELIVERED', name: 'Delivered', title: 'Delivered', desc: 'Package delivered and signed for.' }
+    };
+
+    const target = stageMap[stageNum];
+    for (let s = 1; s <= stageNum; s++) {
+      const st = stageMap[s];
+      db.addTrackingEvent(order.id, {
+        stage_number: s,
+        stage_name: st.name,
+        status_code: st.code,
+        title: st.title,
+        description: st.desc
+      });
+    }
+
+    db.updateOrderStatus(order.id, target.status);
+    const updatedTracking = db.getOrderTracking(order.id);
+
+    res.json({
+      success: true,
+      message: `Order transitioned to Stage ${stageNum}: ${target.name}`,
+      tracking: updatedTracking
+    });
+  } catch (err) {
+    console.error('Advance stage error:', err.message);
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// ============================================================================
+// PAYMENT HISTORY APIS
+// ============================================================================
+
+// GET /api/payments — list all verified payment transactions
+app.get('/api/payments', (req, res) => {
+  try {
+    const { status, search, limit, offset } = req.query;
+    const payments = db.getPayments({ status, search, limit, offset });
+    res.json({
+      success: true,
+      count: payments.length,
+      payments
+    });
+  } catch (err) {
+    console.error('Fetch payments error:', err.message);
+    res.status(500).json({ success: false, error: 'Failed to retrieve payment history' });
+  }
+});
+
+// GET /api/payments/:id — get payment details
+app.get('/api/payments/:id', (req, res) => {
+  try {
+    const payment = db.getPaymentById(req.params.id);
+    if (!payment) {
+      return res.status(404).json({ success: false, error: 'Payment record not found' });
+    }
+    res.json({ success: true, payment });
+  } catch (err) {
+    console.error('Fetch payment error:', err.message);
+    res.status(500).json({ success: false, error: 'Failed to retrieve payment details' });
+  }
+});
+
 // Root route serves index.html
 app.get('/', (req, res) => {
   res.sendFile(path.join(frontendPath, 'index.html'));

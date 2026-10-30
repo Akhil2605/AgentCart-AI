@@ -689,6 +689,99 @@ async function runAllTests() {
     assert.strictEqual(simRes.json.order.status, 'PAID_DEMO_TEST');
   });
 
+  console.log('\n👤 Testing My Account & User Profile:');
+  await testAsync('GET /api/profile returns default profile Akhil with real statistics', async () => {
+    const res = await httpReq('/api/profile');
+    assert.strictEqual(res.status, 200);
+    assert.strictEqual(res.json.profile.name, 'Akhil');
+    assert.ok(res.json.stats.total_orders > 0);
+    assert.ok(typeof res.json.stats.total_spent_inr === 'number');
+  });
+
+  await testAsync('PUT /api/profile permanently saves user details to SQLite', async () => {
+    const res = await httpReq('/api/profile', 'PUT', {
+      phone: '+91 91234 56789',
+      city: 'Bengaluru',
+      state: 'Karnataka',
+      postal_code: '560038'
+    });
+    assert.strictEqual(res.status, 200);
+    assert.strictEqual(res.json.profile.phone, '+91 91234 56789');
+    
+    // Verify persistence via clean GET
+    const verifyRes = await httpReq('/api/profile');
+    assert.strictEqual(verifyRes.json.profile.phone, '+91 91234 56789');
+  });
+
+  console.log('\n📦 Testing My Orders & Order Tracking:');
+  await testAsync('GET /api/orders returns orders with items, images, and tracking', async () => {
+    const res = await httpReq('/api/orders?limit=5');
+    assert.strictEqual(res.status, 200);
+    assert.ok(res.json.orders.length > 0);
+    assert.ok(res.json.orders[0].items.length > 0);
+    assert.ok(res.json.orders[0].items[0].image);
+  });
+
+  await testAsync('GET /api/orders/:id/tracking returns 6-stage genuine tracking timeline', async () => {
+    const ordersRes = await httpReq('/api/orders?limit=1');
+    const orderId = ordersRes.json.orders[0].id;
+    const res = await httpReq(`/api/orders/${orderId}/tracking`);
+    assert.strictEqual(res.status, 200);
+    assert.strictEqual(res.json.tracking.timeline.length, 6);
+    assert.strictEqual(res.json.tracking.timeline[0].stage_name, 'Order Placed');
+    assert.strictEqual(res.json.tracking.timeline[5].stage_name, 'Delivered');
+  });
+
+  console.log('\n💳 Testing Payment History:');
+  await testAsync('GET /api/payments returns genuine payment transaction records', async () => {
+    const res = await httpReq('/api/payments?limit=5');
+    assert.strictEqual(res.status, 200);
+    assert.ok(res.json.payments.length > 0);
+    assert.ok(res.json.payments[0].order_id);
+    assert.ok(['SUCCESS', 'PENDING', 'CANCELLED', 'FAILED'].includes(res.json.payments[0].status));
+  });
+
+  console.log('\n🌍 Testing INR Pricing & PayPal-Only International Checkout:');
+  await testAsync('POST /api/paypal/create-order blocks domestic payments within India', async () => {
+    const res = await httpReq('/api/paypal/create-order', 'POST', {
+      items: [{ id: 'cyber-shell-black', quantity: 1 }],
+      shipping_address: {
+        name: 'Akhil',
+        email: 'akhil@agentcart.ai',
+        address: '402 Cyber Tech Residences',
+        city: 'Bengaluru',
+        state: 'Karnataka',
+        postal_code: '560038',
+        country: 'India'
+      }
+    });
+    assert.strictEqual(res.status, 400);
+    assert.ok(res.json.error.includes('domestic payments within India'));
+  });
+
+  await testAsync('POST /api/paypal/create-order allows eligible international order in USD', async () => {
+    setupMockPayPalSandbox();
+    try {
+      const res = await httpReq('/api/paypal/create-order', 'POST', {
+        items: [{ id: 'cyber-shell-black', quantity: 1 }],
+        shipping_address: {
+          name: 'Global Buyer',
+          email: 'buyer@global.example.com',
+          address: '742 Evergreen Terrace',
+          city: 'Springfield',
+          state: 'OR',
+          postal_code: '97477',
+          country: 'United States'
+        }
+      });
+      assert.strictEqual(res.status, 200);
+      assert.strictEqual(res.json.charged_currency, 'USD');
+      assert.ok(res.json.charged_amount > 0);
+    } finally {
+      restoreFetch();
+    }
+  });
+
   await new Promise(resolve => {
     testServer.closeIdleConnections();
     testServer.close(resolve);

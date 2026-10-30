@@ -255,9 +255,17 @@ async function createPayPalSandboxOrder(order) {
   // Link paypal order id and explicitly record charged gateway amount and currency in SQLite
   db.getDb().prepare(`
     UPDATE orders 
-    SET provider_order_id = ?, charged_amount = ?, charged_currency = ?, updated_at = CURRENT_TIMESTAMP 
+    SET provider_order_id = ?, charged_amount = ?, charged_currency = ?, exchange_rate = ?, updated_at = CURRENT_TIMESTAMP 
     WHERE id = ?
-  `).run(paypalData.id, chargedAmountNum, currency, order.id);
+  `).run(paypalData.id, chargedAmountNum, currency, rate, order.id);
+
+  // Update payments record to link provider_order_id
+  db.updatePaymentStatus(order.id, 'PENDING', {
+    provider_order_id: paypalData.id,
+    amount: chargedAmountNum,
+    currency: currency,
+    payer_email: order.customer_email
+  });
 
   return {
     success: true,
@@ -315,6 +323,11 @@ async function capturePayPalSandboxOrder(localOrderId, paypalOrderId) {
     const errText = await res.text();
     console.error(`[PayPal Diagnostics] Capture failed: ${errText} (Debug-ID: ${debugId})`);
     db.updateOrderStatus(localOrder.id, 'FAILED', null);
+    db.updatePaymentStatus(localOrder.id, 'FAILED', {
+      provider_order_id: paypalOrderId,
+      debug_id: debugId,
+      error_message: errText
+    });
     throw new Error(`PayPal Capture Failed (HTTP ${res.status}, Debug-ID: ${debugId}): ${errText}`);
   }
 
@@ -324,6 +337,12 @@ async function capturePayPalSandboxOrder(localOrderId, paypalOrderId) {
 
   if (captureStatus !== 'COMPLETED') {
     db.updateOrderStatus(localOrder.id, 'FAILED', captureData.id || null);
+    db.updatePaymentStatus(localOrder.id, 'FAILED', {
+      provider_order_id: paypalOrderId,
+      transaction_id: captureData.id || null,
+      debug_id: debugId,
+      error_message: `Incomplete capture status: ${captureStatus}`
+    });
     throw new Error(`PayPal capture incomplete. Status: ${captureStatus} (Debug-ID: ${debugId})`);
   }
 
@@ -338,6 +357,26 @@ async function capturePayPalSandboxOrder(localOrderId, paypalOrderId) {
     SET status = 'PAID', payment_id = ?, charged_amount = COALESCE(?, charged_amount), charged_currency = ?, updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
   `).run(captureId, capturedAmountVal, capturedCurrencyVal, localOrder.id);
+
+  // Add Stage 2 tracking event: Payment Confirmed
+  db.addTrackingEvent(localOrder.id, {
+    stage_number: 2,
+    stage_name: 'Payment Confirmed',
+    status_code: 'PAYMENT_CONFIRMED',
+    title: 'Payment Confirmed',
+    description: `Payment authorized and verified via PayPal Sandbox capture (Txn ID: ${captureId}).`,
+    location: 'PayPal Gateway Engine'
+  });
+
+  // Update payment record to SUCCESS in payments table
+  db.updatePaymentStatus(localOrder.id, 'SUCCESS', {
+    provider_order_id: paypalOrderId,
+    transaction_id: captureId,
+    amount: capturedAmountVal,
+    currency: capturedCurrencyVal,
+    debug_id: debugId
+  });
+
   const updatedOrder = db.getOrderById(localOrder.id);
   console.log(`[PayPal Diagnostics] Order ${localOrder.id} marked as PAID. Capture ID: ${captureId}, Charged: ${capturedCurrencyVal} ${capturedAmountVal}`);
 
@@ -371,6 +410,9 @@ function cancelPayPalOrder(localOrderId, paypalOrderId) {
   }
 
   const updatedOrder = db.updateOrderStatus(localOrder.id, 'CANCELLED');
+  db.updatePaymentStatus(localOrder.id, 'CANCELLED', {
+    provider_order_id: paypalOrderId || localOrder.provider_order_id
+  });
   console.log(`[PayPal Diagnostics] Order ${localOrder.id} status transitioned to CANCELLED.`);
   return {
     success: true,
@@ -391,11 +433,28 @@ function recordDemoSimulationOrder(localOrderId) {
   }
   
   const demoChargedAmount = Number((localOrder.total_amount / INR_TO_USD_RATE).toFixed(2));
+  const demoTxnId = 'DEMO-TXN-' + Date.now();
   db.getDb().prepare(`
     UPDATE orders 
     SET status = 'PAID_DEMO_TEST', payment_id = ?, charged_amount = ?, charged_currency = 'USD', updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
-  `).run('DEMO-TXN-' + Date.now(), demoChargedAmount, localOrder.id);
+  `).run(demoTxnId, demoChargedAmount, localOrder.id);
+
+  db.addTrackingEvent(localOrder.id, {
+    stage_number: 2,
+    stage_name: 'Payment Confirmed',
+    status_code: 'PAYMENT_CONFIRMED',
+    title: 'Payment Confirmed',
+    description: 'Payment authorized and verified via verified offline sandbox simulation.',
+    location: 'PayPal Sandbox Simulator'
+  });
+
+  db.updatePaymentStatus(localOrder.id, 'SUCCESS', {
+    transaction_id: demoTxnId,
+    amount: demoChargedAmount,
+    currency: 'USD',
+    payment_method: 'PayPal Demo Simulation'
+  });
 
   const updatedOrder = db.getOrderById(localOrder.id);
   return {

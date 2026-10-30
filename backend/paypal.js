@@ -63,23 +63,35 @@ function validateAndCalculateOrder(items, shippingAddress) {
     });
   }
 
+  const country = (shippingAddress.country || '').trim();
+  const isDomesticIndia = /^(india|in|ind)$/i.test(country);
+  if (isDomesticIndia) {
+    throw new Error(
+      'PayPal does not support domestic payments within India between Indian residents and merchants under RBI regulations. ' +
+      'Only international cross-border transactions in USD are supported. Please select an international destination to test PayPal checkout.'
+    );
+  }
+
   const deliveryFee = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : STANDARD_SHIPPING_FEE;
   const totalAmount = subtotal + deliveryFee;
   const orderId = 'ORD-' + Date.now().toString(36).toUpperCase() + '-' + Math.floor(1000 + Math.random() * 9000);
 
   const orderRecord = {
     id: orderId,
+    user_id: shippingAddress.user_id || 'user_akhil',
     customer_name: shippingAddress.name.trim(),
     customer_email: shippingAddress.email.trim(),
     shipping_address: shippingAddress.address.trim(),
     city: shippingAddress.city?.trim() || 'Bengaluru',
     state: shippingAddress.state?.trim() || 'Karnataka',
     postal_code: shippingAddress.postal_code?.trim() || '560001',
+    country: country || 'United States',
     phone: shippingAddress.phone?.trim() || '',
     subtotal,
     delivery_fee: deliveryFee,
     total_amount: totalAmount,
     currency: 'INR',
+    exchange_rate: INR_TO_USD_RATE,
     status: 'PENDING',
     payment_provider: 'PAYPAL_SANDBOX'
   };

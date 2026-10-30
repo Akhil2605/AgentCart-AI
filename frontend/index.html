@@ -36,6 +36,7 @@
           <a href="#technology" class="nav-link">Technology</a>
           <a href="#aiAssistant" class="nav-link">AI Stylist</a>
           <a href="#needToKnow" class="nav-link">Need to Know</a>
+          <a href="#myAccount" class="nav-link" id="navAccountLink">My Account</a>
           <a href="#comparison" class="nav-link" id="navCompareLink" style="display:none">Compare <span class="badge-count" id="navCompareCount">0</span></a>
         </nav>
 
@@ -46,6 +47,11 @@
             <span>Ask AI</span>
           </button>
           
+          <button class="nav-tech-profile-btn" id="headerProfileBtn" aria-label="Open My Account">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <span id="navProfileNameLabel">AKHIL</span>
+          </button>
+
           <button class="nav-tech-cart-btn" id="headerCartBtn" aria-label="View Outerwear Cart">
             <span>CART [ <strong id="headerCartCount">0</strong> ]</span>
           </button>
@@ -65,6 +71,7 @@
       <a href="#technology" class="mobile-nav-link">Technology</a>
       <a href="#aiAssistant" class="mobile-nav-link">AI Stylist</a>
       <a href="#needToKnow" class="mobile-nav-link">Need to Know</a>
+      <a href="#myAccount" class="mobile-nav-link" id="mobileNavAccountLink">My Account (Akhil)</a>
       <a href="#comparison" class="mobile-nav-link" id="mobileNavCompareLink">Compare Jackets</a>
     </div>
   </header>
@@ -944,7 +951,7 @@
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px;">
         <h3 class="checkout-step-title" style="margin-bottom:0;">
           <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          Secure PayPal Sandbox Checkout
+          Secure International PayPal Checkout
         </h3>
         <button class="modal-close-btn" id="checkoutCloseBtn" aria-label="Close checkout">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
@@ -952,7 +959,7 @@
       </div>
 
       <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 20px;">
-        Order totals are calculated securely on the server using trusted catalog pricing.
+        Prices are maintained in INR (₹) and charged in USD via PayPal Sandbox for eligible international destinations.
       </p>
 
       <!-- Shipping Form -->
@@ -960,12 +967,33 @@
         <div class="checkout-form-grid">
           <div class="checkout-input-group form-full-col">
             <label for="shipName">Full Name *</label>
-            <input type="text" id="shipName" class="checkout-input" required placeholder="e.g. Rahul Sharma" value="Rahul Sharma">
+            <input type="text" id="shipName" class="checkout-input" required placeholder="e.g. Akhil" value="Akhil">
           </div>
 
           <div class="checkout-input-group form-full-col">
             <label for="shipEmail">Email Address (PayPal Sandbox Buyer) *</label>
             <input type="email" id="shipEmail" class="checkout-input" required placeholder="sb-buyer@personal.example.com" value="sb-lg72c53550049@personal.example.com">
+          </div>
+
+          <div class="checkout-input-group">
+            <label for="shipCountry">Destination Country *</label>
+            <select id="shipCountry" class="checkout-input" required>
+              <option value="United States" selected>United States (Eligible for PayPal USD)</option>
+              <option value="India">India (Domestic — PayPal Unsupported)</option>
+              <option value="United Kingdom">United Kingdom (Eligible for PayPal USD)</option>
+              <option value="Canada">Canada (Eligible for PayPal USD)</option>
+              <option value="Australia">Australia (Eligible for PayPal USD)</option>
+              <option value="Germany">Germany (Eligible for PayPal USD)</option>
+              <option value="France">France (Eligible for PayPal USD)</option>
+              <option value="Singapore">Singapore (Eligible for PayPal USD)</option>
+              <option value="United Arab Emirates">United Arab Emirates (Eligible for PayPal USD)</option>
+              <option value="Japan">Japan (Eligible for PayPal USD)</option>
+            </select>
+          </div>
+
+          <div class="checkout-input-group">
+            <label for="shipPhone">Phone Number</label>
+            <input type="tel" id="shipPhone" class="checkout-input" placeholder="+91 98765 43210" value="+91 98765 43210">
           </div>
 
           <div class="checkout-input-group form-full-col">
@@ -984,29 +1012,39 @@
           </div>
 
           <div class="checkout-input-group">
-            <label for="shipPostal">PIN Code *</label>
+            <label for="shipPostal">PIN / Postal Code *</label>
             <input type="text" id="shipPostal" class="checkout-input" required value="560038">
           </div>
+        </div>
 
-          <div class="checkout-input-group">
-            <label for="shipPhone">Phone Number</label>
-            <input type="tel" id="shipPhone" class="checkout-input" placeholder="+91 98765 43210" value="+91 98765 43210">
-          </div>
+        <!-- Domestic Payment Block Banner (Shown when Country = India) -->
+        <div class="domestic-restriction-card" id="domesticRestrictionAlert" style="display:none;">
+          <div class="restriction-badge">⚠️ DOMESTIC PAYMENT RESTRICTION</div>
+          <p class="restriction-text">
+            <strong>PayPal does not support domestic payments within India.</strong> Under Reserve Bank of India (RBI) regulations and PayPal India policy, domestic transactions between Indian buyers and Indian merchants cannot be processed via PayPal.
+          </p>
+          <p class="restriction-subtext">
+            💡 To test and complete PayPal Sandbox or Demo checkout, please select an international destination country above (e.g. <strong>United States</strong>).
+          </p>
         </div>
 
         <!-- Summary -->
         <div class="checkout-summary-card">
           <div class="checkout-summary-row">
-            <span>Subtotal</span>
-            <span id="checkoutSubtotal">$0.00</span>
+            <span>Catalogue Subtotal (INR)</span>
+            <span id="checkoutSubtotal" class="font-mono-tech">₹0</span>
           </div>
           <div class="checkout-summary-row">
-            <span>Delivery Fee (Free over $24 USD / ₹2,000)</span>
-            <span id="checkoutDelivery">Free</span>
+            <span>Delivery Fee (Free over ₹2,000)</span>
+            <span id="checkoutDelivery" class="font-mono-tech">Free</span>
+          </div>
+          <div class="checkout-summary-row">
+            <span>Exchange Conversion Rate</span>
+            <span class="font-mono-tech" id="checkoutRateInfo">1 USD = ₹85.00 INR (Server Verified)</span>
           </div>
           <div class="checkout-summary-row total">
-            <span>Verified Total (Charged in USD)</span>
-            <span id="checkoutTotal">$0.00 USD</span>
+            <span>Total Charged via PayPal (USD)</span>
+            <span id="checkoutTotal" class="font-mono-tech">$0.00 USD</span>
           </div>
         </div>
 
@@ -1025,6 +1063,15 @@
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>
             <span>Complete Verified Test Purchase (Demo Mode)</span>
           </button>
+        </div>
+
+        <!-- Blocked Message when Domestic -->
+        <div id="domesticBlockedContainer" class="domestic-blocked-box" style="display:none;">
+          <div class="blocked-icon">🛑</div>
+          <div>
+            <strong>Domestic Checkout Blocked by Gateway Policy</strong>
+            <p>Switch destination country to United States, UK, or Canada to enable PayPal Sandbox testing.</p>
+          </div>
         </div>
       </form>
     </div>
@@ -1053,6 +1100,229 @@
         <button class="btn-hero-primary" style="width: 100%; justify-content: center;" id="confDoneBtn">
           Continue Shopping
         </button>
+        <button class="btn-hero-outline" style="width: 100%; justify-content: center; margin-top: 10px;" id="confTrackOrderBtn">
+          Track This Order
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- G. MY ACCOUNT & ORDER TRACKING MODAL (PREMIUM LIQUID GLASS CONSOLE) -->
+  <div class="modal-backdrop" id="accountModal" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="account-modal-box">
+      <!-- Modal Header -->
+      <div class="account-modal-header">
+        <div class="account-header-info">
+          <div class="account-avatar-pill">
+            <span class="avatar-initials" id="accountAvatarInitials">AK</span>
+            <span class="avatar-online-dot"></span>
+          </div>
+          <div>
+            <div class="account-title-row">
+              <h2 class="account-user-name" id="accountUserNameDisplay">Akhil</h2>
+              <span class="account-verified-tag font-mono-tech">DEFAULT PROFILE</span>
+            </div>
+            <p class="account-user-meta font-mono-tech" id="accountUserMetaDisplay">akhil@agentcart.ai • Bengaluru, Karnataka</p>
+          </div>
+        </div>
+        <button class="modal-close-btn" id="accountCloseBtn" aria-label="Close My Account">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- Live Metric Glass Cards -->
+      <div class="account-stats-grid">
+        <div class="glass-stat-card">
+          <div class="stat-icon">📦</div>
+          <div class="stat-data">
+            <span class="stat-number font-mono-tech" id="statTotalOrders">0</span>
+            <span class="stat-label">Total Orders</span>
+          </div>
+        </div>
+        <div class="glass-stat-card">
+          <div class="stat-icon" style="color:var(--accent-orange);">⚡</div>
+          <div class="stat-data">
+            <span class="stat-number font-mono-tech" id="statActiveOrders" style="color:var(--accent-orange);">0</span>
+            <span class="stat-label">Active Orders</span>
+          </div>
+        </div>
+        <div class="glass-stat-card">
+          <div class="stat-icon" style="color:var(--color-success);">🏆</div>
+          <div class="stat-data">
+            <span class="stat-number font-mono-tech" id="statDeliveredOrders" style="color:var(--color-success);">0</span>
+            <span class="stat-label">Delivered Orders</span>
+          </div>
+        </div>
+        <div class="glass-stat-card">
+          <div class="stat-icon">💰</div>
+          <div class="stat-data">
+            <span class="stat-number font-mono-tech" id="statTotalSpent">₹0</span>
+            <span class="stat-label">Total Spent (<span id="statTotalSpentUsd" style="font-weight:700;">$0 USD</span>)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <div class="account-tabs-bar font-mono-tech">
+        <button class="account-tab-btn active" id="tabBtnProfile" data-tab="profile">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <span>Profile Details</span>
+        </button>
+        <button class="account-tab-btn" id="tabBtnOrders" data-tab="orders">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0"/></svg>
+          <span>My Orders & Tracking</span>
+        </button>
+        <button class="account-tab-btn" id="tabBtnPayments" data-tab="payments">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+          <span>Payment History</span>
+        </button>
+      </div>
+
+      <!-- Tab Content Area -->
+      <div class="account-tabs-viewport">
+        <!-- 1. PROFILE TAB -->
+        <div class="account-tab-pane active" id="tabPaneProfile">
+          <div class="profile-layout-grid">
+            <!-- Edit Profile Form -->
+            <div class="profile-card-glass">
+              <div class="profile-card-header">
+                <h3>Personal & Delivery Details</h3>
+                <span class="profile-save-status" id="profileSaveStatus">Persistent SQLite Storage</span>
+              </div>
+              <form id="profileForm" class="profile-form-grid">
+                <div class="checkout-input-group form-full-col">
+                  <label for="profName">Full Name *</label>
+                  <input type="text" id="profName" class="checkout-input" required value="Akhil">
+                </div>
+                <div class="checkout-input-group form-full-col">
+                  <label for="profEmail">Email Address *</label>
+                  <input type="email" id="profEmail" class="checkout-input" required value="akhil@agentcart.ai">
+                </div>
+                <div class="checkout-input-group">
+                  <label for="profPhone">Phone Number</label>
+                  <input type="tel" id="profPhone" class="checkout-input" value="+91 98765 43210">
+                </div>
+                <div class="checkout-input-group">
+                  <label for="profCountry">Country</label>
+                  <select id="profCountry" class="checkout-input">
+                    <option value="India" selected>India</option>
+                    <option value="United States">United States</option>
+                    <option value="United Kingdom">United Kingdom</option>
+                    <option value="Canada">Canada</option>
+                    <option value="Australia">Australia</option>
+                    <option value="Germany">Germany</option>
+                    <option value="France">France</option>
+                    <option value="Singapore">Singapore</option>
+                    <option value="United Arab Emirates">United Arab Emirates</option>
+                    <option value="Japan">Japan</option>
+                  </select>
+                </div>
+                <div class="checkout-input-group form-full-col">
+                  <label for="profAddress">Delivery Street Address *</label>
+                  <input type="text" id="profAddress" class="checkout-input" required value="402 Cyber Tech Residences, Indiranagar">
+                </div>
+                <div class="checkout-input-group">
+                  <label for="profCity">City *</label>
+                  <input type="text" id="profCity" class="checkout-input" required value="Bengaluru">
+                </div>
+                <div class="checkout-input-group">
+                  <label for="profState">State *</label>
+                  <input type="text" id="profState" class="checkout-input" required value="Karnataka">
+                </div>
+                <div class="checkout-input-group">
+                  <label for="profPostal">PIN Code *</label>
+                  <input type="text" id="profPostal" class="checkout-input" required value="560038">
+                </div>
+                <div class="form-full-col" style="margin-top: 10px;">
+                  <button type="submit" class="btn-profile-save" id="btnSaveProfile">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                    <span>Save Changes to Profile</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <!-- Profile Summary & Recent Activity -->
+            <div class="profile-card-glass">
+              <div class="profile-card-header">
+                <h3>Recent Activity</h3>
+                <span class="font-mono-tech" style="font-size:0.75rem; color:var(--text-muted);">SQLITE REAL-TIME</span>
+              </div>
+              <div class="profile-activity-list" id="profileActivityList">
+                <!-- Dynamically populated from /api/profile -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. MY ORDERS & TRACKING TAB -->
+        <div class="account-tab-pane" id="tabPaneOrders">
+          <div class="orders-toolbar">
+            <div class="orders-search-wrap">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              <input type="text" id="ordersSearchInput" class="orders-search-input" placeholder="Search orders by ID...">
+            </div>
+            <div class="orders-filter-chips">
+              <button class="order-chip active" data-filter="ALL">All Orders</button>
+              <button class="order-chip" data-filter="ACTIVE">Active</button>
+              <button class="order-chip" data-filter="DELIVERED">Delivered</button>
+              <button class="order-chip" data-filter="CANCELLED">Cancelled</button>
+            </div>
+          </div>
+          <div class="orders-cards-list" id="accountOrdersList">
+            <!-- Dynamically populated from /api/orders -->
+          </div>
+        </div>
+
+        <!-- 3. PAYMENT HISTORY TAB -->
+        <div class="account-tab-pane" id="tabPanePayments">
+          <div class="orders-toolbar">
+            <div class="orders-search-wrap">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              <input type="text" id="paymentsSearchInput" class="orders-search-input" placeholder="Search by Txn ID, PayPal Order ID...">
+            </div>
+            <div class="orders-filter-chips">
+              <button class="payment-chip active" data-filter="ALL">All Payments</button>
+              <button class="payment-chip" data-filter="SUCCESS">Success</button>
+              <button class="payment-chip" data-filter="PENDING">Pending</button>
+              <button class="payment-chip" data-filter="FAILED">Failed</button>
+              <button class="payment-chip" data-filter="CANCELLED">Cancelled</button>
+            </div>
+          </div>
+          <div class="payments-table-container" id="accountPaymentsList">
+            <!-- Dynamically populated from /api/payments -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- H. ORDER TRACKING DETAILS MODAL (INDIVIDUAL 6-STAGE TIMELINE) -->
+  <div class="modal-backdrop" id="trackingModal" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="tracking-modal-box">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <div>
+          <span class="tracking-meta-tag font-mono-tech">GENUINE ORDER TRACKING</span>
+          <h2 style="font-size:1.35rem; font-weight:800; margin-top:2px;" id="trackModalOrderId">ORD-XXXXX</h2>
+        </div>
+        <button class="modal-close-btn" id="trackingCloseBtn" aria-label="Close tracking">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <div class="tracking-summary-banner" id="trackingSummaryBanner">
+        <!-- Status summary & estimated delivery -->
+      </div>
+
+      <!-- 6-Stage Timeline -->
+      <div class="tracking-stages-stepper" id="trackingTimelineContainer">
+        <!-- Dynamically rendered 6 stages -->
+      </div>
+
+      <!-- Demo stage advancement controls for testing -->
+      <div class="tracking-demo-controls" id="trackingDemoControls">
+        <span class="font-mono-tech" style="font-size:0.75rem; color:var(--text-muted);">SIMULATE ORDER STAGE ADVANCEMENT (TEST TOOL):</span>
+        <div class="stage-advance-btn-group" id="trackingAdvanceGroup"></div>
       </div>
     </div>
   </div>

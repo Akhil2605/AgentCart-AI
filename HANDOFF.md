@@ -1,106 +1,106 @@
 # AgentCart AI — Milestone Handoff Document
 
-**Current Status:** Actual Video Opening Scroll Animation Completed & Verified  
-**Date:** October 29, 2026  
-**Platform Version:** v3.2.0 (Cinematic Scroll-Controlled Video Showroom Edition)  
+**Current Status:** Complete My Account + INR Pricing + PayPal Integration Completed & Verified  
+**Date:** October 30, 2026  
+**Platform Version:** v3.3.0 (Complete My Account, INR Pricing & PayPal Integration Edition)  
 **Safety Recovery Backup:** `D:\AgentCart-AI-backup-pre-reorg` (Retained intact)  
-**Original Database Location:** `D:\AgentCart-AI\data\agentcart.sqlite` (Retained intact)  
+**Database Backup Location:** `D:\AgentCart-AI\database\agentcart.sqlite.bak` (Retained intact)  
 
 ---
 
-## 1. Summary of Opening Scroll Video Integration
+## 1. Summary of Completed Implementation
 
-The reference video stored at `D:\AgentCart-AI\video` has been integrated as the primary visual experience for the opening section of the AgentCart-AI homepage, immediately below the fixed header.
+A full, production-grade upgrade of AgentCart AI has been implemented directly in the codebase:
 
-### Key Video Specifications:
-- **Video Filename:** `A futuristic e-commerce experience built to make the product feel premium before the customer ev.mp4`
-- **Video Path:** `D:\AgentCart-AI\video\A futuristic e-commerce experience built to make the product feel premium before the customer ev.mp4`
-- **Resolution:** 1156 x 720 px @ 30.0 FPS
-- **Duration:** 14.567 seconds (437 frames)
-- **Serving Endpoint:** `GET /video/hero.mp4` with HTTP 206 Partial Content range requests.
+1. **Persistent Default Profile (Akhil):**
+   - Stored in SQLite table `user_profiles` (`id = 'user_akhil'`).
+   - Works immediately out-of-the-box without login or signup; zero mandatory authentication.
+   - All historical (480+) and newly created orders are linked with this profile.
+   - Editable personal details (name, email, phone, street address, city, state, PIN code, country) permanently persist via `PUT /api/profile`.
 
----
+2. **Genuine Orders & 6-Stage Tracking:**
+   - Fetches actual SQLite orders with product images, sizes, colors, quantities, and line totals.
+   - 6 Discrete, authentic stages:
+     1. **Order Placed** (Registered in AgentCart system)
+     2. **Payment Confirmed** (Verified via PayPal capture or verified test purchase)
+     3. **Order Processing** (Inspected and packed at Bengaluru Fulfillment Center)
+     4. **Shipped** (Dispatched with global air express courier)
+     5. **Out for Delivery** (Courier agent en route for doorstep delivery)
+     6. **Delivered** (Signed for at customer destination)
+   - Completed stages show exact SQLite timestamps and locations. Uncompleted stages remain pending without fabrication.
 
-## 2. Implementation Architecture
+3. **Verified Payment History:**
+   - Dedicated `payments` SQLite table storing `id`, `order_id`, `provider_order_id`, `transaction_id`, `amount`, `currency`, `inr_amount`, `exchange_rate`, `status`, `debug_id`.
+   - Records marked `SUCCESS` only upon verified PayPal capture response.
+   - Accurately tracks `PENDING`, `CANCELLED`, `FAILED`, and `SUCCESS`.
 
-1. **Scroll-Synchronized Video Timeline:**
-   - Section `#hero` serves as a multi-height scroll track (`height: 280vh`).
-   - `.hero-sticky-stage` pins directly beneath the site header (`top: 70px; height: calc(100vh - 70px);`).
-   - Bidirectional scrubbing: Scrolling down advances the video timeline frame-by-frame; scrolling up smoothly reverses the video frame-by-frame.
-   - Smooth damping: Uses `requestAnimationFrame` and lerp interpolation (`currentProgress += diff * 0.22`) for silky-smooth motion.
-2. **Progressive Canvas Frame Scrubbing Fallback:**
-   - Sits alongside the video element in `.hero-video-arena`.
-   - Reads from `video/manifest.json` indexing 30 progressive frames.
-   - If direct video decoding is delayed or unsupported, canvas seamlessly takes over with zero perceptible stutter.
-3. **HUD Telemetry Overlay:**
-   - Real-time timecode readout: `REC 00:SS.ss / 00:14.56`.
-   - Glowing laboratory orange progress bar: `0%` to `100%`.
-   - `• SHOWROOM FEED // 4K RAW` status badge.
-   - Floating `SCROLL TO ADVANCE // UP TO REVERSE ▾` prompt that gracefully fades on scroll.
-4. **Resolution of the "Huge Black Triangle":**
-   - Diagnosed root cause: An unstyled inline SVG chevron on `#heroShopNowBtn` without stroke/fill defaults rendered as an unconstrained 93px solid black triangle in Chromium.
-   - Fixed by applying explicit SVG dimensions (`width="16" height="16"`), `fill="none"`, and `stroke="currentColor"`, paired with dedicated Liquid Glass styling for `.btn-tech-shop` (vibrant orange CTA pill) and `.btn-tech-outline` (frosted glass pill).
-   - Strict CSS suppression applied to all browser native media controls (`::-webkit-media-controls-* { display: none !important; }`).
-5. **Seamless Handoff to Details Matter:**
-   - At the bottom of the hero track, corner brackets fade gracefully.
-   - The sticky stage naturally unpins, handing off directly into Section B ("DETAILS MATTER.").
-6. **Performance & Reduced Motion:**
-   - `IntersectionObserver` automatically pauses RAF updates when the hero section leaves the viewport.
-   - Video audio is strictly muted (`video.muted = true`, `video.volume = 0`).
-   - `prefers-reduced-motion` compliance renders a static initial frame and disables continuous seek loops.
+4. **Primary INR (₹) Pricing & International USD PayPal Checkout:**
+   - INR (₹) is the primary product price throughout the application (`₹1,999`).
+   - Server-side calculation converts eligible international orders to USD at `1 USD = ₹85.00 INR`.
+   - Domestic transactions within India display a clear RBI policy restriction notice and block domestic checkout rather than simulating success.
+
+5. **Liquid Glass UI Console:**
+   - Header button `AKHIL` and `My Account` navigation links open the multi-tab Liquid Glass modal.
+   - Live metrics: Total Orders, Active Orders, Delivered Orders, Total Spent (in INR and USD).
+   - Dedicated Order Tracking modal with animated pulse beacons, checkmarks, and demo stage advancement controls.
 
 ---
 
-## 3. Files Modified Manifest
+## 2. Files Modified Manifest
 
-- [`backend/server.js`](file:///D:/AgentCart-AI/backend/server.js): Mounted `/video` directory and added clean `/video/hero.mp4` streaming endpoint with HTTP 206 range support.
-- [`video/manifest.json`](file:///D:/AgentCart-AI/video/manifest.json): Generated manifest indexing the 30 extracted frames for progressive fallback scrubbing.
-- [`frontend/index.html`](file:///D:/AgentCart-AI/frontend/index.html): Restructured `#hero` with sticky stage, video/canvas arena, HUD telemetry, and fixed SVG chevron.
-- [`frontend/styles.css`](file:///D:/AgentCart-AI/frontend/styles.css): Added sticky pinning rules, video arena styling, media control suppression, and polished hero CTA button styles.
-- [`frontend/app.js`](file:///D:/AgentCart-AI/frontend/app.js): Implemented `setupScrollDrivenShowroom()` with bidirectional video seeking, canvas scrubbing fallback, and telemetry updates.
-- [`tests/run_tests.js`](file:///D:/AgentCart-AI/tests/run_tests.js): Added automated test cases for `/video/hero.mp4`, `/video/manifest.json`, and homepage `#heroVideo` element.
-- [`tests/verify_browser_scroll.js`](file:///D:/AgentCart-AI/tests/verify_browser_scroll.js): Headless Chrome CDP verification suite testing actual scroll down, scroll up, and visual captures.
-- [`PROJECT_STATE.md`](file:///D:/AgentCart-AI/PROJECT_STATE.md): Updated with v3.2.0 platform state and video details.
-- [`HANDOFF.md`](file:///D:/AgentCart-AI/HANDOFF.md): Updated with verification results and run instructions.
+- [`database/schema.sql`](file:///D:/AgentCart-AI/database/schema.sql): Added `user_profiles`, `order_tracking_events`, and `payments` tables; updated `orders` schema.
+- [`database/db.js`](file:///D:/AgentCart-AI/database/db.js): Implemented profile management, tracking events creation/backfilling, payments history, order listing with item joins and safe SQLite migrations.
+- [`backend/paypal.js`](file:///D:/AgentCart-AI/backend/paypal.js): Added domestic India check, recorded payments as `PENDING`, synchronized capture verification with `payments` table and `order_tracking_events` (Stage 2).
+- [`backend/server.js`](file:///D:/AgentCart-AI/backend/server.js): Exposed REST APIs for profile, orders, tracking, stage advancement, and payment history.
+- [`frontend/index.html`](file:///D:/AgentCart-AI/frontend/index.html): Added `#headerProfileBtn`, desktop/mobile nav links, upgraded checkout modal with country selector & domestic notice, added `#accountModal` and `#trackingModal`.
+- [`frontend/styles.css`](file:///D:/AgentCart-AI/frontend/styles.css): Implemented complete Liquid Glass styling for profile console, stats cards, stepper, order cards, and payments table.
+- [`frontend/app.js`](file:///D:/AgentCart-AI/frontend/app.js): Inverted primary pricing to INR (`₹`), added profile persistence, live order loading, tracking modal renderer, payment history renderer, and country checkout handling.
+- [`package.json`](file:///D:/AgentCart-AI/package.json): Added `verify:account` script.
+- [`tests/run_tests.js`](file:///D:/AgentCart-AI/tests/run_tests.js): Added 7 new automated test cases covering profile, tracking, payments, and currency rules.
+- [`tests/verify_account_and_pricing.js`](file:///D:/AgentCart-AI/tests/verify_account_and_pricing.js): Headless Chrome CDP verification suite testing live UI, modal, orders, tracking, and screenshots.
+- [`PROJECT_STATE.md`](file:///D:/AgentCart-AI/PROJECT_STATE.md): Updated to v3.3.0 platform state.
 
 ---
 
-## 4. Verification & Automated Test Results
+## 3. Verification & Automated Test Results
 
 ### 1. Automated Test Suite:
 ```powershell
 npm test
 ```
-**Result:** **31/31 tests passed (100.0%)**
-- SQLite Database & Catalog Integrity: 3/3 passed (24 jackets, 10 categories)
-- Search, Filter, and Sort Engine: 3/3 passed
-- Server-Side Pricing & Security Validation: 5/5 passed
-- AI Stylist & Grounded Recommendations: 2/2 passed
-- PayPal Sandbox Checkout Engine: 9/9 passed
-- Live Express HTTP Endpoints: 9/9 passed (includes video streaming & manifest endpoints)
+**Result:** **38/38 tests passed (100.0%)**
 
-### 2. Browser Scroll & Reversal Verification:
+### 2. Browser CDP Verification:
 ```powershell
-node tests/verify_browser_scroll.js
+npm run verify:account
 ```
-- **Scroll down (800px):** `stickyTop: 70px`, `video.currentTime: 4.98s`, telemetry: `REC 00:04.98`, scrub fill: `34.2%`.
-- **Scroll down (1600px):** `video.currentTime: 13.85s`, telemetry: `REC 00:13.85`, scrub fill: `95.1%`.
-- **Scroll up back to 0px:** `video.currentTime: 0.09s`, telemetry: `REC 00:00.10`, scrub fill: `0.7%`.
-- **Console errors:** `0` (Zero errors, zero exceptions).
-- **Screenshot Evidence:** Verified in [`video/browser_scrolled_800px.png`](file:///D:/AgentCart-AI/video/browser_scrolled_800px.png).
+- **Result:** **100% Passed** with 4 visual screenshot proofs saved in `docs/`:
+  - `docs/account_profile_view.png`
+  - `docs/order_tracking_view.png`
+  - `docs/payment_history_view.png`
+  - `docs/checkout_international_view.png`
+
+### 3. Video Scroll Verification:
+```powershell
+npm run verify:scroll
+```
+- **Result:** **100% Passed** (Zero console errors, smooth bidirectional scrubbing).
 
 ---
 
-## 5. Startup Commands
+## 4. Run & Development Commands
 
 ```powershell
 # Start local development server
 npm start
-# Navigate to http://localhost:3000
+# Server listens at http://localhost:3000
 
-# Run automated tests
+# Run complete automated test suite (38 tests)
 npm test
 
-# Run browser scroll verification
-node tests/verify_browser_scroll.js
+# Run Chrome CDP account, tracking & checkout verification
+npm run verify:account
+
+# Run video scroll showroom verification
+npm run verify:scroll
 ```

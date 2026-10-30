@@ -6,7 +6,9 @@
   "scripts": {
     "start": "node backend/server.js",
     "seed": "node database/seed.js",
-    "test": "node tests/run_tests.js"
+    "test": "node tests/run_tests.js",
+    "verify:scroll": "node tests/verify_browser_scroll.js",
+    "verify:account": "node tests/verify_account_and_pricing.js"
   },
   "keywords": ["ai", "ecommerce", "outerwear", "jackets", "paypal", "gemini"],
   "author": "AgentCart AI Team",

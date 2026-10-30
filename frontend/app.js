@@ -35,10 +35,10 @@ const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => document.querySelectorAll(sel);
 // Fixed demonstration exchange rate (1 USD = 85 INR; updated dynamically via /api/config)
 let USD_RATE = 85;
-const usd = (n) => '$' + (Number(n) / USD_RATE).toFixed(2);
 const inr = (n) => '₹' + Number(n).toLocaleString('en-IN');
-const dualPrice = (n) => `${usd(n)} <span class="dual-inr">(${inr(n)})</span>`;
-const dualPricePlain = (n) => `${usd(n)} (${inr(n)})`;
+const usd = (n) => '$' + (Number(n) / USD_RATE).toFixed(2);
+const dualPrice = (n) => `${inr(n)} <span class="dual-usd">(≈ ${usd(n)} USD)</span>`;
+const dualPricePlain = (n) => `${inr(n)} (≈ ${usd(n)} USD)`;
 const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const animDur = (ms) => prefersReducedMotion ? 1 : ms;
 
@@ -49,7 +49,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   initCartFromStorage();
   await fetchAppConfig();
   await loadProducts();
+  await fetchUserProfile();
   setupEventListeners();
+  setupAccountListeners();
   setupPayPal();
   initScramblerElements();
   setup3DJacketTilt();
@@ -524,10 +526,10 @@ function renderCartDrawer(stagger) {
   }
 
   $('#cartDrawerCount').textContent = count;
-  $('#cartSubtotal').innerHTML = `$${totals.usdSubtotal.toFixed(2)} <span class="dual-inr">(${inr(totals.inrSubtotal)})</span>`;
-  $('#cartDeliveryFee').innerHTML = totals.isFreeShipping ? 'Free' : `$${totals.usdDeliveryFee.toFixed(2)} <span class="dual-inr">(${inr(totals.inrDeliveryFee)})</span>`;
-  $('#cartFinalTotal').innerHTML = `$${totals.usdTotal.toFixed(2)} <span class="dual-inr">(${inr(totals.inrTotal)})</span>`;
-  $('#checkoutBtnAmt').textContent = `$${totals.usdTotal.toFixed(2)} USD`;
+  $('#cartSubtotal').innerHTML = `${inr(totals.inrSubtotal)} <span class="dual-usd">(≈ $${totals.usdSubtotal.toFixed(2)} USD)</span>`;
+  $('#cartDeliveryFee').innerHTML = totals.isFreeShipping ? 'Free' : `${inr(totals.inrDeliveryFee)} <span class="dual-usd">(≈ $${totals.usdDeliveryFee.toFixed(2)} USD)</span>`;
+  $('#cartFinalTotal').innerHTML = `${inr(totals.inrTotal)} <span class="dual-usd">(≈ $${totals.usdTotal.toFixed(2)} USD)</span>`;
+  $('#checkoutBtnAmt').textContent = `${inr(totals.inrTotal)} (≈ $${totals.usdTotal.toFixed(2)} USD)`;
 
   list.innerHTML = items.map(it => {
     const key = `${it.id}-${it.size}-${it.color}`;
@@ -958,15 +960,52 @@ function openCheckoutModal() {
 
   const totals = calculateCartTotals();
 
-  $('#checkoutSubtotal').innerHTML = `$${totals.usdSubtotal.toFixed(2)} <span class="dual-inr">(${inr(totals.inrSubtotal)})</span>`;
-  $('#checkoutDelivery').innerHTML = totals.isFreeShipping ? 'Free' : `$${totals.usdDeliveryFee.toFixed(2)} <span class="dual-inr">(${inr(totals.inrDeliveryFee)})</span>`;
-  $('#checkoutTotal').innerHTML = `$${totals.usdTotal.toFixed(2)} USD <span class="dual-inr">(${inr(totals.inrTotal)})</span>`;
+  // Populate verified INR subtotal, delivery fee, and charged USD
+  if ($('#checkoutSubtotal')) $('#checkoutSubtotal').textContent = inr(totals.inrSubtotal);
+  if ($('#checkoutDelivery')) $('#checkoutDelivery').textContent = totals.isFreeShipping ? 'Free' : inr(totals.inrDeliveryFee);
+  if ($('#checkoutTotal')) $('#checkoutTotal').innerHTML = `$${totals.usdTotal.toFixed(2)} USD <span class="dual-usd">(${inr(totals.inrTotal)})</span>`;
+  if ($('#checkoutRateInfo')) $('#checkoutRateInfo').textContent = `1 USD = ₹${USD_RATE.toFixed(2)} INR (Server Verified)`;
+
+  // Prefill shipping form from Akhil's SQLite profile
+  if (State.profile) {
+    if ($('#shipName')) $('#shipName').value = State.profile.name || 'Akhil';
+    if ($('#shipEmail')) $('#shipEmail').value = State.profile.email || 'akhil@agentcart.ai';
+    if ($('#shipAddress')) $('#shipAddress').value = State.profile.shipping_address || '402 Cyber Tech Residences, Indiranagar';
+    if ($('#shipCity')) $('#shipCity').value = State.profile.city || 'Bengaluru';
+    if ($('#shipState')) $('#shipState').value = State.profile.state || 'Karnataka';
+    if ($('#shipPostal')) $('#shipPostal').value = State.profile.postal_code || '560038';
+    if ($('#shipPhone')) $('#shipPhone').value = State.profile.phone || '+91 98765 43210';
+  }
+
+  updateCheckoutCountryEligibility();
 
   const modal = $('#checkoutModal');
   modal.classList.add('open');
   modal.setAttribute('aria-hidden', 'false');
 
   closeCartDrawer();
+}
+
+function updateCheckoutCountryEligibility() {
+  const countryEl = $('#shipCountry');
+  const alertEl = $('#domesticRestrictionAlert');
+  const blockedEl = $('#domesticBlockedContainer');
+  const paypalWrap = $('#paypalContainerWrap');
+
+  if (!countryEl) return;
+
+  const country = countryEl.value.trim();
+  const isDomestic = /^(india|in|ind)$/i.test(country);
+
+  if (isDomestic) {
+    if (alertEl) alertEl.style.display = 'block';
+    if (blockedEl) blockedEl.style.display = 'flex';
+    if (paypalWrap) paypalWrap.style.display = 'none';
+  } else {
+    if (alertEl) alertEl.style.display = 'none';
+    if (blockedEl) blockedEl.style.display = 'none';
+    if (paypalWrap) paypalWrap.style.display = 'block';
+  }
 }
 
 function closeCheckoutModal() {
@@ -1104,18 +1143,26 @@ function setupPayPal() {
 
 function getShippingFormData() {
   return {
-    name: $('#shipName').value || 'Test Buyer',
-    email: $('#shipEmail').value || 'buyer@example.com',
-    address: $('#shipAddress').value || '402 Cyber Tech Residences',
-    city: $('#shipCity').value || 'Bengaluru',
-    state: $('#shipState').value || 'Karnataka',
-    postal_code: $('#shipPostal').value || '560038',
-    phone: $('#shipPhone').value || '+91 98765 43210'
+    name: $('#shipName')?.value || (State.profile?.name || 'Akhil'),
+    email: $('#shipEmail')?.value || (State.profile?.email || 'akhil@agentcart.ai'),
+    address: $('#shipAddress')?.value || (State.profile?.shipping_address || '402 Cyber Tech Residences, Indiranagar'),
+    city: $('#shipCity')?.value || (State.profile?.city || 'Bengaluru'),
+    state: $('#shipState')?.value || (State.profile?.state || 'Karnataka'),
+    postal_code: $('#shipPostal')?.value || (State.profile?.postal_code || '560038'),
+    phone: $('#shipPhone')?.value || (State.profile?.phone || '+91 98765 43210'),
+    country: $('#shipCountry')?.value || 'United States',
+    user_id: 'user_akhil'
   };
 }
 
 async function executeDemoTestOrder() {
   const shipping = getShippingFormData();
+  const isDomestic = /^(india|in|ind)$/i.test((shipping.country || '').trim());
+  if (isDomestic) {
+    alert('PayPal Domestic Payment Restriction: Under RBI regulations, PayPal does not support domestic payments within India. Please select United States or an international country to test PayPal checkout.');
+    return;
+  }
+
   const items = [...State.cart.values()].map(it => ({
     id: it.id,
     size: it.size,
@@ -1193,13 +1240,23 @@ function handleOrderSuccess(order) {
     ${txnLine}
     <div style="margin-top:12px; font-size:0.75rem; color:var(--text-muted);">
       Ship To: <strong>${order.customer_name}</strong><br>
-      ${order.shipping_address}, ${order.city}, ${order.state} - ${order.postal_code}
+      ${order.shipping_address}, ${order.city}, ${order.state} - ${order.postal_code} (${order.country || 'India'})
     </div>
   `;
 
   const confModal = $('#confirmationModal');
   confModal.classList.add('open');
   confModal.setAttribute('aria-hidden', 'false');
+
+  const trackBtn = $('#confTrackOrderBtn');
+  if (trackBtn) {
+    trackBtn.onclick = () => {
+      closeConfirmationModal();
+      openTrackingModal(order.id);
+    };
+  }
+
+  fetchUserProfile();
 
   // Clear Cart
   State.cart.clear();
@@ -1531,9 +1588,589 @@ function setupEventListeners() {
       closeCheckoutModal();
       closeConfirmationModal();
       closeCartDrawer();
+      closeAccountModal();
+      closeTrackingModal();
     }
   });
 }
+
+// ==========================================================================
+// MY ACCOUNT, PROFILE PERSISTENCE, ORDER TRACKING & PAYMENT HISTORY
+// ==========================================================================
+
+let activeOrdersFilter = 'ALL';
+let activePaymentsFilter = 'ALL';
+let currentTrackingOrderId = null;
+
+function setupAccountListeners() {
+  // Open My Account from header buttons and navigation links
+  const headerProfileBtn = $('#headerProfileBtn');
+  if (headerProfileBtn) {
+    headerProfileBtn.addEventListener('click', () => openAccountModal('profile'));
+  }
+
+  const navAccountLink = $('#navAccountLink');
+  if (navAccountLink) {
+    navAccountLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      openAccountModal('profile');
+    });
+  }
+
+  const mobileNavAccountLink = $('#mobileNavAccountLink');
+  if (mobileNavAccountLink) {
+    mobileNavAccountLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      openAccountModal('profile');
+    });
+  }
+
+  // Close modals
+  const accountCloseBtn = $('#accountCloseBtn');
+  if (accountCloseBtn) {
+    accountCloseBtn.addEventListener('click', closeAccountModal);
+  }
+
+  const trackingCloseBtn = $('#trackingCloseBtn');
+  if (trackingCloseBtn) {
+    trackingCloseBtn.addEventListener('click', closeTrackingModal);
+  }
+
+  // Account Tabs switching
+  $$('.account-tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      switchAccountTab(btn.dataset.tab);
+    });
+  });
+
+  // Profile Save Form
+  const profileForm = $('#profileForm');
+  if (profileForm) {
+    profileForm.addEventListener('submit', handleProfileSave);
+  }
+
+  // Orders Filters & Search
+  $$('.order-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      $$('.order-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      activeOrdersFilter = chip.dataset.filter;
+      fetchAndRenderOrders(activeOrdersFilter, $('#ordersSearchInput')?.value || '');
+    });
+  });
+
+  const ordersSearch = $('#ordersSearchInput');
+  if (ordersSearch) {
+    let orderDebounce = null;
+    ordersSearch.addEventListener('input', () => {
+      clearTimeout(orderDebounce);
+      orderDebounce = setTimeout(() => {
+        fetchAndRenderOrders(activeOrdersFilter, ordersSearch.value);
+      }, 300);
+    });
+  }
+
+  // Payments Filters & Search
+  $$('.payment-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      $$('.payment-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      activePaymentsFilter = chip.dataset.filter;
+      fetchAndRenderPayments(activePaymentsFilter, $('#paymentsSearchInput')?.value || '');
+    });
+  });
+
+  const paymentsSearch = $('#paymentsSearchInput');
+  if (paymentsSearch) {
+    let payDebounce = null;
+    paymentsSearch.addEventListener('input', () => {
+      clearTimeout(payDebounce);
+      payDebounce = setTimeout(() => {
+        fetchAndRenderPayments(activePaymentsFilter, paymentsSearch.value);
+      }, 300);
+    });
+  }
+
+  // Country selection in checkout
+  const shipCountry = $('#shipCountry');
+  if (shipCountry) {
+    shipCountry.addEventListener('change', updateCheckoutCountryEligibility);
+  }
+}
+
+async function fetchUserProfile() {
+  try {
+    const res = await fetch('/api/profile');
+    if (res.ok) {
+      const data = await res.json();
+      State.profile = data.profile;
+      State.profileStats = data.stats;
+      updateProfileUI();
+    }
+  } catch (err) {
+    console.error('Failed to fetch user profile:', err);
+  }
+}
+
+function updateProfileUI() {
+  if (!State.profile) return;
+
+  const navLabel = $('#navProfileNameLabel');
+  if (navLabel) {
+    navLabel.textContent = (State.profile.name || 'AKHIL').toUpperCase();
+  }
+
+  if ($('#accountUserNameDisplay')) {
+    $('#accountUserNameDisplay').textContent = State.profile.name || 'Akhil';
+  }
+
+  if ($('#accountAvatarInitials')) {
+    const parts = (State.profile.name || 'Akhil').trim().split(' ');
+    const initials = parts.length > 1
+      ? (parts[0][0] + parts[1][0]).toUpperCase()
+      : parts[0].substring(0, 2).toUpperCase();
+    $('#accountAvatarInitials').textContent = initials;
+  }
+
+  if ($('#accountUserMetaDisplay')) {
+    $('#accountUserMetaDisplay').textContent = `${State.profile.email} • ${State.profile.city}, ${State.profile.state || State.profile.country}`;
+  }
+
+  if (State.profileStats) {
+    if ($('#statTotalOrders')) $('#statTotalOrders').textContent = State.profileStats.total_orders;
+    if ($('#statActiveOrders')) $('#statActiveOrders').textContent = State.profileStats.active_orders;
+    if ($('#statDeliveredOrders')) $('#statDeliveredOrders').textContent = State.profileStats.delivered_orders;
+    if ($('#statTotalSpent')) $('#statTotalSpent').textContent = inr(State.profileStats.total_spent_inr);
+    if ($('#statTotalSpentUsd')) $('#statTotalSpentUsd').textContent = `$${State.profileStats.total_spent_usd.toFixed(2)} USD`;
+
+    renderProfileActivity(State.profileStats.recent_activity || []);
+  }
+
+  // Populate Profile Form fields
+  if ($('#profName')) $('#profName').value = State.profile.name || '';
+  if ($('#profEmail')) $('#profEmail').value = State.profile.email || '';
+  if ($('#profPhone')) $('#profPhone').value = State.profile.phone || '';
+  if ($('#profCountry')) $('#profCountry').value = State.profile.country || 'India';
+  if ($('#profAddress')) $('#profAddress').value = State.profile.shipping_address || '';
+  if ($('#profCity')) $('#profCity').value = State.profile.city || '';
+  if ($('#profState')) $('#profState').value = State.profile.state || '';
+  if ($('#profPostal')) $('#profPostal').value = State.profile.postal_code || '';
+}
+
+function renderProfileActivity(activities) {
+  const container = $('#profileActivityList');
+  if (!container) return;
+
+  if (!activities || activities.length === 0) {
+    container.innerHTML = '<div style="color:var(--text-dim); font-size:0.8rem; padding:12px;">No recent activity found.</div>';
+    return;
+  }
+
+  container.innerHTML = activities.map(act => {
+    const dateStr = act.created_at ? new Date(act.created_at.replace(' ', 'T') + 'Z').toLocaleDateString('en-IN', {
+      month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+    }) : 'Recent';
+    const statusClass = getStatusBadgeClass(act.status);
+
+    return `
+      <div class="activity-item">
+        <div>
+          <div style="font-family:var(--font-mono); font-weight:700; color:var(--text-primary);">${act.id}</div>
+          <div style="font-size:0.72rem; color:var(--text-muted);">${dateStr}</div>
+        </div>
+        <div style="text-align:right;">
+          <span class="order-badge-pill ${statusClass}" style="margin-bottom:2px; display:inline-block;">${act.status}</span>
+          <div style="font-weight:700; font-family:var(--font-mono); color:var(--text-primary); font-size:0.82rem;">${inr(act.total_amount)}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function getStatusBadgeClass(status) {
+  switch (status) {
+    case 'PAID': return 'badge-paid';
+    case 'DELIVERED': return 'badge-delivered';
+    case 'SHIPPED': return 'badge-shipped';
+    case 'PROCESSING': return 'badge-processing';
+    case 'PENDING': return 'badge-pending';
+    case 'CANCELLED': return 'badge-cancelled';
+    case 'FAILED': return 'badge-failed';
+    default: return 'badge-paid';
+  }
+}
+
+function openAccountModal(tab = 'profile') {
+  const modal = $('#accountModal');
+  if (!modal) return;
+
+  fetchUserProfile();
+  switchAccountTab(tab);
+
+  modal.classList.add('open');
+  modal.setAttribute('aria-hidden', 'false');
+}
+
+function closeAccountModal() {
+  const modal = $('#accountModal');
+  if (!modal) return;
+  modal.classList.remove('open');
+  modal.setAttribute('aria-hidden', 'true');
+}
+
+function switchAccountTab(tabName) {
+  $$('.account-tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tab === tabName);
+  });
+
+  const paneMap = {
+    profile: $('#tabPaneProfile'),
+    orders: $('#tabPaneOrders'),
+    payments: $('#tabPanePayments')
+  };
+
+  Object.keys(paneMap).forEach(key => {
+    if (paneMap[key]) {
+      paneMap[key].classList.toggle('active', key === tabName);
+    }
+  });
+
+  if (tabName === 'orders') {
+    fetchAndRenderOrders(activeOrdersFilter, $('#ordersSearchInput')?.value || '');
+  } else if (tabName === 'payments') {
+    fetchAndRenderPayments(activePaymentsFilter, $('#paymentsSearchInput')?.value || '');
+  }
+}
+
+async function handleProfileSave(e) {
+  e.preventDefault();
+
+  const profileData = {
+    name: $('#profName').value.trim(),
+    email: $('#profEmail').value.trim(),
+    phone: $('#profPhone').value.trim(),
+    country: $('#profCountry').value.trim(),
+    shipping_address: $('#profAddress').value.trim(),
+    city: $('#profCity').value.trim(),
+    state: $('#profState').value.trim(),
+    postal_code: $('#profPostal').value.trim()
+  };
+
+  const statusLabel = $('#profileSaveStatus');
+  const saveBtn = $('#btnSaveProfile');
+  if (saveBtn) saveBtn.disabled = true;
+  if (statusLabel) statusLabel.textContent = 'Saving to SQLite...';
+
+  try {
+    const res = await fetch('/api/profile', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(profileData)
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      State.profile = data.profile;
+      State.profileStats = data.stats;
+      updateProfileUI();
+
+      if (statusLabel) {
+        statusLabel.textContent = '✓ Saved permanently to SQLite';
+        statusLabel.style.color = 'var(--color-success)';
+        setTimeout(() => {
+          statusLabel.textContent = 'Persistent SQLite Storage';
+          statusLabel.style.color = '';
+        }, 3000);
+      }
+    } else {
+      alert('Failed to update profile: ' + (data.error || 'Server error'));
+    }
+  } catch (err) {
+    alert('Error saving profile: ' + err.message);
+  } finally {
+    if (saveBtn) saveBtn.disabled = false;
+  }
+}
+
+async function fetchAndRenderOrders(filter = 'ALL', search = '') {
+  const container = $('#accountOrdersList');
+  if (!container) return;
+
+  container.innerHTML = '<div style="text-align:center; padding:32px; color:var(--text-muted);">Loading orders from SQLite...</div>';
+
+  try {
+    const query = new URLSearchParams();
+    if (filter && filter !== 'ALL') query.set('status', filter);
+    if (search && search.trim()) query.set('search', search.trim());
+    query.set('limit', '30');
+
+    const res = await fetch(`/api/orders?${query.toString()}`);
+    const data = await res.json();
+
+    if (!data.success || !data.orders || data.orders.length === 0) {
+      container.innerHTML = `
+        <div style="text-align:center; padding:48px 20px; color:var(--text-muted);">
+          <div style="font-size:2rem; margin-bottom:8px;">📦</div>
+          <strong>No orders found matching the criteria.</strong>
+          <p style="font-size:0.8rem; margin-top:4px;">Place a test purchase through Checkout to see genuine SQLite order tracking!</p>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = data.orders.map(order => {
+      const dateStr = order.created_at ? new Date(order.created_at.replace(' ', 'T') + 'Z').toLocaleDateString('en-IN', {
+        weekday: 'short', month: 'short', day: 'numeric', year: 'numeric'
+      }) : 'Recent';
+
+      const statusBadgeClass = getStatusBadgeClass(order.status);
+      const chargedStr = order.charged_amount ? `$${order.charged_amount.toFixed(2)} ${order.charged_currency || 'USD'}` : `$${(order.total_amount / (order.exchange_rate || 85)).toFixed(2)} USD`;
+
+      const thumbsHtml = (order.items || []).map(item => `
+        <div class="order-thumb-wrap" title="${item.product_name} (${item.size} / ${item.color})">
+          <img src="${item.image || 'assets/images/jackets/cyber-shell-black.png'}" alt="${item.product_name}">
+          ${item.quantity > 1 ? `<span class="order-thumb-qty">${item.quantity}</span>` : ''}
+        </div>
+      `).join('');
+
+      return `
+        <div class="order-card-row">
+          <div class="order-card-head">
+            <div class="order-id-group">
+              <span class="order-id-code">${order.id}</span>
+              <span class="order-date-text">• ${dateStr}</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="order-badge-pill ${statusBadgeClass}">${order.status}</span>
+              <span class="order-badge-pill badge-paid" style="font-size:0.65rem;">${order.payment_provider || 'PAYPAL'}</span>
+            </div>
+          </div>
+
+          <div class="order-card-body">
+            <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+              <div class="order-thumbs-strip">
+                ${thumbsHtml}
+              </div>
+              <div style="font-size:0.78rem; color:var(--text-secondary);">
+                <div>${order.items.length} item${order.items.length > 1 ? 's' : ''}</div>
+                <div style="color:var(--text-muted); font-size:0.72rem;">Ship to: ${order.customer_name} (${order.city})</div>
+              </div>
+            </div>
+
+            <div style="display:flex; align-items:center; gap:20px;">
+              <div class="order-summary-pricing">
+                <span class="order-price-inr">${inr(order.total_amount)}</span>
+                <span class="order-price-usd">${chargedStr}</span>
+              </div>
+              <button class="btn-order-track" onclick="openTrackingModal('${order.id}')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                <span>Track Order</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  } catch (err) {
+    container.innerHTML = `<div style="color:var(--color-error); padding:20px;">Failed to load orders: ${err.message}</div>`;
+  }
+}
+
+async function openTrackingModal(orderId) {
+  currentTrackingOrderId = orderId;
+  const modal = $('#trackingModal');
+  if (!modal) return;
+
+  $('#trackModalOrderId').textContent = orderId;
+  const banner = $('#trackingSummaryBanner');
+  const stepper = $('#trackingTimelineContainer');
+  const advanceGroup = $('#trackingAdvanceGroup');
+
+  banner.innerHTML = '<div style="color:var(--text-muted);">Fetching genuine tracking telemetry...</div>';
+  stepper.innerHTML = '';
+  modal.classList.add('open');
+  modal.setAttribute('aria-hidden', 'false');
+
+  try {
+    const res = await fetch(`/api/orders/${orderId}/tracking`);
+    const data = await res.json();
+    if (!data.success || !data.tracking) {
+      banner.innerHTML = `<div style="color:var(--color-error);">Tracking data not found for ${orderId}</div>`;
+      return;
+    }
+
+    const tr = data.tracking;
+    const statusClass = getStatusBadgeClass(tr.current_status);
+
+    banner.innerHTML = `
+      <div>
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+          <span class="order-badge-pill ${statusClass}" style="font-size:0.8rem;">STATUS: ${tr.current_status}</span>
+        </div>
+        <div style="font-size:0.75rem; color:var(--text-muted);">
+          Destination: <strong style="color:var(--text-primary);">${tr.shipping_address}</strong>
+        </div>
+      </div>
+      <div style="text-align:right;">
+        <span style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; display:block;">Estimated Delivery</span>
+        <strong style="color:var(--accent-orange); font-size:0.95rem; font-family:var(--font-mono);">${tr.estimated_delivery}</strong>
+      </div>
+    `;
+
+    // Determine current active stage number
+    const completedStages = tr.timeline.filter(t => t.completed);
+    const lastCompletedStage = completedStages.length > 0 ? completedStages[completedStages.length - 1].stage_number : 1;
+    const currentActiveStage = tr.current_status === 'DELIVERED' ? 6 : Math.min(6, lastCompletedStage + (lastCompletedStage < 6 ? 1 : 0));
+
+    stepper.innerHTML = tr.timeline.map((stage, idx) => {
+      const isCompleted = stage.completed;
+      const isActive = !isCompleted && stage.stage_number === currentActiveStage && tr.current_status !== 'CANCELLED' && tr.current_status !== 'FAILED';
+      const isLast = idx === tr.timeline.length - 1;
+
+      const dateStr = stage.completed_at ? new Date(stage.completed_at.replace(' ', 'T') + 'Z').toLocaleDateString('en-IN', {
+        month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+      }) : (isActive ? 'In Progress' : 'Pending');
+
+      const markerContent = isCompleted ? '✓' : stage.stage_number;
+
+      return `
+        <div class="stepper-stage-item ${isCompleted ? 'completed' : ''} ${isActive ? 'active-stage' : ''}">
+          ${!isLast ? '<div class="stepper-line"></div>' : ''}
+          <div class="stepper-stage-marker">${markerContent}</div>
+          <div class="stepper-content">
+            <div class="stepper-title-row">
+              <span class="stepper-title">${stage.stage_name}</span>
+              <span class="stepper-time">${dateStr}</span>
+            </div>
+            <p class="stepper-desc">${stage.description}</p>
+            ${stage.location ? `<span class="stepper-location">📍 ${stage.location}</span>` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    // Demo advancement controls
+    advanceGroup.innerHTML = [
+      { num: 1, label: '1. Placed' },
+      { num: 2, label: '2. Paid' },
+      { num: 3, label: '3. Processing' },
+      { num: 4, label: '4. Shipped' },
+      { num: 5, label: '5. Out for Delivery' },
+      { num: 6, label: '6. Delivered' }
+    ].map(st => `
+      <button class="btn-advance-chip" onclick="advanceOrderStageTest('${orderId}', ${st.num})">${st.label}</button>
+    `).join('');
+
+  } catch (err) {
+    banner.innerHTML = `<div style="color:var(--color-error);">Tracking fetch failed: ${err.message}</div>`;
+  }
+}
+
+async function advanceOrderStageTest(orderId, stageNumber) {
+  try {
+    const res = await fetch(`/api/orders/${orderId}/advance-stage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ stage_number: stageNumber })
+    });
+    const data = await res.json();
+    if (data.success) {
+      openTrackingModal(orderId);
+      fetchUserProfile();
+      if ($('#tabPaneOrders').classList.contains('active')) {
+        fetchAndRenderOrders(activeOrdersFilter, $('#ordersSearchInput')?.value || '');
+      }
+    } else {
+      alert('Could not advance stage: ' + (data.error || 'Server error'));
+    }
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
+}
+
+function closeTrackingModal() {
+  const modal = $('#trackingModal');
+  if (!modal) return;
+  modal.classList.remove('open');
+  modal.setAttribute('aria-hidden', 'true');
+}
+
+async function fetchAndRenderPayments(filter = 'ALL', search = '') {
+  const container = $('#accountPaymentsList');
+  if (!container) return;
+
+  container.innerHTML = '<div style="text-align:center; padding:32px; color:var(--text-muted);">Loading verified payment records from SQLite...</div>';
+
+  try {
+    const query = new URLSearchParams();
+    if (filter && filter !== 'ALL') query.set('status', filter);
+    if (search && search.trim()) query.set('search', search.trim());
+    query.set('limit', '50');
+
+    const res = await fetch(`/api/payments?${query.toString()}`);
+    const data = await res.json();
+
+    if (!data.success || !data.payments || data.payments.length === 0) {
+      container.innerHTML = `
+        <div style="text-align:center; padding:48px 20px; color:var(--text-muted);">
+          <div style="font-size:2rem; margin-bottom:8px;">💳</div>
+          <strong>No payment history records found.</strong>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = `
+      <table class="payments-table">
+        <thead>
+          <tr>
+            <th>Transaction ID</th>
+            <th>PayPal Order ID</th>
+            <th>Local Order ID</th>
+            <th>Date & Time</th>
+            <th>Amount (USD)</th>
+            <th>Reference (INR)</th>
+            <th>Method</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${data.payments.map(p => {
+            const dateStr = p.created_at ? new Date(p.created_at.replace(' ', 'T') + 'Z').toLocaleDateString('en-IN', {
+              month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit'
+            }) : 'Recent';
+
+            const badgeClass = p.status === 'SUCCESS' ? 'badge-success' : (p.status === 'PENDING' ? 'badge-pending' : (p.status === 'CANCELLED' ? 'badge-cancelled' : 'badge-failed'));
+            const txnDisplay = p.transaction_id || p.id || 'Pending Capture';
+            const paypalIdDisplay = p.provider_order_id || '—';
+
+            return `
+              <tr>
+                <td><code style="color:var(--accent-orange); font-size:0.75rem;">${txnDisplay}</code></td>
+                <td><code style="font-size:0.75rem; color:var(--text-muted);">${paypalIdDisplay}</code></td>
+                <td><strong style="font-family:var(--font-mono); font-size:0.78rem;">${p.order_id}</strong></td>
+                <td style="font-size:0.75rem; color:var(--text-muted);">${dateStr}</td>
+                <td><strong style="color:var(--text-primary); font-family:var(--font-mono);">$${Number(p.amount).toFixed(2)} ${p.currency}</strong></td>
+                <td><span style="color:var(--text-secondary); font-size:0.78rem;">${inr(p.inr_amount || (p.amount * (p.exchange_rate || 85)))}</span></td>
+                <td><span style="font-size:0.75rem;">${p.payment_method}</span></td>
+                <td><span class="order-badge-pill ${badgeClass}">${p.status}</span></td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    `;
+  } catch (err) {
+    container.innerHTML = `<div style="color:var(--color-error); padding:20px;">Failed to load payments: ${err.message}</div>`;
+  }
+}
+
+// Global window exposure
+window.openTrackingModal = openTrackingModal;
+window.advanceOrderStageTest = advanceOrderStageTest;
+window.openAccountModal = openAccountModal;
+window.closeAccountModal = closeAccountModal;
+window.closeTrackingModal = closeTrackingModal;
 
 // ==========================================================================
 // SCRAMBLER / CYBER-TEXT DECRYPT ENGINE

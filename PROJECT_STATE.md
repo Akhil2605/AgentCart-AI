@@ -1,118 +1,141 @@
 # Project State: AgentCart AI
 
-**Current Status:** Complete My Account + INR Pricing + PayPal Sandbox Integration Verified & Operational  
-**Date:** October 30, 2026  
-**Platform Version:** v3.3.0 (Complete My Account, INR Pricing & PayPal Integration Edition)  
+**Current Status:** Reset Order History & Fresh Tracking Operational & Verified  
+**Date:** October 31, 2026  
+**Platform Version:** v3.4.0 (Fresh Order Tracking & Zero-State Metrics Edition)  
 **Recovery Backup Location:** `D:\AgentCart-AI-backup-pre-reorg`  
-**Database Backup Location:** `D:\AgentCart-AI\database\agentcart.sqlite.bak`  
+**Database Location:** `D:\AgentCart-AI\database\agentcart.sqlite`  
 
 ---
 
 ## 1. Executive Summary & Capabilities Overview
 
-AgentCart AI has been upgraded with a persistent default SQLite user profile (**Akhil**), authentic order history tracking across 6 discrete stages, verified PayPal payment history, primary INR (₹) catalog and cart pricing, and strict backend-enforced international USD PayPal checkout with domestic India payment restrictions.
+AgentCart AI's order management and profile system has been reset to a completely clean, zero-baseline state for default user **Akhil** (`user_akhil`), while preserving all personal information, database structure, and the 24 technical jackets catalog.
 
-| Capability | Specification | Verification |
-| :--- | :--- | :--- |
-| **Default Profile** | Persistent SQLite profile `user_akhil` (Name: **Akhil**), zero login/auth required | ✅ Verified in SQLite & UI |
-| **Profile Editing** | Editable & permanently saved name, email, phone, address, city, state, PIN code | ✅ `PUT /api/profile` tested & verified |
-| **Order History & Metrics** | Real-time statistics: Total Orders, Active Orders, Delivered Orders, Total Spent | ✅ Verified (500+ genuine records) |
-| **6-Stage Order Tracking** | 1. Order Placed, 2. Payment Confirmed, 3. Order Processing, 4. Shipped, 5. Out for Delivery, 6. Delivered | ✅ Genuine SQLite timestamps |
-| **Payment History** | Verified records: Txn ID, PayPal Order ID, Local Order ID, Amount, Currency, Method, Status | ✅ `payments` table populated & tested |
-| **Primary Currency** | Primary INR (₹) throughout catalog, filters, details, cart, and drawer (`₹1,999`) | ✅ Verified across all UI views |
-| **International Checkout** | Automatic server-calculated USD equivalent using verified rate (`1 USD = ₹85 INR`) | ✅ Tested with US destination |
-| **Domestic India Policy** | Clear RBI domestic restriction alert; blocks domestic India checkout rather than faking payment | ✅ Tested & verified |
+All hardcoded backfilling of sample/demo historical orders has been eliminated. Starting from this point forward, every new order, payment, delivery update, and tracking stage is automatically and permanently tracked in SQLite.
 
----
-
-## 2. Architecture & Database Migrations
-
-### 2.1 SQLite Database Schema Extensions (`database/schema.sql` & `database/db.js`)
-1. **`user_profiles` Table:**
-   - Columns: `id` (PK, `'user_akhil'`), `name` ('Akhil'), `email` ('akhil@agentcart.ai'), `phone` ('+91 98765 43210'), `shipping_address` ('402 Cyber Tech Residences, Indiranagar'), `city` ('Bengaluru'), `state` ('Karnataka'), `postal_code` ('560038'), `country` ('India').
-   - Initialized automatically if missing; updates persist permanently across server restarts.
-2. **`orders` Table Safe Migration:**
-   - Added columns via `PRAGMA table_info`: `user_id`, `country`, `exchange_rate`, `estimated_delivery`.
-   - Associated all historical 480+ existing orders with `user_id = 'user_akhil'` and `country = 'India'`.
-3. **`order_tracking_events` Table:**
-   - Columns: `id` (PK AUTOINCREMENT), `order_id` (FK), `stage_number` (1..6), `stage_name`, `status_code`, `title`, `description`, `location`, `completed_at`.
-   - Populated with genuine historical milestones for existing orders and real-time capture for new orders.
-4. **`payments` Table:**
-   - Columns: `id` (PK), `order_id` (FK), `provider_order_id`, `transaction_id`, `payment_method`, `amount`, `currency`, `inr_amount`, `exchange_rate`, `status`, `payer_email`, `debug_id`, `error_message`, `created_at`, `updated_at`.
-   - Backfilled and continuously synchronized with PayPal Sandbox capture responses.
+| Metric / Capability | Reset State | Active Order Behavior | Verification |
+| :--- | :--- | :--- | :--- |
+| **Total Orders** | **0** | Increments by 1 on newly placed order | ✅ Verified in SQLite & UI |
+| **Active Orders** | **0** | Reflects orders currently in processing or delivery | ✅ Verified across order lifecycle |
+| **Delivered Orders** | **0** | Increments only when order reaches `DELIVERED` status | ✅ Verified with `actual_delivery_date` |
+| **Total Spent (INR)** | **₹0** | Sum of successfully captured/paid orders only | ✅ Unpaid/cancelled orders excluded |
+| **Total Spent (USD)** | **$0.00** | Sum of USD charged amounts for paid orders | ✅ Displays `$0.00` with 0 spent |
+| **My Orders Tab** | **Empty** (`0`) | Renders newly placed order cards with thumbnails & tracking | ✅ Verified with empty & live states |
+| **Payment History Tab** | **Empty** (`0`) | Renders verified transaction row upon order creation/capture | ✅ Verified with empty & live states |
+| **Recent Activity** | **Empty** (`0`) | Displays up to 5 most recent orders dynamically | ✅ Verified dynamic update |
+| **Default Profile** | **Preserved** | Akhil (`akhil@agentcart.ai`, Bengaluru, Karnataka, PIN 560038) | ✅ Fully intact & editable |
+| **Product Catalogue** | **Preserved** | 24 technical jackets across all 10 styles | ✅ Fully intact |
 
 ---
 
-## 3. Core APIs Implemented
+## 2. Architecture & Database Updates
 
-- `GET /api/profile` — Retrieves Akhil's profile and live statistics (total orders, active orders, delivered orders, total spent).
-- `PUT /api/profile` — Validates and permanently saves profile details to SQLite.
-- `GET /api/orders` — Returns orders for Akhil with product images, items, quantities, and current status.
-- `GET /api/orders/:id` — Retrieves detailed order receipt with items and payment references.
-- `GET /api/orders/:id/tracking` — Retrieves full 6-stage tracking timeline with genuine timestamps.
-- `POST /api/orders/:id/advance-stage` — Administrative / demo lifecycle testing tool to advance tracking stages.
-- `GET /api/payments` — Lists verified payment transactions from SQLite.
-- `GET /api/payments/:id` — Retrieves single payment transaction details.
-- `POST /api/paypal/create-order` — Calculates server-side totals, blocks domestic India checkout, and creates PayPal USD order.
-- `POST /api/paypal/capture-order` — Captures payment, verifies `COMPLETED` status, updates order to `PAID`, records payment to `payments`, and appends Stage 2 tracking.
-- `POST /api/paypal/cancel-order` — Marks order and payment record as `CANCELLED`.
-- `POST /api/paypal/demo-simulate` — Verified offline sandbox test purchase simulator.
-
----
-
-## 4. Frontend & Design System Upgrades
-
-1. **Header Navigation:**
-   - Added sleek Liquid Glass `AKHIL` / `My Account` button in header (`#headerProfileBtn`).
-   - Added `My Account` in desktop navigation and mobile navigation drawer.
-2. **Liquid Glass My Account Console (`#accountModal`):**
-   - **Tab 1: Profile Details:** Displays user avatar, verified badge, 4 live stat cards, editable profile & address form, and live recent activity feed.
-   - **Tab 2: My Orders & Tracking:** Search by Order ID, filter pills (`All`, `Active`, `Delivered`, `Cancelled`), product thumbnails, total in INR and USD, and "Track Order" trigger.
-   - **Tab 3: Payment History:** Live table of verified transactions with Txn ID, PayPal Order ID, Local Order ID, USD charged, INR reference, method, and color-coded status badges.
-3. **6-Stage Visual Stepper (`#trackingModal`):**
-   - Connected vertical stepper with checkmarks for completed stages, pulsating beacon for the active stage, location readouts, and estimated delivery date.
-4. **INR Primary Pricing:**
-   - Inverted prices throughout catalog, hero, detail modal, cart drawer, and comparison tray so INR (`₹1,999`) is dominant, with subtle international estimate (`≈ $23.52 USD`).
-5. **Domestic India Notice in Checkout:**
-   - When Destination Country is set to `India`, checkout dynamically displays a clear policy restriction banner and disables payment buttons.
-   - When Destination Country is set to `United States` or any international country, checkout dynamically reveals PayPal buttons and calculated USD amounts.
+### 2.1 SQLite Schema & Migration (`database/schema.sql` & `database/db.js`)
+1. **`orders` Table Schema Expansion:**
+   - Added `actual_delivery_date TEXT` column to schema and dynamic migration check.
+   - Populated automatically with `CURRENT_TIMESTAMP` when order transitions to `DELIVERED` (Stage 6).
+2. **Elimination of Historical Backfilling:**
+   - Removed legacy loop in `database/db.js` that previously backfilled 480 fake historical orders into `order_tracking_events` and `payments`.
+   - Application restarts will **never** regenerate fake/sample orders.
+3. **Dedicated Reset Method (`resetOrderHistory`):**
+   - Atomically clears `orders`, `order_items`, `order_tracking_events`, and `payments` for user profile `user_akhil`.
+   - Preserves `user_profiles` and `products` / `product_variants`.
+   - Exposed as helper in `database/db.js` and REST endpoint `POST /api/orders/reset`.
+4. **Dynamic User Statistics (`getUserStats`):**
+   - `total_orders`: Count of orders belonging to user.
+   - `active_orders`: Orders with status in `('PENDING', 'PAID', 'PROCESSING', 'SHIPPED', 'OUT_FOR_DELIVERY')`.
+   - `delivered_orders`: Orders with status `'DELIVERED'`.
+   - `total_spent_inr`: `SUM(total_amount)` strictly for verified paid statuses (`'PAID'`, `'PROCESSING'`, `'SHIPPED'`, `'OUT_FOR_DELIVERY'`, `'DELIVERED'`, `'PAID_DEMO_TEST'`).
+   - `total_spent_usd`: `SUM(charged_amount)` for verified paid statuses; returns `0` when spending is zero.
+   - Cancelled and failed orders never increase total spending. No double-counting.
 
 ---
 
-## 5. Verification & Test Results
+## 3. Fresh Tracking Flow (From Now On)
 
-### 5.1 Automated Test Suite (`npm test`):
+Every new order permanently records:
+1. **Unique Order ID:** e.g., `ORD-MVWGD...` generated server-side.
+2. **Products & Line Items:** Stored in `order_items` with product name, size, color, unit price, quantity, line total, joined with product image.
+3. **Pricing & Shipping Charges:** Subtotal, delivery fee (free above ₹2,000 threshold), and total amount in INR.
+4. **International USD Equivalent:** Calculated using fixed server exchange rate (`1 USD = ₹85 INR`), stored in `charged_amount`, `charged_currency`, and `exchange_rate`.
+5. **Customer & Delivery Details:** Name, email, phone, street address, city, state, postal code, destination country.
+6. **Payment Details:** Method (`PayPal Sandbox`), payment status (`PENDING` -> `SUCCESS`), PayPal Order ID, capture/transaction ID, debug ID.
+7. **6-Stage Tracking Timeline:**
+   - Stage 1: Order Placed (recorded automatically upon order creation)
+   - Stage 2: Payment Confirmed (recorded automatically upon server-side capture verification)
+   - Stage 3: Order Processing (Bengaluru Fulfillment Center)
+   - Stage 4: Shipped (Air Cargo Terminal with AWB tracking)
+   - Stage 5: Out for Delivery (Local Depot)
+   - Stage 6: Delivered (Delivery Address, sets `actual_delivery_date`)
+8. **Estimated & Actual Delivery Dates:** Calculated 3-5 business days estimate and exact delivery timestamp upon delivery.
+
+---
+
+## 4. Verification & Test Results
+
+### 4.1 Automated Test Suite (`npm test`):
 ```powershell
 npm test
 ```
-**Results:** **38/38 tests passed (100.0%)**
+**Results:** **44/44 tests passed (100.0%)**
 - SQLite Database & Catalog Integrity: 3/3 passed
 - Search, Filter, and Sort Engine: 3/3 passed
 - Server-Side Pricing & Security Validation: 5/5 passed
 - AI Jacket Stylist & Grounded Recommendations: 2/2 passed
 - PayPal Sandbox Checkout Engine: 9/9 passed
 - Live Express HTTP Endpoints: 9/9 passed
-- My Account & User Profile: 2/2 passed
-- My Orders & Order Tracking: 2/2 passed
-- Payment History: 1/1 passed
+- My Account & User Profile Zero-State & Updates: 4/4 passed
+- Live Order Tracking & Automatic Dashboard Updates: 5/5 passed
 - INR Pricing & PayPal-Only International Checkout: 2/2 passed
+- Final Clean Reset Verification: 2/2 passed
 
-### 5.2 Chrome CDP Browser Verification Suite (`npm run verify:account`):
+### 4.2 Chrome CDP Browser Verification Suite (`npm run verify:account`):
 ```powershell
-node tests/verify_account_and_pricing.js
+npm run verify:account
 ```
-- **Primary Pricing:** Verified `₹1,899 (≈ $22.34 USD)` on product cards.
-- **Profile Button:** `#headerProfileBtn` detected and verified.
-- **My Account Modal:** Opened successfully displaying **Akhil**, 534+ total orders, 309 active, 50 delivered, and ₹4,97,858 total spent.
-- **Order Tracking:** 6 stages verified (`Order Placed`, `Payment Confirmed`, `Order Processing`, `Shipped`, `Out for Delivery`, `Delivered`).
-- **Payment History:** 50 payment records displayed with genuine transaction IDs and statuses.
-- **Domestic India Restriction:** Alert and payment block verified when Country = `India`.
-- **International USD Checkout:** Activated and verified when Country = `United States`.
-- **Visual Evidence Saved:**
-  - `docs/account_profile_view.png`
-  - `docs/order_tracking_view.png`
-  - `docs/payment_history_view.png`
-  - `docs/checkout_international_view.png`
+- **Result:** **100% Passed**
+- Verified dashboard renders:
+  - Total Orders: `0`
+  - Active Orders: `0`
+  - Delivered Orders: `0`
+  - Total Spent: `₹0`
+  - USD Total Spent: `$0.00`
+- Verified My Orders empty state (`No orders found matching the criteria.`).
+- Verified Payment History empty state (`No payment history records found.`).
+- Verified live order placement immediately increments order count and displays order card in My Orders tab.
+- Verified 6-stage tracking timeline stepper and Stage 1-2 completion.
+- Verified live payment record in Payment History tab.
+- Verified Domestic India blocking notice and international USD checkout.
+- Verified final clean reset leaves the database at zero orders.
+- Updated screenshots saved in `docs/`:
+  - `docs/account_profile_view.png` (Zero-state dashboard)
+  - `docs/order_tracking_view.png` (6-stage timeline)
+  - `docs/payment_history_view.png` (Verified payment records)
+  - `docs/checkout_international_view.png` (International USD checkout)
 
-### 5.3 Video Scroll Verification (`npm run verify:scroll`):
-- 0 console errors, sticky stage pinned, bidirectional scrubbing verified.
+---
+
+## 5. Current SQLite Database Summary
+
+```json
+{
+  "orders": 0,
+  "items": 0,
+  "tracking": 0,
+  "payments": 0,
+  "profiles": 1,
+  "products": 24,
+  "stats": {
+    "total_orders": 0,
+    "active_orders": 0,
+    "delivered_orders": 0,
+    "cancelled_orders": 0,
+    "total_spent_inr": 0,
+    "total_spent_usd": 0,
+    "recent_activity": []
+  }
+}
+```
+User Akhil's profile and the 24 technical jackets remain permanently saved in SQLite.
+All new orders placed through the UI or APIs will be permanently recorded and tracked from this point forward.

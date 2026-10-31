@@ -1741,7 +1741,7 @@ function updateProfileUI() {
     if ($('#statActiveOrders')) $('#statActiveOrders').textContent = State.profileStats.active_orders;
     if ($('#statDeliveredOrders')) $('#statDeliveredOrders').textContent = State.profileStats.delivered_orders;
     if ($('#statTotalSpent')) $('#statTotalSpent').textContent = inr(State.profileStats.total_spent_inr);
-    if ($('#statTotalSpentUsd')) $('#statTotalSpentUsd').textContent = `$${State.profileStats.total_spent_usd.toFixed(2)} USD`;
+    if ($('#statTotalSpentUsd')) $('#statTotalSpentUsd').textContent = `$${Number(State.profileStats.total_spent_usd || 0).toFixed(2)}`;
 
     renderProfileActivity(State.profileStats.recent_activity || []);
   }

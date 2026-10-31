@@ -65,6 +65,7 @@ CREATE TABLE IF NOT EXISTS orders (
   charged_currency TEXT DEFAULT 'USD',
   exchange_rate REAL DEFAULT 85.0,
   estimated_delivery TEXT,
+  actual_delivery_date TEXT,
   status TEXT DEFAULT 'PENDING', -- PENDING, PAID, PROCESSING, SHIPPED, OUT_FOR_DELIVERY, DELIVERED, CANCELLED, FAILED
   payment_provider TEXT DEFAULT 'PAYPAL_SANDBOX',
   provider_order_id TEXT,

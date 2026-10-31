@@ -236,6 +236,21 @@ app.put('/api/profile', (req, res) => {
 // ORDERS & TRACKING APIS
 // ============================================================================
 
+// POST /api/orders/reset — reset orders, tracking, and payments to fresh zero state
+app.post('/api/orders/reset', (req, res) => {
+  try {
+    const stats = db.resetOrderHistory('user_akhil');
+    res.json({
+      success: true,
+      message: 'Order history, tracking events, and payment records reset to zero.',
+      stats
+    });
+  } catch (err) {
+    console.error('Reset orders error:', err.message);
+    res.status(500).json({ success: false, error: 'Failed to reset order history' });
+  }
+});
+
 // GET /api/orders — list orders for profile
 app.get('/api/orders', (req, res) => {
   try {

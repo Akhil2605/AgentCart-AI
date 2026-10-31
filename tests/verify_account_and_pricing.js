@@ -3,6 +3,8 @@ const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const { app } = require('../backend/server');
+const db = require('../database/db');
+const paypal = require('../backend/paypal');
 
 const TEST_PORT = 3097;
 const CDP_PORT = 9336;
@@ -113,8 +115,9 @@ async function runVerification() {
     `);
     console.log('Header Profile Button:', headerProfileBtn);
 
-    // 3. Open My Account Modal
-    console.log('👤 Opening My Account Modal...');
+    // 3. Open My Account Modal (Verify Fresh Zero State)
+    console.log('👤 Opening My Account Modal (Testing Fresh Zero State)...');
+    db.resetOrderHistory('user_akhil');
     await evaluate(`openAccountModal('profile');`);
     await new Promise(r => setTimeout(r, 800));
 
@@ -125,18 +128,26 @@ async function runVerification() {
       const activeOrders = document.querySelector('#statActiveOrders')?.innerText;
       const deliveredOrders = document.querySelector('#statDeliveredOrders')?.innerText;
       const totalSpent = document.querySelector('#statTotalSpent')?.innerText;
+      const totalSpentUsd = document.querySelector('#statTotalSpentUsd')?.innerText;
       return {
         isOpen: m.classList.contains('open'),
         userName: name,
         totalOrders,
         activeOrders,
         deliveredOrders,
-        totalSpent
+        totalSpent,
+        totalSpentUsd
       };
     })()`);
-    console.log('Account Modal State:', accountModalState);
+    console.log('Account Modal State (Zero State):', accountModalState);
     if (!accountModalState.isOpen || accountModalState.userName !== 'Akhil') {
       throw new Error('Account modal did not open with profile Akhil!');
+    }
+    if (accountModalState.totalOrders !== '0' || accountModalState.activeOrders !== '0' || accountModalState.deliveredOrders !== '0') {
+      throw new Error('Dashboard order counts are not zero!');
+    }
+    if (accountModalState.totalSpent !== '₹0' || accountModalState.totalSpentUsd !== '$0.00') {
+      throw new Error(`Total spent does not display ₹0 / $0.00! Found ${accountModalState.totalSpent} / ${accountModalState.totalSpentUsd}`);
     }
 
     // Take Profile Screenshot
@@ -144,12 +155,66 @@ async function runVerification() {
     fs.writeFileSync(path.join(__dirname, '..', 'docs', 'account_profile_view.png'), Buffer.from(profileShot.data, 'base64'));
     console.log('📸 Captured docs/account_profile_view.png');
 
-    // 4. Switch to Orders Tab
-    console.log('📦 Switching to My Orders & Tracking Tab...');
+    // 4. Switch to Orders Tab (Verify Empty State)
+    console.log('📦 Switching to My Orders & Tracking Tab (Testing Empty State)...');
+    await evaluate(`switchAccountTab('orders');`);
+    await new Promise(r => setTimeout(r, 1000));
+
+    const ordersEmptyState = await evaluate(`(() => {
+      const list = document.querySelector('#accountOrdersList');
+      const cards = list ? list.querySelectorAll('.order-card-row') : [];
+      const emptyText = list ? list.innerText : '';
+      return {
+        cardCount: cards.length,
+        hasEmptyMessage: emptyText.includes('No orders found')
+      };
+    })()`);
+    console.log('Orders Tab Empty State:', ordersEmptyState);
+    if (ordersEmptyState.cardCount !== 0 || !ordersEmptyState.hasEmptyMessage) {
+      throw new Error('Orders tab did not display clean empty state!');
+    }
+
+    // 5. Switch to Payment History Tab (Verify Empty State)
+    console.log('💳 Switching to Payment History Tab (Testing Empty State)...');
+    await evaluate(`switchAccountTab('payments');`);
+    await new Promise(r => setTimeout(r, 1000));
+
+    const paymentsEmptyState = await evaluate(`(() => {
+      const container = document.querySelector('#accountPaymentsList');
+      const rows = container ? container.querySelectorAll('.payments-table tbody tr') : [];
+      const emptyText = container ? container.innerText : '';
+      return {
+        rowCount: rows.length,
+        hasEmptyMessage: emptyText.includes('No payment history records found')
+      };
+    })()`);
+    console.log('Payments Tab Empty State:', paymentsEmptyState);
+    if (paymentsEmptyState.rowCount !== 0 || !paymentsEmptyState.hasEmptyMessage) {
+      throw new Error('Payments tab did not display clean empty state!');
+    }
+
+    // 6. Test Live Order Placement & Tracking
+    console.log('🚀 Simulating live order placement & tracking lifecycle...');
+    const liveOrder = paypal.validateAndCalculateOrder(
+      [{ id: 'cyber-shell-black', quantity: 1, size: 'L', color: 'Stealth Black' }],
+      {
+        name: 'Akhil',
+        email: 'akhil@agentcart.ai',
+        address: '402 Cyber Tech Residences',
+        city: 'Bengaluru',
+        state: 'Karnataka',
+        postal_code: '560038',
+        country: 'United States'
+      }
+    );
+    paypal.recordDemoSimulationOrder(liveOrder.id);
+    db.updateOrderStatus(liveOrder.id, 'SHIPPED');
+
+    // Refresh orders tab
     await evaluate(`switchAccountTab('orders');`);
     await new Promise(r => setTimeout(r, 1200));
 
-    const ordersState = await evaluate(`(() => {
+    const liveOrdersState = await evaluate(`(() => {
       const list = document.querySelector('#accountOrdersList');
       const cards = list ? list.querySelectorAll('.order-card-row') : [];
       const firstCard = cards[0];
@@ -160,14 +225,14 @@ async function runVerification() {
         hasTrackBtn: firstCard ? !!firstCard.querySelector('.btn-order-track') : false
       };
     })()`);
-    console.log('Orders Tab State:', ordersState);
-    if (ordersState.cardCount === 0) {
-      throw new Error('No order cards rendered in orders tab!');
+    console.log('Live Orders Tab State:', liveOrdersState);
+    if (liveOrdersState.cardCount === 0) {
+      throw new Error('New order card did not render!');
     }
 
-    // 5. Open Tracking Modal for First Order
-    console.log('📍 Opening 6-Stage Tracking Timeline for order:', ordersState.firstOrderId);
-    await evaluate(`openTrackingModal('${ordersState.firstOrderId}');`);
+    // Open Tracking Modal for First Order
+    console.log('📍 Opening 6-Stage Tracking Timeline for order:', liveOrdersState.firstOrderId);
+    await evaluate(`openTrackingModal('${liveOrdersState.firstOrderId}');`);
     await new Promise(r => setTimeout(r, 1000));
 
     const trackingState = await evaluate(`(() => {
@@ -196,12 +261,12 @@ async function runVerification() {
     await evaluate(`closeTrackingModal();`);
     await new Promise(r => setTimeout(r, 400));
 
-    // 6. Switch to Payment History Tab
-    console.log('💳 Switching to Payment History Tab...');
+    // Switch to Payment History Tab
+    console.log('💳 Switching to Payment History Tab (With Live Payment)...');
     await evaluate(`switchAccountTab('payments');`);
     await new Promise(r => setTimeout(r, 1200));
 
-    const paymentsState = await evaluate(`(() => {
+    const livePaymentsState = await evaluate(`(() => {
       const rows = document.querySelectorAll('#accountPaymentsList .payments-table tbody tr');
       return {
         rowCount: rows.length,
@@ -210,9 +275,9 @@ async function runVerification() {
         firstStatus: rows[0] ? rows[0].querySelectorAll('td')[7]?.innerText : null
       };
     })()`);
-    console.log('Payments Tab State:', paymentsState);
-    if (paymentsState.rowCount === 0) {
-      throw new Error('No payment records rendered in payment history!');
+    console.log('Live Payments Tab State:', livePaymentsState);
+    if (livePaymentsState.rowCount === 0) {
+      throw new Error('No payment records rendered in live payment history!');
     }
 
     // Take Payments Screenshot
@@ -280,6 +345,10 @@ async function runVerification() {
     const checkoutShot = await sendCommand('Page.captureScreenshot', { format: 'png' });
     fs.writeFileSync(path.join(__dirname, '..', 'docs', 'checkout_international_view.png'), Buffer.from(checkoutShot.data, 'base64'));
     console.log('📸 Captured docs/checkout_international_view.png');
+
+    // Final cleanup: Reset to zero state
+    db.resetOrderHistory('user_akhil');
+    console.log('✨ Order history cleanly reset to zero state.');
 
     console.log('\n🎉 ALL BROWSER CDP VERIFICATION CHECKS PASSED 100%!');
   } finally {

@@ -679,7 +679,8 @@ async function runAllTests() {
       address: '300 Outer Ring Road',
       city: 'Bengaluru',
       state: 'Karnataka',
-      postal_code: '560103'
+      postal_code: '560103',
+      country: 'United States'
     };
     const order = paypal.validateAndCalculateOrder([{ id: 'obsidian-tactical-bomber', quantity: 1 }], shipping);
 
@@ -690,12 +691,39 @@ async function runAllTests() {
   });
 
   console.log('\n👤 Testing My Account & User Profile:');
-  await testAsync('GET /api/profile returns default profile Akhil with real statistics', async () => {
+  await testAsync('Reset order history to fresh zero-state (all 5 metrics = 0)', async () => {
+    const resetRes = await httpReq('/api/orders/reset', 'POST');
+    assert.strictEqual(resetRes.status, 200);
+    assert.strictEqual(resetRes.json.stats.total_orders, 0);
+    assert.strictEqual(resetRes.json.stats.active_orders, 0);
+    assert.strictEqual(resetRes.json.stats.delivered_orders, 0);
+    assert.strictEqual(resetRes.json.stats.total_spent_inr, 0);
+    assert.strictEqual(resetRes.json.stats.total_spent_usd, 0);
+    assert.strictEqual(resetRes.json.stats.recent_activity.length, 0);
+  });
+
+  await testAsync('GET /api/profile returns default profile Akhil with zeroed stats on fresh start', async () => {
     const res = await httpReq('/api/profile');
     assert.strictEqual(res.status, 200);
     assert.strictEqual(res.json.profile.name, 'Akhil');
-    assert.ok(res.json.stats.total_orders > 0);
-    assert.ok(typeof res.json.stats.total_spent_inr === 'number');
+    assert.strictEqual(res.json.stats.total_orders, 0);
+    assert.strictEqual(res.json.stats.active_orders, 0);
+    assert.strictEqual(res.json.stats.delivered_orders, 0);
+    assert.strictEqual(res.json.stats.total_spent_inr, 0);
+    assert.strictEqual(res.json.stats.total_spent_usd, 0);
+    assert.strictEqual(res.json.stats.recent_activity.length, 0);
+  });
+
+  await testAsync('GET /api/orders and GET /api/payments start completely empty', async () => {
+    const ordersRes = await httpReq('/api/orders');
+    assert.strictEqual(ordersRes.status, 200);
+    assert.strictEqual(ordersRes.json.count, 0);
+    assert.strictEqual(ordersRes.json.orders.length, 0);
+
+    const paymentsRes = await httpReq('/api/payments');
+    assert.strictEqual(paymentsRes.status, 200);
+    assert.strictEqual(paymentsRes.json.count, 0);
+    assert.strictEqual(paymentsRes.json.payments.length, 0);
   });
 
   await testAsync('PUT /api/profile permanently saves user details to SQLite', async () => {
@@ -713,32 +741,143 @@ async function runAllTests() {
     assert.strictEqual(verifyRes.json.profile.phone, '+91 91234 56789');
   });
 
-  console.log('\n📦 Testing My Orders & Order Tracking:');
-  await testAsync('GET /api/orders returns orders with items, images, and tracking', async () => {
-    const res = await httpReq('/api/orders?limit=5');
-    assert.strictEqual(res.status, 200);
-    assert.ok(res.json.orders.length > 0);
-    assert.ok(res.json.orders[0].items.length > 0);
-    assert.ok(res.json.orders[0].items[0].image);
+  console.log('\n📦 Testing Live Order Tracking & Automatic Dashboard Updates:');
+  let testOrderId = null;
+
+  await testAsync('Newly placed order appears automatically in SQLite with Stage 1 tracking', async () => {
+    setupMockPayPalSandbox();
+    try {
+      const createRes = await httpReq('/api/paypal/create-order', 'POST', {
+        items: [{ id: 'cyber-shell-black', quantity: 1, size: 'L', color: 'Stealth Black' }],
+        shipping_address: {
+          name: 'Akhil',
+          email: 'akhil@agentcart.ai',
+          address: '742 Evergreen Terrace',
+          city: 'Springfield',
+          state: 'OR',
+          postal_code: '97477',
+          country: 'United States'
+        }
+      });
+      assert.strictEqual(createRes.status, 200);
+      assert.ok(createRes.json.order_id);
+      testOrderId = createRes.json.order_id;
+
+      // Verify order appears in GET /api/orders
+      const ordersRes = await httpReq('/api/orders');
+      assert.strictEqual(ordersRes.json.count, 1);
+      assert.strictEqual(ordersRes.json.orders[0].id, testOrderId);
+      assert.strictEqual(ordersRes.json.orders[0].status, 'PENDING');
+      assert.ok(ordersRes.json.orders[0].items.length > 0);
+      assert.ok(ordersRes.json.orders[0].items[0].image);
+
+      // Verify pending order does NOT increase total spending yet
+      const profileRes = await httpReq('/api/profile');
+      assert.strictEqual(profileRes.json.stats.total_orders, 1);
+      assert.strictEqual(profileRes.json.stats.active_orders, 1);
+      assert.strictEqual(profileRes.json.stats.delivered_orders, 0);
+      assert.strictEqual(profileRes.json.stats.total_spent_inr, 0);
+      assert.strictEqual(profileRes.json.stats.total_spent_usd, 0);
+
+      // Verify payments has 1 PENDING record
+      const payRes = await httpReq('/api/payments');
+      assert.strictEqual(payRes.json.count, 1);
+      assert.strictEqual(payRes.json.payments[0].status, 'PENDING');
+    } finally {
+      restoreFetch();
+    }
   });
 
-  await testAsync('GET /api/orders/:id/tracking returns 6-stage genuine tracking timeline', async () => {
-    const ordersRes = await httpReq('/api/orders?limit=1');
-    const orderId = ordersRes.json.orders[0].id;
-    const res = await httpReq(`/api/orders/${orderId}/tracking`);
+  await testAsync('Payment capture verifies server-side, transitions to PAID, and increases total spending', async () => {
+    setupMockPayPalSandbox();
+    try {
+      const order = db.getOrderById(testOrderId);
+      const captureRes = await httpReq('/api/paypal/capture-order', 'POST', {
+        order_id: testOrderId,
+        paypal_order_id: order.provider_order_id
+      });
+      assert.strictEqual(captureRes.status, 200);
+      assert.strictEqual(captureRes.json.status, 'PAID');
+
+      // Verify spending updated
+      const profileRes = await httpReq('/api/profile');
+      assert.strictEqual(profileRes.json.stats.total_orders, 1);
+      assert.strictEqual(profileRes.json.stats.active_orders, 1);
+      assert.ok(profileRes.json.stats.total_spent_inr > 0);
+      assert.ok(profileRes.json.stats.total_spent_usd > 0);
+
+      // Verify payment status updated to SUCCESS
+      const payRes = await httpReq('/api/payments');
+      assert.strictEqual(payRes.json.payments[0].status, 'SUCCESS');
+    } finally {
+      restoreFetch();
+    }
+  });
+
+  await testAsync('Order tracking timeline reflects genuine completed stages and estimated delivery', async () => {
+    const res = await httpReq(`/api/orders/${testOrderId}/tracking`);
     assert.strictEqual(res.status, 200);
     assert.strictEqual(res.json.tracking.timeline.length, 6);
     assert.strictEqual(res.json.tracking.timeline[0].stage_name, 'Order Placed');
-    assert.strictEqual(res.json.tracking.timeline[5].stage_name, 'Delivered');
+    assert.strictEqual(res.json.tracking.timeline[0].completed, true);
+    assert.strictEqual(res.json.tracking.timeline[1].stage_name, 'Payment Confirmed');
+    assert.strictEqual(res.json.tracking.timeline[1].completed, true);
+    assert.strictEqual(res.json.tracking.timeline[2].completed, false);
   });
 
-  console.log('\n💳 Testing Payment History:');
-  await testAsync('GET /api/payments returns genuine payment transaction records', async () => {
-    const res = await httpReq('/api/payments?limit=5');
-    assert.strictEqual(res.status, 200);
-    assert.ok(res.json.payments.length > 0);
-    assert.ok(res.json.payments[0].order_id);
-    assert.ok(['SUCCESS', 'PENDING', 'CANCELLED', 'FAILED'].includes(res.json.payments[0].status));
+  await testAsync('Order advancement to DELIVERED records actual_delivery_date and updates dashboard stats', async () => {
+    const advRes = await httpReq(`/api/orders/${testOrderId}/advance-stage`, 'POST', {
+      stage_number: 6
+    });
+    assert.strictEqual(advRes.status, 200);
+    assert.ok(advRes.json.tracking.actual_delivery_date);
+    assert.strictEqual(advRes.json.tracking.current_status, 'DELIVERED');
+
+    const profileRes = await httpReq('/api/profile');
+    assert.strictEqual(profileRes.json.stats.total_orders, 1);
+    assert.strictEqual(profileRes.json.stats.active_orders, 0);
+    assert.strictEqual(profileRes.json.stats.delivered_orders, 1);
+  });
+
+  await testAsync('Cancelled order does NOT increase total spending', async () => {
+    setupMockPayPalSandbox();
+    try {
+      const createRes = await httpReq('/api/paypal/create-order', 'POST', {
+        items: [{ id: 'obsidian-tactical-bomber', quantity: 1, size: 'M' }],
+        shipping_address: {
+          name: 'Akhil',
+          email: 'akhil@agentcart.ai',
+          address: '100 Sunset Blvd',
+          city: 'Los Angeles',
+          state: 'CA',
+          postal_code: '90001',
+          country: 'United States'
+        }
+      });
+      const cancelOrderId = createRes.json.order_id;
+      const cancelRes = await httpReq('/api/paypal/cancel-order', 'POST', {
+        order_id: cancelOrderId
+      });
+      assert.strictEqual(cancelRes.status, 200);
+      assert.strictEqual(cancelRes.json.status, 'CANCELLED');
+
+      // Total spent must remain unchanged (only the 1 paid order counted)
+      const profileRes = await httpReq('/api/profile');
+      assert.strictEqual(profileRes.json.stats.total_orders, 2);
+      assert.strictEqual(profileRes.json.stats.active_orders, 0);
+      assert.strictEqual(profileRes.json.stats.delivered_orders, 1);
+      assert.strictEqual(profileRes.json.stats.cancelled_orders, 1);
+    } finally {
+      restoreFetch();
+    }
+  });
+
+  await testAsync('Data persistence preserved in SQLite', async () => {
+    // Verify SQLite directly
+    const ordCount = db.getDb().prepare('SELECT COUNT(*) as c FROM orders').get().c;
+    assert.strictEqual(ordCount, 2);
+    const payCount = db.getDb().prepare('SELECT COUNT(*) as c FROM payments').get().c;
+    assert.strictEqual(payCount, 2);
   });
 
   console.log('\n🌍 Testing INR Pricing & PayPal-Only International Checkout:');
@@ -780,6 +919,22 @@ async function runAllTests() {
     } finally {
       restoreFetch();
     }
+  });
+
+  await testAsync('Final clean reset sets all dashboard statistics back to zero', async () => {
+    const resetRes = await httpReq('/api/orders/reset', 'POST');
+    assert.strictEqual(resetRes.status, 200);
+    assert.strictEqual(resetRes.json.stats.total_orders, 0);
+    assert.strictEqual(resetRes.json.stats.active_orders, 0);
+    assert.strictEqual(resetRes.json.stats.delivered_orders, 0);
+    assert.strictEqual(resetRes.json.stats.total_spent_inr, 0);
+    assert.strictEqual(resetRes.json.stats.total_spent_usd, 0);
+    assert.strictEqual(resetRes.json.stats.recent_activity.length, 0);
+
+    const ordersRes = await httpReq('/api/orders');
+    assert.strictEqual(ordersRes.json.count, 0);
+    const paymentsRes = await httpReq('/api/payments');
+    assert.strictEqual(paymentsRes.json.count, 0);
   });
 
   await new Promise(resolve => {

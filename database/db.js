@@ -91,6 +91,9 @@ function getDb() {
       if (!colNames.includes('estimated_delivery')) {
         dbInstance.exec("ALTER TABLE orders ADD COLUMN estimated_delivery TEXT;");
       }
+      if (!colNames.includes('actual_delivery_date')) {
+        dbInstance.exec("ALTER TABLE orders ADD COLUMN actual_delivery_date TEXT;");
+      }
     } catch (e) {
       console.error('Error running orders migrations:', e.message);
     }
@@ -135,149 +138,42 @@ function migrateExistingOrders() {
     SET country = 'India' 
     WHERE country IS NULL OR country = ''
   `).run();
+}
 
-  // If order_tracking_events is empty, backfill tracking events for existing orders
-  const trackingCount = dbInstance.prepare('SELECT COUNT(*) as count FROM order_tracking_events').get().count;
-  if (trackingCount === 0) {
-    console.log('[SQLite] Backfilling genuine tracking events for existing orders...');
-    const allOrders = dbInstance.prepare('SELECT id, status, created_at, updated_at FROM orders ORDER BY created_at ASC').all();
+function resetOrderHistory(userId = 'user_akhil') {
+  const db = getDb();
 
-    // To provide a realistic, genuine dashboard with active and delivered orders:
-    // Take a portion of historical PAID orders (from 3+ days ago) and mark as DELIVERED or SHIPPED
-    const paidOrders = allOrders.filter(o => o.status === 'PAID');
-    const updateStatusStmt = dbInstance.prepare('UPDATE orders SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?');
-    
-    // 50 delivered, 25 shipped, 15 processing
-    for (let i = 0; i < paidOrders.length; i++) {
-      if (i < 50) {
-        paidOrders[i].status = 'DELIVERED';
-        updateStatusStmt.run('DELIVERED', paidOrders[i].id);
-      } else if (i < 75) {
-        paidOrders[i].status = 'SHIPPED';
-        updateStatusStmt.run('SHIPPED', paidOrders[i].id);
-      } else if (i < 90) {
-        paidOrders[i].status = 'PROCESSING';
-        updateStatusStmt.run('PROCESSING', paidOrders[i].id);
-      }
-    }
+  // Clear tracking events for user's orders
+  db.prepare(`
+    DELETE FROM order_tracking_events 
+    WHERE order_id IN (SELECT id FROM orders WHERE user_id = ? OR user_id IS NULL)
+  `).run(userId);
 
-    const insertEvent = dbInstance.prepare(`
-      INSERT INTO order_tracking_events (
-        order_id, stage_number, stage_name, status_code, title, description, location, completed_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `);
+  // Clear payments for user's orders
+  db.prepare(`
+    DELETE FROM payments 
+    WHERE order_id IN (SELECT id FROM orders WHERE user_id = ? OR user_id IS NULL)
+  `).run(userId);
 
-    for (const order of allOrders) {
-      const orderDate = new Date(order.created_at || '2026-10-27T13:28:51Z');
-      const orderIso = orderDate.toISOString().replace('T', ' ').substring(0, 19);
+  // Clear order items for user's orders
+  db.prepare(`
+    DELETE FROM order_items 
+    WHERE order_id IN (SELECT id FROM orders WHERE user_id = ? OR user_id IS NULL)
+  `).run(userId);
 
-      // Stage 1 is always completed for every placed order
-      insertEvent.run(
-        order.id, 1, 'Order Placed', 'ORDER_PLACED',
-        'Order Placed', 'Order confirmed and registered in AgentCart system.',
-        'AgentCart Online Showroom', orderIso
-      );
+  // Clear orders
+  db.prepare(`
+    DELETE FROM orders 
+    WHERE user_id = ? OR user_id IS NULL
+  `).run(userId);
 
-      // Payment confirmed stage
-      if (['PAID', 'PROCESSING', 'SHIPPED', 'OUT_FOR_DELIVERY', 'DELIVERED', 'PAID_DEMO_TEST'].includes(order.status)) {
-        const paidDate = new Date(orderDate.getTime() + 5 * 60 * 1000); // 5 mins later
-        insertEvent.run(
-          order.id, 2, 'Payment Confirmed', 'PAYMENT_CONFIRMED',
-          'Payment Confirmed', 'Payment authorized and verified via PayPal Sandbox capture.',
-          'PayPal Gateway Engine', paidDate.toISOString().replace('T', ' ').substring(0, 19)
-        );
-      }
+  // Clean up any remaining orphan tracking/payment/item rows
+  db.prepare('DELETE FROM order_tracking_events WHERE order_id NOT IN (SELECT id FROM orders)').run();
+  db.prepare('DELETE FROM payments WHERE order_id NOT IN (SELECT id FROM orders)').run();
+  db.prepare('DELETE FROM order_items WHERE order_id NOT IN (SELECT id FROM orders)').run();
 
-      // Processing stage
-      if (['PROCESSING', 'SHIPPED', 'OUT_FOR_DELIVERY', 'DELIVERED'].includes(order.status)) {
-        const procDate = new Date(orderDate.getTime() + 4 * 3600 * 1000); // 4 hrs later
-        insertEvent.run(
-          order.id, 3, 'Order Processing', 'ORDER_PROCESSING',
-          'Order Processing', 'Garments inspected, tagged, and sealed in technical protective pack.',
-          'Bengaluru Fulfillment Center, IN', procDate.toISOString().replace('T', ' ').substring(0, 19)
-        );
-      }
-
-      // Shipped stage
-      if (['SHIPPED', 'OUT_FOR_DELIVERY', 'DELIVERED'].includes(order.status)) {
-        const shipDate = new Date(orderDate.getTime() + 24 * 3600 * 1000); // 1 day later
-        insertEvent.run(
-          order.id, 4, 'Shipped', 'SHIPPED',
-          'Shipped', 'Package dispatched with global express courier. AWB tracking active.',
-          'Bengaluru Air Cargo Terminal', shipDate.toISOString().replace('T', ' ').substring(0, 19)
-        );
-      }
-
-      // Out for delivery stage
-      if (['OUT_FOR_DELIVERY', 'DELIVERED'].includes(order.status)) {
-        const outDate = new Date(orderDate.getTime() + 48 * 3600 * 1000); // 2 days later
-        insertEvent.run(
-          order.id, 5, 'Out for Delivery', 'OUT_FOR_DELIVERY',
-          'Out for Delivery', 'Courier agent en route for doorstep delivery.',
-          'Local Depot', outDate.toISOString().replace('T', ' ').substring(0, 19)
-        );
-      }
-
-      // Delivered stage
-      if (order.status === 'DELIVERED') {
-        const delivDate = new Date(orderDate.getTime() + 52 * 3600 * 1000); // ~2.2 days later
-        insertEvent.run(
-          order.id, 6, 'Delivered', 'DELIVERED',
-          'Delivered', 'Package delivered successfully and signed for.',
-          'Delivery Address', delivDate.toISOString().replace('T', ' ').substring(0, 19)
-        );
-      }
-    }
-    console.log('[SQLite] Order tracking events populated.');
-  }
-
-  // If payments is empty, backfill payment records for all existing orders
-  const paymentsCount = dbInstance.prepare('SELECT COUNT(*) as count FROM payments').get().count;
-  if (paymentsCount === 0) {
-    console.log('[SQLite] Backfilling payment history records for existing orders...');
-    const allOrders = dbInstance.prepare('SELECT * FROM orders ORDER BY created_at ASC').all();
-    const insertPayment = dbInstance.prepare(`
-      INSERT OR REPLACE INTO payments (
-        id, order_id, provider_order_id, transaction_id, payment_method,
-        amount, currency, inr_amount, exchange_rate, status, payer_email,
-        created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-
-    for (const order of allOrders) {
-      let paymentStatus = 'PENDING';
-      if (['PAID', 'PROCESSING', 'SHIPPED', 'OUT_FOR_DELIVERY', 'DELIVERED'].includes(order.status)) {
-        paymentStatus = 'SUCCESS';
-      } else if (order.status === 'PAID_DEMO_TEST') {
-        paymentStatus = 'SUCCESS';
-      } else if (order.status === 'CANCELLED') {
-        paymentStatus = 'CANCELLED';
-      } else if (order.status === 'FAILED') {
-        paymentStatus = 'FAILED';
-      }
-
-      const method = order.status === 'PAID_DEMO_TEST' ? 'PayPal Demo Simulation' : 'PayPal Sandbox';
-      const usdAmount = order.charged_amount || Number((order.total_amount / 85).toFixed(2));
-      const payId = 'PAY-' + order.id;
-
-      insertPayment.run(
-        payId,
-        order.id,
-        order.provider_order_id || null,
-        order.payment_id || null,
-        method,
-        usdAmount,
-        order.charged_currency || 'USD',
-        order.total_amount,
-        85.0,
-        paymentStatus,
-        order.customer_email || 'sb-buyer@personal.example.com',
-        order.created_at || '2026-10-27 13:28:51',
-        order.updated_at || order.created_at || '2026-10-27 13:28:51'
-      );
-    }
-    console.log('[SQLite] Payment history records populated.');
-  }
+  console.log(`[SQLite] Order history and transaction records completely reset for user: ${userId}`);
+  return getUserStats(userId);
 }
 
 function seedIfEmpty() {
@@ -534,13 +430,16 @@ function getUserStats(userId = 'user_akhil') {
     LIMIT 5
   `).all(userId);
 
+  const totalSpentInr = Number(spentInr || 0);
+  const totalSpentUsd = totalSpentInr === 0 ? 0 : Number((spentUsd || (totalSpentInr / 85)).toFixed(2));
+
   return {
     total_orders: totalOrders,
     active_orders: activeOrders,
     delivered_orders: deliveredOrders,
     cancelled_orders: cancelledOrders,
-    total_spent_inr: spentInr,
-    total_spent_usd: spentUsd || Number((spentInr / 85).toFixed(2)),
+    total_spent_inr: totalSpentInr,
+    total_spent_usd: totalSpentUsd,
     recent_activity: recentOrders
   };
 }
@@ -564,12 +463,12 @@ function createOrder(orderData, items) {
       id, user_id, customer_name, customer_email, shipping_address,
       city, state, postal_code, country, phone, subtotal, delivery_fee,
       total_amount, currency, charged_amount, charged_currency,
-      exchange_rate, estimated_delivery, status, payment_provider, provider_order_id
+      exchange_rate, estimated_delivery, actual_delivery_date, status, payment_provider, provider_order_id
     ) VALUES (
       ?, ?, ?, ?, ?,
       ?, ?, ?, ?, ?, ?, ?,
       ?, ?, ?, ?,
-      ?, ?, ?, ?, ?
+      ?, ?, ?, ?, ?, ?
     )
   `);
 
@@ -600,6 +499,7 @@ function createOrder(orderData, items) {
     orderData.charged_currency || 'USD',
     orderData.exchange_rate || 85.0,
     orderData.estimated_delivery || estDeliveryFormatted,
+    orderData.actual_delivery_date || null,
     orderData.status || 'PENDING',
     orderData.payment_provider || 'PAYPAL_SANDBOX',
     orderData.provider_order_id || null
@@ -654,19 +554,27 @@ function createOrder(orderData, items) {
   return getOrderById(orderData.id);
 }
 
-function updateOrderStatus(orderId, status, paymentId = null) {
+function updateOrderStatus(orderId, status, paymentId = null, actualDeliveryDate = null) {
   const db = getDb();
   const existing = getOrderById(orderId);
   if (!existing) {
     throw new Error(`Order ${orderId} not found.`);
   }
 
+  let actualDeliv = actualDeliveryDate;
+  if (status === 'DELIVERED' && !actualDeliv) {
+    actualDeliv = new Date().toISOString().replace('T', ' ').substring(0, 19);
+  }
+
   const stmt = db.prepare(`
     UPDATE orders 
-    SET status = ?, payment_id = COALESCE(?, payment_id), updated_at = CURRENT_TIMESTAMP
+    SET status = ?, 
+        payment_id = COALESCE(?, payment_id), 
+        actual_delivery_date = COALESCE(?, actual_delivery_date),
+        updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
   `);
-  stmt.run(status, paymentId, existing.id);
+  stmt.run(status, paymentId, actualDeliv, existing.id);
 
   // Automatically record tracking event if matching stage
   if (['PAID', 'PAID_DEMO_TEST'].includes(status)) {
@@ -714,7 +622,8 @@ function updateOrderStatus(orderId, status, paymentId = null) {
       status_code: 'DELIVERED',
       title: 'Delivered',
       description: 'Package delivered successfully and signed for.',
-      location: 'Delivery Address'
+      location: 'Delivery Address',
+      completed_at: actualDeliv
     });
   }
 
@@ -885,6 +794,7 @@ function getOrderTracking(orderId) {
     customer_name: order.customer_name,
     shipping_address: `${order.shipping_address}, ${order.city}, ${order.state} ${order.postal_code}, ${order.country}`,
     estimated_delivery: order.estimated_delivery || '3-5 Business Days',
+    actual_delivery_date: order.actual_delivery_date || null,
     created_at: order.created_at,
     updated_at: order.updated_at,
     timeline,
@@ -1003,6 +913,7 @@ module.exports = {
   getUserProfile,
   updateUserProfile,
   getUserStats,
+  resetOrderHistory,
   createOrder,
   updateOrderStatus,
   getOrderById,

@@ -31,6 +31,9 @@ function validateAndCalculateOrder(items, shippingAddress) {
     throw new Error('Valid shipping details (name, email, street address) are required.');
   }
 
+  // Validate stock availability prior to creating the order
+  db.checkOrderStockAvailable(items);
+
   let subtotal = 0;
   const verifiedItems = [];
 
@@ -282,7 +285,6 @@ async function createPayPalSandboxOrder(order) {
  * Capture payment from PayPal Sandbox API
  */
 async function capturePayPalSandboxOrder(localOrderId, paypalOrderId) {
-  // Support lookup by either local order ID or provider order ID
   let localOrder = null;
   if (localOrderId) {
     localOrder = db.getOrderById(localOrderId);
@@ -328,11 +330,17 @@ async function capturePayPalSandboxOrder(localOrderId, paypalOrderId) {
       debug_id: debugId,
       error_message: errText
     });
+    db.createNotification(localOrder.user_id, {
+      order_id: localOrder.id,
+      type: 'PAYMENT_FAILED',
+      title: 'Payment Failed',
+      message: `Payment capture failed for order ${localOrder.id}. Please try again.`
+    });
     throw new Error(`PayPal Capture Failed (HTTP ${res.status}, Debug-ID: ${debugId}): ${errText}`);
   }
 
   const captureData = await res.json();
-  const captureStatus = captureData.status; // 'COMPLETED'
+  const captureStatus = captureData.status;
   console.log(`[PayPal Diagnostics] Capture response status: ${captureStatus}`);
 
   if (captureStatus !== 'COMPLETED') {
@@ -350,6 +358,15 @@ async function capturePayPalSandboxOrder(localOrderId, paypalOrderId) {
   const captureId = captureItem?.id || captureData.id;
   const capturedAmountVal = captureItem?.amount?.value ? Number(captureItem.amount.value) : localOrder.charged_amount;
   const capturedCurrencyVal = captureItem?.amount?.currency_code || localOrder.charged_currency || 'USD';
+
+  // Deduct stock in SQLite transaction now that payment is genuinely captured
+  if (!localOrder.stock_deducted) {
+    try {
+      db.deductOrderStock(localOrder.id);
+    } catch (stockErr) {
+      console.warn(`[Inventory Warning] Stock deduction note for ${localOrder.id}:`, stockErr.message);
+    }
+  }
 
   // Update order as PAID in SQLite, storing captured payment ID, charged amount and currency
   db.getDb().prepare(`
@@ -377,6 +394,14 @@ async function capturePayPalSandboxOrder(localOrderId, paypalOrderId) {
     debug_id: debugId
   });
 
+  // Notify customer
+  db.createNotification(localOrder.user_id, {
+    order_id: localOrder.id,
+    type: 'PAYMENT_SUCCESS',
+    title: 'Payment Confirmed',
+    message: `Payment of $${Number(capturedAmountVal).toFixed(2)} ${capturedCurrencyVal} confirmed for Order ${localOrder.id}.`
+  });
+
   const updatedOrder = db.getOrderById(localOrder.id);
   console.log(`[PayPal Diagnostics] Order ${localOrder.id} marked as PAID. Capture ID: ${captureId}, Charged: ${capturedCurrencyVal} ${capturedAmountVal}`);
 
@@ -386,6 +411,69 @@ async function capturePayPalSandboxOrder(localOrderId, paypalOrderId) {
     paypal_capture_id: captureId,
     amount_captured: captureItem?.amount || { currency_code: capturedCurrencyVal, value: capturedAmountVal != null ? capturedAmountVal.toFixed(2) : null },
     order: updatedOrder
+  };
+}
+
+/**
+ * Refund captured payment from PayPal Sandbox API
+ */
+async function refundPayPalCapture(captureId, amount, currency = 'USD', reason = 'Customer return refund') {
+  if (!captureId) {
+    throw new Error('captureId is required to issue a refund.');
+  }
+
+  const accessToken = await getPayPalAccessToken();
+
+  // If credentials are not set or captureId is simulated, execute sandbox fallback
+  if (!accessToken || captureId.startsWith('DEMO-') || captureId.startsWith('TEST-')) {
+    const simRefundId = 'REF-SIM-' + Date.now().toString(36).toUpperCase();
+    console.log(`[PayPal Diagnostics] Executed sandbox demo refund for capture ${captureId}. Refund ID: ${simRefundId}`);
+    return {
+      success: true,
+      refund_id: simRefundId,
+      status: 'COMPLETED',
+      amount: { value: Number(amount).toFixed(2), currency_code: currency },
+      is_simulated: true
+    };
+  }
+
+  console.log(`[PayPal Diagnostics] Issuing refund for capture ${captureId}, amount: ${currency} ${amount}`);
+
+  const payload = {
+    amount: {
+      value: Number(amount).toFixed(2),
+      currency_code: currency
+    },
+    note_to_payer: reason.substring(0, 255)
+  };
+
+  const res = await fetch(`${PAYPAL_API_BASE}/v2/payments/captures/${captureId}/refund`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(payload)
+  });
+
+  const debugId = res.headers.get('paypal-debug-id') || 'n/a';
+  console.log(`[PayPal Diagnostics] Refund HTTP status: ${res.status} (Debug-ID: ${debugId})`);
+
+  if (!res.ok) {
+    const errText = await res.text();
+    console.error(`[PayPal Diagnostics] Refund failed: ${errText} (Debug-ID: ${debugId})`);
+    throw new Error(`PayPal Refund Failed (HTTP ${res.status}, Debug-ID: ${debugId}): ${errText}`);
+  }
+
+  const refundData = await res.json();
+  const refundStatus = refundData.status; // 'COMPLETED' or 'PENDING'
+
+  return {
+    success: true,
+    refund_id: refundData.id,
+    status: refundStatus === 'PENDING' ? 'PENDING' : 'COMPLETED',
+    amount: refundData.amount,
+    details: refundData
   };
 }
 
@@ -423,8 +511,6 @@ function cancelPayPalOrder(localOrderId, paypalOrderId) {
 
 /**
  * Demo fallback: Local test order simulation
- * Only executes when PayPal credentials are not configured,
- * clearly marking order as DEMO_SIMULATION.
  */
 function recordDemoSimulationOrder(localOrderId) {
   const localOrder = db.getOrderById(localOrderId);
@@ -434,6 +520,16 @@ function recordDemoSimulationOrder(localOrderId) {
   
   const demoChargedAmount = Number((localOrder.total_amount / INR_TO_USD_RATE).toFixed(2));
   const demoTxnId = 'DEMO-TXN-' + Date.now();
+
+  // Deduct stock for offline demo purchase as well
+  if (!localOrder.stock_deducted) {
+    try {
+      db.deductOrderStock(localOrder.id);
+    } catch (e) {
+      console.warn('[Inventory Warning] Demo stock deduction:', e.message);
+    }
+  }
+
   db.getDb().prepare(`
     UPDATE orders 
     SET status = 'PAID_DEMO_TEST', payment_id = ?, charged_amount = ?, charged_currency = 'USD', updated_at = CURRENT_TIMESTAMP
@@ -454,6 +550,13 @@ function recordDemoSimulationOrder(localOrderId) {
     amount: demoChargedAmount,
     currency: 'USD',
     payment_method: 'PayPal Demo Simulation'
+  });
+
+  db.createNotification(localOrder.user_id, {
+    order_id: localOrder.id,
+    type: 'PAYMENT_SUCCESS',
+    title: 'Payment Confirmed (Demo Sandbox)',
+    message: `Payment simulation of $${demoChargedAmount.toFixed(2)} USD confirmed for Order ${localOrder.id}.`
   });
 
   const updatedOrder = db.getOrderById(localOrder.id);
@@ -477,6 +580,7 @@ module.exports = {
   getPayPalAccessToken,
   createPayPalSandboxOrder,
   capturePayPalSandboxOrder,
+  refundPayPalCapture,
   cancelPayPalOrder,
   recordDemoSimulationOrder
 };

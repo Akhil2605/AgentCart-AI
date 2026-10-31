@@ -6,16 +6,37 @@ const db = require('../database/db');
 const gemini = require('./gemini');
 const paypal = require('./paypal');
 const config = require('./config');
+const { createRateLimiter, securityHeaders, requireAdminAuth } = require('./security');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
+// Security & Parsing Middleware
+app.use(securityHeaders);
 app.use(cors());
 app.use(express.json({ limit: '100kb' }));
 app.use(express.urlencoded({ extended: true, limit: '100kb' }));
 
-// Serve static assets, frontend files, and showroom media
+// Dedicated rate limiters
+const authLimiter = createRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  message: 'Too many authentication attempts. Please wait 15 minutes before trying again.'
+});
+
+const checkoutLimiter = createRateLimiter({
+  windowMs: 5 * 60 * 1000,
+  max: 30,
+  message: 'Too many checkout requests. Please wait a few moments.'
+});
+
+const refundLimiter = createRateLimiter({
+  windowMs: 5 * 60 * 1000,
+  max: 15,
+  message: 'Too many refund actions. Please wait a few moments.'
+});
+
+// Serve static assets and frontend files
 const frontendPath = path.join(__dirname, '..', 'frontend');
 const videoPath = path.join(__dirname, '..', 'video');
 
@@ -52,10 +73,10 @@ app.get('/api/config', (req, res) => {
   });
 });
 
-// GET /api/products — list and filter products
+// GET /api/products — list and filter products (active products only for shoppers)
 app.get('/api/products', (req, res) => {
   try {
-    const products = db.getAllProducts(req.query);
+    const products = db.getAllProducts(req.query, false);
     res.json({
       success: true,
       count: products.length,
@@ -81,7 +102,7 @@ app.get('/api/products/:id', (req, res) => {
   }
 });
 
-// POST /api/ai/recommend — AI jacket stylist and recommender
+// POST /api/ai/recommend — AI jacket stylist and recommender (backend logic preserved)
 app.post('/api/ai/recommend', async (req, res) => {
   try {
     const { prompt, history } = req.body;
@@ -101,8 +122,12 @@ app.post('/api/ai/recommend', async (req, res) => {
   }
 });
 
+// ============================================================================
+// PAYPAL CHECKOUT ENGINE
+// ============================================================================
+
 // POST /api/paypal/create-order — calculate server-side totals and create order
-app.post('/api/paypal/create-order', async (req, res) => {
+app.post('/api/paypal/create-order', checkoutLimiter, async (req, res) => {
   try {
     const { items, shipping_address } = req.body;
 
@@ -110,7 +135,7 @@ app.post('/api/paypal/create-order', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Cart items are required.' });
     }
 
-    // Secure calculation on backend
+    // Secure calculation and inventory verification on backend
     const verifiedOrder = paypal.validateAndCalculateOrder(items, shipping_address);
     const result = await paypal.createPayPalSandboxOrder(verifiedOrder);
 
@@ -124,8 +149,8 @@ app.post('/api/paypal/create-order', async (req, res) => {
   }
 });
 
-// POST /api/paypal/capture-order — capture approved PayPal Sandbox order
-app.post('/api/paypal/capture-order', async (req, res) => {
+// POST /api/paypal/capture-order — capture approved PayPal Sandbox order & deduct inventory
+app.post('/api/paypal/capture-order', checkoutLimiter, async (req, res) => {
   try {
     const { order_id, paypal_order_id } = req.body;
 
@@ -298,6 +323,7 @@ app.post('/api/orders/:id/advance-stage', (req, res) => {
     };
 
     const target = stageMap[stageNum];
+
     for (let s = 1; s <= stageNum; s++) {
       const st = stageMap[s];
       db.addTrackingEvent(order.id, {
@@ -354,6 +380,499 @@ app.get('/api/payments/:id', (req, res) => {
   } catch (err) {
     console.error('Fetch payment error:', err.message);
     res.status(500).json({ success: false, error: 'Failed to retrieve payment details' });
+  }
+});
+
+// ============================================================================
+// 1. WISHLIST / SAVE FOR LATER APIS
+// ============================================================================
+
+// GET /api/wishlist — retrieve user's saved wishlist items
+app.get('/api/wishlist', (req, res) => {
+  try {
+    const items = db.getUserWishlist('user_akhil');
+    res.json({
+      success: true,
+      count: items.length,
+      items
+    });
+  } catch (err) {
+    console.error('Fetch wishlist error:', err.message);
+    res.status(500).json({ success: false, error: 'Failed to retrieve wishlist items' });
+  }
+});
+
+// POST /api/wishlist/toggle — toggle product in wishlist (add/remove)
+app.post('/api/wishlist/toggle', (req, res) => {
+  try {
+    const { product_id } = req.body;
+    if (!product_id) {
+      return res.status(400).json({ success: false, error: 'product_id is required' });
+    }
+    const result = db.toggleWishlist('user_akhil', product_id);
+    const stats = db.getUserStats('user_akhil');
+    res.json({
+      success: true,
+      ...result,
+      stats
+    });
+  } catch (err) {
+    console.error('Toggle wishlist error:', err.message);
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// DELETE /api/wishlist/:productId — remove product from wishlist
+app.delete('/api/wishlist/:productId', (req, res) => {
+  try {
+    const result = db.removeFromWishlist('user_akhil', req.params.productId);
+    const stats = db.getUserStats('user_akhil');
+    res.json({
+      success: true,
+      ...result,
+      stats
+    });
+  } catch (err) {
+    console.error('Remove wishlist error:', err.message);
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// ============================================================================
+// 2. IN-APP NOTIFICATIONS APIS
+// ============================================================================
+
+// GET /api/notifications — get user notifications with unread count
+app.get('/api/notifications', (req, res) => {
+  try {
+    const result = db.getUserNotifications('user_akhil', 30);
+    res.json({
+      success: true,
+      ...result
+    });
+  } catch (err) {
+    console.error('Fetch notifications error:', err.message);
+    res.status(500).json({ success: false, error: 'Failed to retrieve notifications' });
+  }
+});
+
+// POST /api/notifications/:id/read — mark notification as read
+app.post('/api/notifications/:id/read', (req, res) => {
+  try {
+    const result = db.markNotificationRead(req.params.id, 'user_akhil');
+    res.json({
+      success: true,
+      ...result
+    });
+  } catch (err) {
+    console.error('Mark notification read error:', err.message);
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/notifications/read-all — mark all notifications as read
+app.post('/api/notifications/read-all', (req, res) => {
+  try {
+    const result = db.markAllNotificationsRead('user_akhil');
+    res.json({
+      success: true,
+      ...result
+    });
+  } catch (err) {
+    console.error('Mark all notifications read error:', err.message);
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// ============================================================================
+// 3. CUSTOMER RETURNS APIS
+// ============================================================================
+
+// GET /api/returns — fetch returns for customer
+app.get('/api/returns', (req, res) => {
+  try {
+    const returns = db.getUserReturns('user_akhil');
+    res.json({
+      success: true,
+      count: returns.length,
+      returns
+    });
+  } catch (err) {
+    console.error('Fetch user returns error:', err.message);
+    res.status(500).json({ success: false, error: 'Failed to retrieve returns' });
+  }
+});
+
+// POST /api/returns/request — request a return for an order item
+app.post('/api/returns/request', (req, res) => {
+  try {
+    const { order_id, product_id, product_name, size, color, quantity, reason, description } = req.body;
+    if (!order_id || !reason) {
+      return res.status(400).json({ success: false, error: 'order_id and return reason are required.' });
+    }
+
+    const returnRequest = db.createReturnRequest({
+      order_id,
+      user_id: 'user_akhil',
+      product_id,
+      product_name,
+      size,
+      color,
+      quantity: quantity || 1,
+      reason,
+      description
+    });
+
+    res.json({
+      success: true,
+      message: 'Return request submitted successfully. Our team will review it promptly.',
+      return_request: returnRequest
+    });
+  } catch (err) {
+    console.error('Create return request error:', err.message);
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// ============================================================================
+// 4. ADMIN AUTHENTICATION APIS
+// ============================================================================
+
+// POST /api/admin/login — authenticate administrator (rate limited)
+app.post('/api/admin/login', authLimiter, (req, res) => {
+  try {
+    const { username, password } = req.body;
+    if (!username || !password) {
+      return res.status(400).json({ success: false, error: 'Username and password are required.' });
+    }
+
+    const admin = db.verifyAdminCredentials(username, password);
+    if (!admin) {
+      return res.status(401).json({ success: false, error: 'Invalid admin credentials. Access denied.' });
+    }
+
+    const session = db.createAdminSession(admin.id);
+    res.json({
+      success: true,
+      message: 'Admin authenticated successfully',
+      token: session.token,
+      expires_at: session.expiresAt,
+      admin
+    });
+  } catch (err) {
+    console.error('Admin login error:', err.message);
+    res.status(500).json({ success: false, error: 'Authentication failed.' });
+  }
+});
+
+// POST /api/admin/logout — invalidate admin session
+app.post('/api/admin/logout', (req, res) => {
+  try {
+    const authHeader = req.headers['authorization'] || '';
+    let token = null;
+    if (authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7).trim();
+    } else if (req.headers['x-admin-token']) {
+      token = String(req.headers['x-admin-token']).trim();
+    }
+
+    if (token) {
+      db.deleteAdminSession(token);
+    }
+
+    res.json({ success: true, message: 'Logged out successfully.' });
+  } catch (err) {
+    console.error('Admin logout error:', err.message);
+    res.status(500).json({ success: false, error: 'Logout failed.' });
+  }
+});
+
+// GET /api/admin/check-auth — verify if current token is valid
+app.get('/api/admin/check-auth', (req, res) => {
+  const authHeader = req.headers['authorization'] || '';
+  let token = null;
+  if (authHeader.startsWith('Bearer ')) {
+    token = authHeader.substring(7).trim();
+  } else if (req.headers['x-admin-token']) {
+    token = String(req.headers['x-admin-token']).trim();
+  }
+
+  const session = token ? db.validateAdminSession(token) : null;
+  if (!session) {
+    return res.json({ success: true, authenticated: false });
+  }
+
+  res.json({
+    success: true,
+    authenticated: true,
+    admin: {
+      id: session.admin_id,
+      username: session.username,
+      role: session.role
+    }
+  });
+});
+
+// ============================================================================
+// 5. PROTECTED ADMIN MANAGEMENT APIS (Role-Protected via requireAdminAuth)
+// ============================================================================
+
+// GET /api/admin/stats — overview dashboard metrics & alerts
+app.get('/api/admin/stats', requireAdminAuth, (req, res) => {
+  try {
+    const stats = db.adminGetDashboardStats();
+    res.json({ success: true, stats });
+  } catch (err) {
+    console.error('Admin stats error:', err.message);
+    res.status(500).json({ success: false, error: 'Failed to retrieve admin stats' });
+  }
+});
+
+// GET /api/admin/products — retrieve all products including inactive & inventory
+app.get('/api/admin/products', requireAdminAuth, (req, res) => {
+  try {
+    const products = db.adminGetAllProducts();
+    res.json({ success: true, count: products.length, products });
+  } catch (err) {
+    console.error('Admin products error:', err.message);
+    res.status(500).json({ success: false, error: 'Failed to retrieve products' });
+  }
+});
+
+// POST /api/admin/products — create new jacket product
+app.post('/api/admin/products', requireAdminAuth, (req, res) => {
+  try {
+    const product = db.adminCreateProduct(req.body);
+    res.json({ success: true, message: 'Product created successfully', product });
+  } catch (err) {
+    console.error('Admin create product error:', err.message);
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// PUT /api/admin/products/:id — update existing product
+app.put('/api/admin/products/:id', requireAdminAuth, (req, res) => {
+  try {
+    const product = db.adminUpdateProduct(req.params.id, req.body);
+    res.json({ success: true, message: 'Product updated successfully', product });
+  } catch (err) {
+    console.error('Admin update product error:', err.message);
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/admin/products/:id/toggle-active — activate or deactivate product
+app.post('/api/admin/products/:id/toggle-active', requireAdminAuth, (req, res) => {
+  try {
+    const result = db.adminToggleProductActive(req.params.id);
+    res.json({ success: true, ...result });
+  } catch (err) {
+    console.error('Admin toggle product error:', err.message);
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/admin/products/stock — update variant inventory quantity
+app.post('/api/admin/products/stock', requireAdminAuth, (req, res) => {
+  try {
+    const { variant_id, stock } = req.body;
+    if (!variant_id || stock === undefined) {
+      return res.status(400).json({ success: false, error: 'variant_id and stock are required' });
+    }
+    const updated = db.adminUpdateVariantStock(variant_id, stock);
+    res.json({ success: true, variant: updated });
+  } catch (err) {
+    console.error('Admin stock update error:', err.message);
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// GET /api/admin/orders — list all orders for administration
+app.get('/api/admin/orders', requireAdminAuth, (req, res) => {
+  try {
+    const { status, search, limit, offset } = req.query;
+    // For admin, query orders across all users
+    const dbInst = db.getDb();
+    let query = 'SELECT * FROM orders WHERE 1=1';
+    const params = [];
+
+    if (status && status !== 'ALL') {
+      query += ' AND status = ?';
+      params.push(status);
+    }
+    if (search && search.trim()) {
+      const term = `%${search.trim().toLowerCase()}%`;
+      query += ' AND (LOWER(id) LIKE ? OR LOWER(customer_name) LIKE ? OR LOWER(customer_email) LIKE ? OR LOWER(provider_order_id) LIKE ?)';
+      params.push(term, term, term, term);
+    }
+    query += ' ORDER BY created_at DESC';
+    if (limit) {
+      query += ' LIMIT ?';
+      params.push(Number(limit));
+    }
+
+    const orders = dbInst.prepare(query).all(...params);
+    const getItemStmt = dbInst.prepare(`SELECT i.*, p.image FROM order_items i LEFT JOIN products p ON i.product_id = p.id WHERE i.order_id = ?`);
+    const getPaymentStmt = dbInst.prepare('SELECT * FROM payments WHERE order_id = ?');
+
+    const fullOrders = orders.map(ord => ({
+      ...ord,
+      items: getItemStmt.all(ord.id),
+      payment: getPaymentStmt.get(ord.id) || null
+    }));
+
+    res.json({ success: true, count: fullOrders.length, orders: fullOrders });
+  } catch (err) {
+    console.error('Admin fetch orders error:', err.message);
+    res.status(500).json({ success: false, error: 'Failed to retrieve orders' });
+  }
+});
+
+// POST /api/admin/orders/:id/status — advance or update order status
+app.post('/api/admin/orders/:id/status', requireAdminAuth, (req, res) => {
+  try {
+    const { status, stage_number } = req.body;
+    if (!status) {
+      return res.status(400).json({ success: false, error: 'Status is required' });
+    }
+
+    const order = db.getOrderById(req.params.id);
+    if (!order) {
+      return res.status(404).json({ success: false, error: 'Order not found' });
+    }
+
+    const updated = db.updateOrderStatus(order.id, status);
+    if (stage_number) {
+      const stageNum = Number(stage_number);
+      const stageMap = {
+        1: { name: 'Order Placed', code: 'ORDER_PLACED', title: 'Order Placed', desc: 'Order confirmed in system.' },
+        2: { name: 'Payment Confirmed', code: 'PAYMENT_CONFIRMED', title: 'Payment Confirmed', desc: 'Payment verified.' },
+        3: { name: 'Order Processing', code: 'ORDER_PROCESSING', title: 'Order Processing', desc: 'Garments inspected and sealed.' },
+        4: { name: 'Shipped', code: 'SHIPPED', title: 'Shipped', desc: 'Dispatched with express air courier.' },
+        5: { name: 'Out for Delivery', code: 'OUT_FOR_DELIVERY', title: 'Out for Delivery', desc: 'Courier en route for delivery.' },
+        6: { name: 'Delivered', code: 'DELIVERED', title: 'Delivered', desc: 'Package delivered.' }
+      };
+      if (stageMap[stageNum]) {
+        for (let s = 1; s <= stageNum; s++) {
+          const st = stageMap[s];
+          db.addTrackingEvent(order.id, {
+            stage_number: s,
+            stage_name: st.name,
+            status_code: st.code,
+            title: st.title,
+            description: st.desc
+          });
+        }
+      }
+    }
+
+    res.json({ success: true, order: updated });
+  } catch (err) {
+    console.error('Admin update order status error:', err.message);
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// GET /api/admin/returns — retrieve all customer returns
+app.get('/api/admin/returns', requireAdminAuth, (req, res) => {
+  try {
+    const returns = db.getAllReturns();
+    res.json({ success: true, count: returns.length, returns });
+  } catch (err) {
+    console.error('Admin returns error:', err.message);
+    res.status(500).json({ success: false, error: 'Failed to retrieve returns' });
+  }
+});
+
+// POST /api/admin/returns/:id/approve — approve a return request
+app.post('/api/admin/returns/:id/approve', requireAdminAuth, (req, res) => {
+  try {
+    const updated = db.updateReturnStatus(req.params.id, 'APPROVED', req.body.admin_notes || 'Approved for return shipping');
+    res.json({ success: true, message: 'Return approved', return_request: updated });
+  } catch (err) {
+    console.error('Admin approve return error:', err.message);
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/admin/returns/:id/reject — reject a return request
+app.post('/api/admin/returns/:id/reject', requireAdminAuth, (req, res) => {
+  try {
+    const updated = db.updateReturnStatus(req.params.id, 'REJECTED', req.body.admin_notes || 'Return request declined');
+    res.json({ success: true, message: 'Return rejected', return_request: updated });
+  } catch (err) {
+    console.error('Admin reject return error:', err.message);
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/admin/returns/:id/receive — mark return received and automatically restock
+app.post('/api/admin/returns/:id/receive', requireAdminAuth, (req, res) => {
+  try {
+    const updated = db.updateReturnStatus(req.params.id, 'RECEIVED', req.body.admin_notes || 'Package received and restocked');
+    res.json({ success: true, message: 'Return marked as received and items restocked into inventory.', return_request: updated });
+  } catch (err) {
+    console.error('Admin receive return error:', err.message);
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/admin/returns/:id/refund — execute PayPal Sandbox refund for a return
+app.post('/api/admin/returns/:id/refund', requireAdminAuth, refundLimiter, async (req, res) => {
+  try {
+    const ret = db.getReturnById(req.params.id);
+    if (!ret) {
+      return res.status(404).json({ success: false, error: 'Return request not found' });
+    }
+
+    if (ret.status === 'REFUNDED') {
+      return res.status(400).json({ success: false, error: 'Return has already been refunded.' });
+    }
+
+    const order = db.getOrderById(ret.order_id);
+    if (!order) {
+      return res.status(404).json({ success: false, error: 'Associated order not found' });
+    }
+
+    // Determine capture ID
+    const captureId = order.payment_id || order.payment?.transaction_id;
+    if (!captureId) {
+      return res.status(400).json({ success: false, error: 'No capture or transaction ID found for this order to refund.' });
+    }
+
+    // Determine refund amount in USD and INR
+    const refundUsd = req.body.amount ? Number(req.body.amount) : (order.charged_amount || Number((order.total_amount / 85).toFixed(2)));
+    const refundInr = Number((refundUsd * (order.exchange_rate || 85)).toFixed(0));
+    const currency = order.charged_currency || 'USD';
+    const reason = req.body.reason || `Refund for return ${ret.id}: ${ret.reason}`;
+
+    // Execute PayPal Sandbox refund via official PayPal API or sandbox fallback
+    const paypalResult = await paypal.refundPayPalCapture(captureId, refundUsd, currency, reason);
+
+    // Save refund record to SQLite
+    const refundRecord = db.createRefundRecord({
+      return_id: ret.id,
+      order_id: order.id,
+      user_id: ret.user_id,
+      payment_id: order.payment?.id || null,
+      paypal_refund_id: paypalResult.refund_id || null,
+      capture_id: captureId,
+      amount: refundUsd,
+      currency,
+      inr_amount: refundInr,
+      reason,
+      status: paypalResult.status === 'PENDING' ? 'PENDING' : 'COMPLETED'
+    });
+
+    res.json({
+      success: true,
+      message: `Refund of $${refundUsd.toFixed(2)} USD successfully processed via PayPal Sandbox.`,
+      paypal_result: paypalResult,
+      refund: refundRecord
+    });
+  } catch (err) {
+    console.error('Admin refund error:', err.message);
+    res.status(400).json({ success: false, error: err.message });
   }
 });
 

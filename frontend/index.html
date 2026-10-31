@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AgentCart AI — Your Personal AI Jacket Shopper | Find Your Style. Shop Smarter.</title>
-  <meta name="description" content="Discover premium futuristic outerwear engineered for extreme elements. Grounded AI recommendations, interactive comparisons, and seamless checkout.">
+  <title>AgentCart AI — Intelligent Technical Outerwear | Find Your Style. Shop Smarter.</title>
+  <meta name="description" content="Discover premium futuristic outerwear engineered for extreme elements. Grounded catalog inventory, verified PayPal international checkout, customer returns, and admin inventory management.">
   
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -16,7 +16,9 @@
 </head>
 <body>
 
-  <!-- 1. REFINED STICKY NAVBAR -->
+  <!-- ==========================================================================
+       1. REFINED STICKY NAVBAR (CLEAN, MINIMAL, WITH NOTIFICATIONS & ENTRY SWITCHER)
+       ========================================================================== -->
   <header class="site-header" id="siteHeader">
     <div class="container">
       <div class="nav-row">
@@ -28,33 +30,64 @@
           <div class="brand-text">AgentCart <span>AI</span></div>
         </a>
 
-        <!-- Desktop Navigation Links matching Reference -->
+        <!-- Desktop Navigation Links (Clean & uncluttered, without permanent wishlist item) -->
         <nav class="nav-links font-mono-tech" aria-label="Primary Navigation">
           <a href="#hero" class="nav-link active">Shop</a>
-          <a href="#featuredProduct" class="nav-link">Featured</a>
           <a href="#catalogue" class="nav-link">Catalogue</a>
-          <a href="#aiAssistant" class="nav-link">AI Stylist</a>
           <a href="#detailsMatter" class="nav-link">Details</a>
+          <button type="button" class="nav-link-btn" id="navProfileLink" aria-label="Open Profile & Orders">Profile</button>
           <a href="#comparison" class="nav-link" id="navCompareLink" style="display:none">Compare <span class="badge-count" id="navCompareCount">0</span></a>
         </nav>
 
         <!-- Right Header Actions -->
         <div class="nav-actions">
-          <button class="nav-btn primary" id="headerAiBtn" aria-label="Launch AI Stylist">
-            <svg viewBox="0 0 24 24"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3z"/></svg>
-            <span>Ask AI</span>
+          <!-- Entry Mode Switcher (Customer vs Admin) -->
+          <button type="button" class="nav-portal-btn font-mono-tech" id="entryPortalBtn" aria-label="Choose Customer or Admin Entry">
+            <span class="portal-icon">👥</span>
+            <span>PORTAL</span>
+          </button>
+
+          <!-- Verified Notifications Bell Dropdown -->
+          <div class="nav-notification-wrap">
+            <button type="button" class="nav-bell-btn" id="notificationBtn" aria-label="View Order Notifications" aria-expanded="false">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              <span class="notification-badge font-mono-tech" id="notificationBadgeCount" style="display:none;">0</span>
+            </button>
+
+            <!-- Floating Notifications Dropdown -->
+            <div class="notification-dropdown" id="notificationDropdown" style="display:none;" role="region" aria-label="Recent Notifications">
+              <div class="notification-dropdown-header">
+                <div class="notif-title-row">
+                  <span class="notif-title">Notifications</span>
+                  <span class="notif-unread-tag font-mono-tech" id="notifUnreadTag">0 NEW</span>
+                </div>
+                <button type="button" class="btn-notif-mark-all" id="btnMarkAllNotifs">Mark all read</button>
+              </div>
+              <div class="notification-items-list" id="notificationItemsList">
+                <div class="notif-empty-state">No notifications yet. Real-time order updates will appear here.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Admin Dashboard Quick Access Button (Shown when admin session is active) -->
+          <button type="button" class="nav-admin-btn font-mono-tech" id="headerAdminBadge" style="display:none;" aria-label="Open Admin Dashboard">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
+            <span>ADMIN CONSOLE</span>
           </button>
           
-          <button class="nav-tech-profile-btn" id="headerProfileBtn" aria-label="Open My Account">
+          <!-- Profile Button (Reliably opens Profile & Account Console) -->
+          <button type="button" class="nav-tech-profile-btn" id="headerProfileBtn" aria-label="Open My Account">
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
             <span id="navProfileNameLabel">PROFILE</span>
           </button>
 
-          <button class="nav-tech-cart-btn" id="headerCartBtn" aria-label="View Outerwear Cart">
+          <!-- Single-line Cart Button -->
+          <button type="button" class="nav-tech-cart-btn" id="headerCartBtn" aria-label="View Outerwear Cart">
             <span>CART [ <strong id="headerCartCount">0</strong> ]</span>
           </button>
 
-          <button class="mobile-toggle" id="mobileMenuToggle" aria-label="Toggle mobile menu">
+          <!-- Mobile Toggle -->
+          <button type="button" class="mobile-toggle" id="mobileMenuToggle" aria-label="Toggle mobile menu">
             <svg viewBox="0 0 24 24"><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
           </button>
         </div>
@@ -64,11 +97,10 @@
     <!-- Mobile Navigation Drawer -->
     <div class="mobile-nav-drawer" id="mobileNavDrawer" aria-hidden="true">
       <a href="#hero" class="mobile-nav-link active">Shop</a>
-      <a href="#featuredProduct" class="mobile-nav-link">Featured</a>
       <a href="#catalogue" class="mobile-nav-link">Catalogue</a>
-      <a href="#aiAssistant" class="mobile-nav-link">AI Stylist</a>
       <a href="#detailsMatter" class="mobile-nav-link">Details</a>
-      <a href="#myAccount" class="mobile-nav-link" id="mobileNavAccountLink">Profile</a>
+      <a href="#myAccount" class="mobile-nav-link" id="mobileNavAccountLink">Profile & Saved Products</a>
+      <a href="#entryPortal" class="mobile-nav-link" id="mobileNavPortalLink">Customer / Admin Portal</a>
       <a href="#comparison" class="mobile-nav-link" id="mobileNavCompareLink">Compare Jackets</a>
     </div>
   </header>
@@ -88,7 +120,7 @@
             </h1>
             
             <p class="hero-lead-text">
-              Discover precision technical jackets curated by artificial intelligence. Real-time sizing analysis, grounded catalog inventory, and seamless checkout.
+              Discover precision technical jackets curated by artificial intelligence. Real-time sizing analysis, grounded catalog inventory, and seamless international checkout with PayPal.
             </p>
 
             <!-- Call to Actions -->
@@ -97,11 +129,8 @@
                 <span>EXPLORE 24 STYLES</span>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
               </a>
-              <a href="#featuredProduct" class="btn-tech-outline">
-                <span>VIEW FEATURED SHELL</span>
-              </a>
-              <button type="button" class="btn-tech-ghost" id="heroTryAiBtn">
-                <span>ASK AI STYLIST</span>
+              <button type="button" class="btn-tech-outline" id="heroOpenProfileBtn">
+                <span>MY ACCOUNT & ORDERS</span>
               </button>
             </div>
           </div>
@@ -136,144 +165,16 @@
     </section>
 
     <!-- ======================================================================
-         2. FEATURED PRODUCT — APEX SIGNAL HI-VIS SHELL
+         2. COMPLETE TECHNICAL CATALOGUE (WITH WISHLIST HEARTS)
          ====================================================================== -->
-    <section class="featured-product-section" id="featuredProduct">
-      <div class="container">
-        <div class="featured-product-grid">
-          <!-- Visual Column -->
-          <div class="featured-visual-col">
-            <div class="featured-badge-bar font-mono-tech">
-              <span class="featured-kicker-tag">FEATURED HIGHLIGHT</span>
-              <span class="featured-discount-badge">31% OFF</span>
-            </div>
-
-            <div class="featured-img-wrap">
-              <img 
-                src="assets/images/jackets/apex-blaze-orange.png" 
-                alt="Apex Signal Hi-Vis Shell" 
-                class="featured-product-img" 
-                id="featuredProductImg"
-              >
-            </div>
-
-            <div class="featured-spec-chips font-mono-tech">
-              <span class="featured-spec-pill">70D BALLISTIC NYLON</span>
-              <span class="featured-spec-pill">18,000mm WATERPROOF</span>
-              <span class="featured-spec-pill">380g PACKABLE</span>
-            </div>
-          </div>
-
-          <!-- Information & Buy Box Column -->
-          <div class="featured-info-col">
-            
-            
-            <h2 class="featured-product-title">Apex Signal Hi-Vis Shell</h2>
-
-            <div class="featured-rating-row">
-              <span class="featured-stars">★★★★★</span>
-              <span class="featured-rating-val">4.6</span>
-              <span class="featured-reviews-count">(84 verified reviews)</span>
-            </div>
-
-            <div class="featured-price-row">
-              <div class="featured-current-price">
-                <span class="price-inr">₹1,899</span>
-                <span class="dual-usd">(≈ $22.34 USD)</span>
-              </div>
-              <div class="featured-original-price">
-                <del>₹2,499</del>
-                <span class="dual-usd-sub">(≈ $29.40 USD)</span>
-              </div>
-              <span class="badge-save">SAVE ₹600 (31% OFF)</span>
-            </div>
-
-            <p class="featured-desc">
-              Eye-catching high-visibility technical windbreaker designed for backcountry safety, urban cycling, and storm exposure. Engineered with Windblocker Pro 0-CFM wind resistance and dual storm flap zipper protection.
-            </p>
-
-            <!-- Specifications Table -->
-            <div class="featured-specs-grid font-mono-tech">
-              <div class="spec-cell">
-                <span class="spec-cell-label">MATERIAL</span>
-                <span class="spec-cell-value">High-Tenacity 70D Ballistic Nylon</span>
-              </div>
-              <div class="spec-cell">
-                <span class="spec-cell-label">WATERPROOF</span>
-                <span class="spec-cell-value">18,000mm Hydrostatic Head</span>
-              </div>
-              <div class="spec-cell">
-                <span class="spec-cell-label">TOTAL WEIGHT</span>
-                <span class="spec-cell-value">380g (Pack-Into-Pocket)</span>
-              </div>
-              <div class="spec-cell">
-                <span class="spec-cell-label">FIT PROFILE</span>
-                <span class="spec-cell-value">Athletic Modern Ergonomic</span>
-              </div>
-            </div>
-
-            <!-- Colorway Selection -->
-            <div class="featured-swatches-group">
-              <div class="swatches-label font-mono-tech">
-                <span>COLORWAY:</span>
-                <strong id="featuredColorLabel">Blaze Orange</strong>
-              </div>
-              <div class="featured-color-dots" id="featuredColorDots">
-                <button type="button" class="color-dot-btn active" data-color="Blaze Orange" style="background-color: #ea580c;" title="Blaze Orange" aria-label="Select Blaze Orange"></button>
-                <button type="button" class="color-dot-btn" data-color="Obsidian Contrast" style="background-color: #18181b;" title="Obsidian Contrast" aria-label="Select Obsidian Contrast"></button>
-              </div>
-            </div>
-
-            <!-- Size Selection -->
-            <div class="featured-sizes-group">
-              <div class="sizes-label font-mono-tech">
-                <span>SELECT SIZE:</span>
-                <span class="size-guide-hint">Over-layering ready</span>
-              </div>
-              <div class="featured-size-pills" id="featuredSizePills">
-                <button type="button" class="featured-size-pill" data-size="S">
-                  <span class="pill-size-name">S</span>
-                  <span class="pill-stock-label font-mono-tech">5 left</span>
-                </button>
-                <button type="button" class="featured-size-pill active" data-size="M">
-                  <span class="pill-size-name">M</span>
-                  <span class="pill-stock-label font-mono-tech">In Stock</span>
-                </button>
-                <button type="button" class="featured-size-pill" data-size="L">
-                  <span class="pill-size-name">L</span>
-                  <span class="pill-stock-label font-mono-tech">In Stock</span>
-                </button>
-                <button type="button" class="featured-size-pill" data-size="XL">
-                  <span class="pill-size-name">XL</span>
-                  <span class="pill-stock-label font-mono-tech">4 left</span>
-                </button>
-              </div>
-            </div>
-
-            <!-- Action Buttons -->
-            <div class="featured-actions-row">
-              <button type="button" class="btn-tech-shop featured-add-btn" id="btnFeaturedAdd" data-id="apex-blaze-orange">
-                <span>ADD TO CART — ₹1,899</span>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-              </button>
-              <button type="button" class="btn-tech-outline featured-details-btn" id="btnFeaturedDetails" data-id="apex-blaze-orange">
-                <span>FULL SPECIFICATIONS</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-<section class="catalogue-section" id="catalogue">
+    <section class="catalogue-section" id="catalogue">
       <div class="container">
         <div class="catalogue-header">
           <div class="section-head-row">
             <div>
               <h2 class="section-title">Complete Technical Outerwear Catalogue</h2>
-              
             </div>
-            <button class="nav-btn" id="resetFiltersTopBtn">Reset Filters</button>
+            <button type="button" class="nav-btn" id="resetFiltersTopBtn">Reset Filters</button>
           </div>
 
           <!-- Filter & Search Controls Bar -->
@@ -339,83 +240,24 @@
           <!-- Results Metadata Bar -->
           <div class="results-meta-bar">
             <div>Showing <strong id="productCount">24</strong> jackets</div>
-            
           </div>
         </div>
 
-        <!-- Product Cards Grid -->
+        <!-- Product Cards Grid (Populated dynamically via app.js with wishlist hearts) -->
         <div class="product-grid" id="productGrid" aria-live="polite">
           <!-- Populated dynamically via app.js -->
         </div>
       </div>
     </section>
 
-<section class="ai-assistant-section" id="aiAssistant">
-      <div class="container">
-        <div class="ai-assistant-card">
-          <!-- Chat Header Bar -->
-          <div class="ai-header-bar">
-            <div class="ai-header-title-wrap">
-              <div class="ai-avatar">
-                <svg viewBox="0 0 24 24"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3z"/></svg>
-              </div>
-              <div>
-                <h3 style="font-size: 1.05rem; font-weight: 800;">AgentCart AI Personal Stylist</h3>
-                
-              </div>
-            </div>
-
-            <div id="aiStatusPill" class="ai-status-pill">
-              <i></i> <span id="aiStatusText">AI Stylist Ready</span>
-            </div>
-          </div>
-
-          <!-- Chat Body Reel -->
-          <div class="ai-chat-body" id="aiChatBody">
-            <div class="chat-bubble ai">
-              Hello! I'm your AgentCart AI Outerwear Concierge. Tell me what kind of jacket you're looking for, your budget, preferred color, size, and intended use.
-              
-            </div>
-          </div>
-
-          <!-- Suggested Quick Prompt Pills -->
-          <div class="chat-suggestions-bar">
-            <button class="suggestion-pill" data-prompt="Find me a black waterproof-style jacket under $24 in size M for everyday use">
-              ⚡ Black waterproof under $24 (₹2,000)
-            </button>
-            <button class="suggestion-pill" data-prompt="Recommend the warmest insulated down parka for sub-zero winter temperatures">
-              ❄️ Warmest winter down parka
-            </button>
-            <button class="suggestion-pill" data-prompt="Show me lightweight packable rain jackets for daily city commuting">
-              🌧️ Lightweight packable rain jackets
-            </button>
-            <button class="suggestion-pill" data-prompt="Compare CyberShell Stormbreaker and Alpine Shift for outdoor hiking">
-              ⚖️ Compare CyberShell vs Alpine Shift
-            </button>
-          </div>
-
-          <!-- Chat Input Form -->
-          <form class="ai-input-form" id="aiInputForm">
-            <input type="text" id="aiPromptInput" class="ai-input-field" placeholder="Ask your personal AI stylist (e.g. 'Jacket under $30 / ₹2,500 in size L with deep pockets')..." autocomplete="off" aria-label="AI shopping request">
-            <button type="submit" class="btn-ai-send" id="aiSendBtn" aria-label="Send message to AI">
-              <svg viewBox="0 0 24 24"><path d="m5 12 14-7-7 14-2-5-5-2z"/></svg>
-            </button>
-          </form>
-        </div>
-      </div>
-    </section>
-
-    
-
     <!-- ======================================================================
-         6. TECHNICAL PRODUCT DETAILS ("DETAILS MATTER." — FINAL MAIN SECTION)
+         3. TECHNICAL PRODUCT DETAILS ("DETAILS MATTER." — FINAL MAIN SECTION)
          ====================================================================== -->
     <section class="details-matter-section" id="detailsMatter">
       <div class="container">
         <div class="details-matter-grid">
           <!-- Left Column: Jacket Visual & Bold Heading -->
           <div class="details-jacket-col">
-            
             <h2 class="details-giant-title">DETAILS MATTER.</h2>
             <div class="details-jacket-stage">
               <img src="assets/images/jackets/cyber-shell-black.png" alt="CyberShell Detail Focus" class="details-jacket-img" id="detailsJacketVisual">
@@ -477,7 +319,7 @@
   </main>
 
   <!-- ======================================================================
-       I. TECHNICAL SHOWROOM FOOTER (00:14)
+       FOOTER
        ====================================================================== -->
   <footer class="tech-showroom-footer">
     <div class="container">
@@ -490,11 +332,10 @@
         </a>
         <div class="footer-clean-links font-mono-tech">
           <a href="#hero">Shop</a>
-          <a href="#featuredProduct">Featured</a>
           <a href="#catalogue">Catalogue</a>
-          <a href="#aiAssistant">AI Stylist</a>
           <a href="#detailsMatter">Details</a>
           <a href="#myAccount" id="footerProfileLink">Profile</a>
+          <a href="#entryPortal" id="footerPortalLink">Portal (Customer/Admin)</a>
         </div>
         <div class="footer-clean-copy font-mono-tech">
           © 2026 AGENTCART AI. ALL RIGHTS RESERVED.
@@ -504,10 +345,10 @@
   </footer>
 
   <!-- ==========================================================================
-       MODALS & FLOATING CONTROLS
+       MODALS & CONSOLES
        ========================================================================== -->
 
-  <!-- A. PRODUCT DETAILS MODAL -->
+  <!-- A. PRODUCT DETAILS MODAL (WITH HEART WISHLIST BUTTON) -->
   <div class="modal-backdrop" id="productModal" role="dialog" aria-modal="true" aria-hidden="true">
     <div class="modal-content-box" id="productModalContent">
       <button class="modal-close-btn" id="modalCloseBtn" aria-label="Close product details">
@@ -542,7 +383,7 @@
           <div class="modal-sizes-row" id="modalSizes"></div>
           <div class="modal-stock-indicator" id="modalStockStatus">In Stock (12 units)</div>
 
-          <!-- Actions -->
+          <!-- Actions with Wishlist Heart -->
           <div class="modal-actions-row">
             <div class="modal-qty-control">
               <button class="modal-qty-btn" id="modalQtyMinus" aria-label="Decrease quantity">−</button>
@@ -553,6 +394,11 @@
             <button class="btn-modal-add" id="modalAddToCartBtn">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
               <span>Add to Cart</span>
+            </button>
+
+            <!-- Heart Wishlist Toggle in Modal -->
+            <button class="btn-modal-wishlist" id="modalWishlistBtn" aria-label="Save to Wishlist" title="Save to Wishlist">
+              <svg viewBox="0 0 24 24" width="20" height="20" class="heart-icon"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
             </button>
 
             <button class="btn-card-compare" id="modalCompareToggleBtn" aria-label="Compare jacket">
@@ -597,7 +443,7 @@
       </div>
 
       <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 20px;">
-        Prices are maintained in INR (₹) and charged in USD via PayPal Sandbox for eligible international destinations.
+        Prices are maintained in INR (₹) and charged in USD via PayPal Sandbox for eligible international destinations. Stock is securely deducted upon payment capture.
       </p>
 
       <!-- Shipping Form -->
@@ -655,7 +501,7 @@
           </div>
         </div>
 
-        <!-- Domestic Payment Block Banner (Shown when Country = India) -->
+        <!-- Domestic Restriction Banner -->
         <div class="domestic-restriction-card" id="domesticRestrictionAlert" style="display:none;">
           <div class="restriction-badge">⚠️ DOMESTIC PAYMENT RESTRICTION</div>
           <p class="restriction-text">
@@ -745,7 +591,7 @@
     </div>
   </div>
 
-  <!-- G. MY ACCOUNT & ORDER TRACKING MODAL (PREMIUM LIQUID GLASS CONSOLE) -->
+  <!-- E. MY ACCOUNT, ORDERS, WISHLIST & RETURNS CONSOLE -->
   <div class="modal-backdrop" id="accountModal" role="dialog" aria-modal="true" aria-hidden="true">
     <div class="account-modal-box">
       <!-- Modal Header -->
@@ -800,7 +646,7 @@
         </div>
       </div>
 
-      <!-- Navigation Tabs -->
+      <!-- Navigation Tabs (5 Tabs: Profile, Orders, Payments, Wishlist, Returns) -->
       <div class="account-tabs-bar font-mono-tech">
         <button class="account-tab-btn active" id="tabBtnProfile" data-tab="profile">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -813,6 +659,14 @@
         <button class="account-tab-btn" id="tabBtnPayments" data-tab="payments">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
           <span>Payment History</span>
+        </button>
+        <button class="account-tab-btn" id="tabBtnWishlist" data-tab="wishlist">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          <span>Saved Products (<span id="tabWishlistCount">0</span>)</span>
+        </button>
+        <button class="account-tab-btn" id="tabBtnReturns" data-tab="returns">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+          <span>Returns & Refunds</span>
         </button>
       </div>
 
@@ -931,11 +785,371 @@
             <!-- Dynamically populated from /api/payments -->
           </div>
         </div>
+
+        <!-- 4. SAVED PRODUCTS / WISHLIST TAB -->
+        <div class="account-tab-pane" id="tabPaneWishlist">
+          <div class="wishlist-tab-header">
+            <div>
+              <h3>Saved Technical Outerwear</h3>
+              <p style="font-size:0.82rem; color:var(--text-muted);">Permanently stored in your SQLite profile. Move items to cart anytime.</p>
+            </div>
+          </div>
+          <div class="wishlist-cards-list" id="accountWishlistList">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+
+        <!-- 5. RETURNS & REFUNDS TAB -->
+        <div class="account-tab-pane" id="tabPaneReturns">
+          <div class="wishlist-tab-header">
+            <div>
+              <h3>Return Requests & Refunds</h3>
+              <p style="font-size:0.82rem; color:var(--text-muted);">Track your return evaluations, restocking receipts, and PayPal refunds.</p>
+            </div>
+          </div>
+          <div class="returns-cards-list" id="accountReturnsList">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- H. ORDER TRACKING DETAILS MODAL (INDIVIDUAL 6-STAGE TIMELINE) -->
+  <!-- F. CUSTOMER RETURN REQUEST MODAL -->
+  <div class="modal-backdrop" id="returnRequestModal" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal-content-box" style="width: min(560px, 95vw); padding: 28px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <div>
+          <span class="tracking-meta-tag font-mono-tech">RETURN & REFUND REQUEST</span>
+          <h2 style="font-size:1.35rem; font-weight:800; margin-top:2px;">Request Item Return</h2>
+        </div>
+        <button class="modal-close-btn" id="returnCloseBtn" aria-label="Close return modal">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <form id="returnRequestForm">
+        <input type="hidden" id="returnOrderId">
+        <input type="hidden" id="returnProductId">
+
+        <div class="return-item-summary" id="returnItemSummaryBox">
+          <!-- Summary of selected order & product -->
+        </div>
+
+        <div class="checkout-input-group form-full-col" style="margin-top:14px;">
+          <label for="returnReasonSelect">Reason for Return *</label>
+          <select id="returnReasonSelect" class="checkout-input" required>
+            <option value="" disabled selected>Select return reason...</option>
+            <option value="Incorrect Size / Fit">Incorrect Size / Fit</option>
+            <option value="Defective / Damaged Material">Defective / Damaged Material</option>
+            <option value="Item Not as Described">Item Not as Described</option>
+            <option value="Changed Mind">Changed Mind</option>
+            <option value="Color Variance">Color Variance</option>
+            <option value="Other">Other Reason</option>
+          </select>
+        </div>
+
+        <div class="checkout-input-group form-full-col" style="margin-top:12px;">
+          <label for="returnDescriptionInput">Description & Condition Details *</label>
+          <textarea id="returnDescriptionInput" class="checkout-input" rows="3" required placeholder="Please provide specific details regarding fit, condition, or why you are requesting a return..."></textarea>
+        </div>
+
+        <div style="font-size:0.75rem; color:var(--text-muted); margin-top:10px;">
+          Return Policy: Items must be unwashed with tags intact. Upon admin inspection, eligible refunds are credited directly via PayPal Sandbox.
+        </div>
+
+        <div style="display:flex; gap:12px; margin-top:20px;">
+          <button type="button" class="btn-hero-outline" style="flex:1; justify-content:center;" id="btnCancelReturn">
+            Cancel
+          </button>
+          <button type="submit" class="btn-tech-shop" style="flex:1; justify-content:center;" id="btnSubmitReturn">
+            Submit Request
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- G. ENTRY PORTAL MODAL (CUSTOMER VS ADMIN CHOICE) -->
+  <div class="modal-backdrop" id="entryPortalModal" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal-content-box" style="width: min(580px, 95vw); padding: 32px;">
+      <div style="text-align:center; margin-bottom: 24px;">
+        <span class="tracking-meta-tag font-mono-tech">AGENTCART AI PORTAL</span>
+        <h2 style="font-size: 1.6rem; font-weight: 800; margin-top: 4px;">Choose Your Entry Portal</h2>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 6px;">Select your workspace mode to access the technical showroom or administrative backoffice.</p>
+      </div>
+
+      <div class="portal-cards-grid">
+        <!-- Customer Card -->
+        <button type="button" class="portal-card" id="btnSelectCustomerPortal">
+          <div class="portal-card-icon">🛍️</div>
+          <div class="portal-card-content">
+            <h3>Customer Experience</h3>
+            <p>Shop 24 technical jackets, manage your profile, view orders, track shipments, and save items to your wishlist.</p>
+            <span class="portal-cta font-mono-tech">ENTER SHOWROOM →</span>
+          </div>
+        </button>
+
+        <!-- Admin Card -->
+        <button type="button" class="portal-card admin" id="btnSelectAdminPortal">
+          <div class="portal-card-icon">🛡️</div>
+          <div class="portal-card-content">
+            <h3>Authorized Admin Access</h3>
+            <p>Manage product catalog, inventory stock levels, order status transitions, return approvals, and PayPal Sandbox refunds.</p>
+            <span class="portal-cta font-mono-tech">ADMIN LOGIN →</span>
+          </div>
+        </button>
+      </div>
+
+      <div style="text-align: center; margin-top: 20px;">
+        <button type="button" class="btn-hero-ghost" id="portalCloseBtn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- H. ADMIN LOGIN MODAL -->
+  <div class="modal-backdrop" id="adminLoginModal" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal-content-box" style="width: min(440px, 95vw); padding: 32px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <div>
+          <span class="tracking-meta-tag font-mono-tech">SECURE AUTHENTICATION</span>
+          <h2 style="font-size: 1.4rem; font-weight: 800; margin-top: 2px;">Admin Sign In</h2>
+        </div>
+        <button class="modal-close-btn" id="adminLoginCloseBtn" aria-label="Close admin login">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <div class="admin-login-alert" id="adminLoginAlert" style="display:none;"></div>
+
+      <form id="adminLoginForm">
+        <div class="checkout-input-group form-full-col" style="margin-bottom:14px;">
+          <label for="adminUsername">Username *</label>
+          <input type="text" id="adminUsername" class="checkout-input" required autocomplete="username" placeholder="admin" value="admin">
+        </div>
+
+        <div class="checkout-input-group form-full-col" style="margin-bottom:20px;">
+          <label for="adminPassword">Master Password *</label>
+          <input type="password" id="adminPassword" class="checkout-input" required autocomplete="current-password" placeholder="••••••••••••">
+        </div>
+
+        <button type="submit" class="btn-tech-shop" style="width:100%; justify-content:center;" id="btnSubmitAdminLogin">
+          <span>Authenticate & Access Console</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+
+        <p style="font-size:0.75rem; color:var(--text-dim); text-align:center; margin-top:14px;">
+          Credentials verified against salted scrypt hash stored in SQLite. Session valid for 24 hours.
+        </p>
+      </form>
+    </div>
+  </div>
+
+  <!-- I. ADMIN MANAGEMENT DASHBOARD MODAL -->
+  <div class="modal-backdrop" id="adminDashboardModal" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="admin-dashboard-box">
+      <!-- Admin Console Header -->
+      <div class="admin-console-header">
+        <div class="admin-header-left">
+          <div class="admin-shield-icon">🛡️</div>
+          <div>
+            <div class="admin-title-row">
+              <h2>AGENTCART AI // ADMIN MANAGEMENT CONSOLE</h2>
+              <span class="admin-auth-badge font-mono-tech">AUTHENTICATED</span>
+            </div>
+            <p class="admin-meta font-mono-tech">Logged in as: <strong id="adminUserDisplay">admin</strong> • SQLite Real-Time System</p>
+          </div>
+        </div>
+
+        <div class="admin-header-actions">
+          <button type="button" class="btn-admin-nav" id="btnAdminExitShowroom">
+            <span>Showroom Store</span>
+          </button>
+          <button type="button" class="btn-admin-logout" id="btnAdminLogout">
+            <span>Log Out</span>
+          </button>
+          <button class="modal-close-btn" id="adminDashboardCloseBtn" aria-label="Close admin dashboard">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Metrics Ribbon -->
+      <div class="admin-metrics-ribbon">
+        <div class="admin-stat-card">
+          <span class="admin-stat-label">Net Sales Revenue</span>
+          <div class="admin-stat-val" id="adminMetricRevenue">₹0 <small id="adminMetricRevenueUsd">($0.00 USD)</small></div>
+        </div>
+        <div class="admin-stat-card">
+          <span class="admin-stat-label">Total System Orders</span>
+          <div class="admin-stat-val" id="adminMetricTotalOrders">0</div>
+        </div>
+        <div class="admin-stat-card">
+          <span class="admin-stat-label">Pending Action Orders</span>
+          <div class="admin-stat-val" id="adminMetricPendingOrders">0</div>
+        </div>
+        <div class="admin-stat-card alert-card">
+          <span class="admin-stat-label">Low Stock Alerts (&lt; 5 units)</span>
+          <div class="admin-stat-val alert" id="adminMetricLowStock">0</div>
+        </div>
+        <div class="admin-stat-card">
+          <span class="admin-stat-label">Pending Return Requests</span>
+          <div class="admin-stat-val" id="adminMetricPendingReturns">0</div>
+        </div>
+      </div>
+
+      <!-- Admin Tabs Navigation -->
+      <div class="admin-tabs-bar font-mono-tech">
+        <button type="button" class="admin-tab-btn active" data-tab="admin-overview" id="adminTabBtnOverview">Overview & Alerts</button>
+        <button type="button" class="admin-tab-btn" data-tab="admin-products" id="adminTabBtnProducts">Products & Inventory</button>
+        <button type="button" class="admin-tab-btn" data-tab="admin-orders" id="adminTabBtnOrders">Orders Management</button>
+        <button type="button" class="admin-tab-btn" data-tab="admin-returns" id="adminTabBtnReturns">Returns & Refunds</button>
+      </div>
+
+      <!-- Admin Tabs Content Viewport -->
+      <div class="admin-tabs-viewport">
+        <!-- Tab 1: Overview & Low Stock Alerts -->
+        <div class="admin-tab-pane active" id="adminPaneOverview">
+          <div class="admin-overview-grid">
+            <div class="admin-panel-card">
+              <div class="admin-panel-header">
+                <h3>Low Stock Inventory Watchlist</h3>
+                <span class="font-mono-tech" style="font-size:0.75rem; color:var(--accent-orange);">ACTION REQUIRED</span>
+              </div>
+              <div class="admin-table-wrap">
+                <table class="admin-data-table" id="adminLowStockTable">
+                  <thead>
+                    <tr>
+                      <th>Product</th>
+                      <th>Variant Size</th>
+                      <th>Color</th>
+                      <th>Remaining Stock</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="adminLowStockTbody">
+                    <!-- Populated via app.js -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="admin-panel-card">
+              <div class="admin-panel-header">
+                <h3>Recent Return Requests</h3>
+                <span class="font-mono-tech" style="font-size:0.75rem; color:var(--text-muted);">SQLITE REAL-TIME</span>
+              </div>
+              <div id="adminRecentReturnsList" class="admin-recent-returns-wrap">
+                <!-- Populated via app.js -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 2: Products & Inventory Management -->
+        <div class="admin-tab-pane" id="adminPaneProducts">
+          <div class="admin-toolbar-row">
+            <div class="admin-search-wrap">
+              <input type="text" id="adminProductSearch" class="checkout-input" placeholder="Search products by title, category, ID...">
+            </div>
+            <button type="button" class="btn-tech-shop" id="btnAdminAddProduct">
+              <span>+ Add Product</span>
+            </button>
+          </div>
+
+          <div class="admin-table-wrap">
+            <table class="admin-data-table" id="adminProductsTable">
+              <thead>
+                <tr>
+                  <th>Visual</th>
+                  <th>ID</th>
+                  <th>Product Name</th>
+                  <th>Category</th>
+                  <th>Price (INR)</th>
+                  <th>Status</th>
+                  <th>Variant Stock Breakdown</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="adminProductsTbody">
+                <!-- Populated via app.js -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Tab 3: Orders Management -->
+        <div class="admin-tab-pane" id="adminPaneOrders">
+          <div class="admin-toolbar-row">
+            <div class="admin-search-wrap">
+              <input type="text" id="adminOrdersSearch" class="checkout-input" placeholder="Search orders by ID, buyer name, or PayPal transaction...">
+            </div>
+            <div class="admin-filter-group">
+              <select id="adminOrdersFilterStatus" class="checkout-input">
+                <option value="ALL">All Statuses</option>
+                <option value="PENDING">Pending</option>
+                <option value="PAID">Paid</option>
+                <option value="PROCESSING">Processing</option>
+                <option value="SHIPPED">Shipped</option>
+                <option value="OUT_FOR_DELIVERY">Out for Delivery</option>
+                <option value="DELIVERED">Delivered</option>
+                <option value="CANCELLED">Cancelled</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="admin-table-wrap">
+            <table class="admin-data-table" id="adminOrdersTable">
+              <thead>
+                <tr>
+                  <th>Order ID</th>
+                  <th>Date</th>
+                  <th>Customer</th>
+                  <th>Items</th>
+                  <th>Total (INR/USD)</th>
+                  <th>Current Status</th>
+                  <th>Lifecycle Transition</th>
+                </tr>
+              </thead>
+              <tbody id="adminOrdersTbody">
+                <!-- Populated via app.js -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Tab 4: Returns & Refunds Processing -->
+        <div class="admin-tab-pane" id="adminPaneReturns">
+          <div class="admin-panel-card">
+            <div class="admin-panel-header">
+              <h3>Customer Return Requests & PayPal Sandbox Refunds</h3>
+              <span class="font-mono-tech" style="font-size:0.75rem; color:var(--text-muted);">GENUINE GATEWAY INTEGRATION</span>
+            </div>
+            <div class="admin-table-wrap">
+              <table class="admin-data-table" id="adminReturnsTable">
+                <thead>
+                  <tr>
+                    <th>Return ID</th>
+                    <th>Order ID</th>
+                    <th>Customer</th>
+                    <th>Product & Size</th>
+                    <th>Reason</th>
+                    <th>Status</th>
+                    <th>Admin Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="adminReturnsTbody">
+                  <!-- Populated via app.js -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- J. ORDER TRACKING DETAILS MODAL (INDIVIDUAL 6-STAGE TIMELINE) -->
   <div class="modal-backdrop" id="trackingModal" role="dialog" aria-modal="true" aria-hidden="true">
     <div class="tracking-modal-box">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
@@ -965,7 +1179,7 @@
     </div>
   </div>
 
-  <!-- E. FLOATING COMPARISON TRAY -->
+  <!-- K. FLOATING COMPARISON TRAY -->
   <div class="compare-sticky-bar" id="compareStickyBar">
     <div class="compare-thumbs-strip" id="compareThumbsStrip"></div>
     <div>
@@ -975,7 +1189,7 @@
     <button class="btn-open-compare" id="btnLaunchCompare">Compare Now</button>
   </div>
 
-  <!-- F. FLOATING CART PILL (PRESERVED & UPGRADED FROM APMC) -->
+  <!-- L. FLOATING CART PILL -->
   <button class="cart-floating-pill hide" id="cartPill" aria-label="View Cart">
     <span class="cart-pill-stack" id="cartPillStack"></span>
     <span class="cart-pill-tx">
@@ -987,7 +1201,7 @@
     </span>
   </button>
 
-  <!-- G. CART DRAWER / PANEL (MORPHING APMC UPGRADE) -->
+  <!-- M. CART DRAWER / PANEL -->
   <section class="cart-drawer-panel" id="cartDrawer" hidden aria-label="Your Outerwear Cart">
     <div class="cart-head">
       <svg viewBox="0 0 24 24"><path d="M6 8h12l-1 12H7L6 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>

@@ -54,10 +54,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupAccountListeners();
   setupPayPal();
   initScramblerElements();
-  setup3DJacketTilt();
-  setupScrollDrivenShowroom();
-  setupMaterialExplodedStack();
-  setupShowroomCardEvents();
+  setupFeaturedProductEvents();
 });
 
 // Load App Config from Server
@@ -85,7 +82,7 @@ function updateConfigUI() {
       statusText.textContent = 'Gemini 2.5 Live';
     } else {
       statusPill.className = 'ai-status-pill demo-pill';
-      statusText.textContent = 'Demo Heuristic Assistant';
+      statusText.textContent = 'AI Stylist Ready';
     }
   }
 
@@ -874,7 +871,7 @@ function renderAiResponse(userPrompt, data) {
   // Status Banner if fallback
   let banner = '';
   if (data.is_fallback) {
-    banner = `<div style="font-size:0.72rem; color:var(--amber); margin-bottom:8px; font-weight:700;">ℹ️ Heuristic Catalog Analysis Active (Demo Mode)</div>`;
+    banner = '';
   }
 
   // Extracted preferences tags
@@ -1625,6 +1622,14 @@ function setupAccountListeners() {
     });
   }
 
+  const footerProfileLink = $('#footerProfileLink');
+  if (footerProfileLink) {
+    footerProfileLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      openAccountModal('profile');
+    });
+  }
+
   // Close modals
   const accountCloseBtn = $('#accountCloseBtn');
   if (accountCloseBtn) {
@@ -1717,7 +1722,7 @@ function updateProfileUI() {
 
   const navLabel = $('#navProfileNameLabel');
   if (navLabel) {
-    navLabel.textContent = (State.profile.name || 'AKHIL').toUpperCase();
+    navLabel.textContent = 'PROFILE';
   }
 
   if ($('#accountUserNameDisplay')) {
@@ -2246,460 +2251,64 @@ function initScramblerElements() {
 }
 
 // ==========================================================================
-// 3D VIDEO ARENA CURSOR-TRACKING TILT
 // ==========================================================================
-function setup3DJacketTilt() {
-  if (prefersReducedMotion) return;
-
-  const arena = $('#heroVideoArena') || $('#heroJacketStage');
-  const viewport = $('.hero-video-viewport');
-  if (!arena || !viewport) return;
-
-  viewport.addEventListener('mousemove', (e) => {
-    const rect = arena.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
-
-    const rotateX = -((y - centerY) / centerY) * 4.5;
-    const rotateY = ((x - centerX) / centerX) * 6.5;
-
-    arena.style.transform = `perspective(1200px) rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg) scale3d(1.015, 1.015, 1.015)`;
-  });
-
-  viewport.addEventListener('mouseleave', () => {
-    arena.style.transform = 'perspective(1200px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)';
-  });
-}
-
+// FEATURED PRODUCT & MODERN SHOWROOM CONTROLLER
 // ==========================================================================
-// SCROLL-CONTROLLED VIDEO SHOWROOM ENGINE (WITH PROGRESSIVE CANVAS FALLBACK)
-// ==========================================================================
-function setupScrollDrivenShowroom() {
-  const heroSection = $('#hero');
-  const video = $('#heroVideo');
-  const canvas = $('#heroCanvas');
-  const poster = $('#heroPosterImg');
-  const telemetryTime = $('#heroTelemetryTime');
-  const scrubFill = $('#heroScrubProgressFill');
-  const scrollPrompt = $('#heroScrollPrompt');
-  const leftBracket = $('.hero-bracket-callout.left-bracket');
-  const rightBracket = $('.hero-bracket-callout.right-bracket');
-  const detailsSection = $('#detailsMatter');
-  const detailsJacket = $('#detailsJacketVisual');
+function setupFeaturedProductEvents() {
+  let selectedSize = 'M';
+  let selectedColor = 'Blaze Orange';
 
-  if (!heroSection) return;
-
-  // Video and Scrub Engine State
-  const VIDEO_DURATION = 14.567; // Duration of reference video in seconds
-  let videoDuration = VIDEO_DURATION;
-  let isVideoReady = false;
-  let useCanvasFallback = false;
-  let manifestFrames = [];
-  const preloadedFrames = new Map();
-  let targetProgress = 0;
-  let currentProgress = 0;
-  let targetTime = 0;
-  let smoothTime = 0;
-  let isVisible = true;
-  let isTicking = false;
-  let rafId = null;
-
-  // 1. Initialize Direct Video Stream
-  if (video) {
-    video.muted = true;
-    video.volume = 0;
-
-    video.addEventListener('loadedmetadata', () => {
-      if (video.duration && !isNaN(video.duration) && video.duration > 0) {
-        videoDuration = video.duration;
-      }
-      isVideoReady = true;
-    });
-
-    video.addEventListener('canplay', () => {
-      isVideoReady = true;
-      if (poster) {
-        poster.classList.add('hidden');
-      }
-    });
-
-    video.addEventListener('error', (err) => {
-      console.warn('Hero video failed to load, switching to Canvas frame scrubbing fallback:', err);
-      activateCanvasFallback();
-    });
-
-    // Fallback timer: if video doesn't become ready within 2.5s, prepare canvas fallback
-    setTimeout(() => {
-      if (!isVideoReady && video.readyState < 2) {
-        activateCanvasFallback();
-      }
-    }, 2500);
-  } else {
-    activateCanvasFallback();
-  }
-
-  // 2. Progressive Canvas Frame Scrubbing Fallback Engine
-  function activateCanvasFallback() {
-    if (useCanvasFallback) return;
-    useCanvasFallback = true;
-
-    if (canvas) {
-      canvas.classList.add('canvas-active');
-    }
-
-    // Load Manifest
-    fetch('/video/manifest.json')
-      .then(res => res.json())
-      .then(manifest => {
-        manifestFrames = manifest.frames || [];
-        if (manifestFrames.length > 0) {
-          // Preload first, middle, and last frames immediately
-          preloadFrame(0);
-          preloadFrame(Math.floor(manifestFrames.length / 2));
-          preloadFrame(manifestFrames.length - 1);
-
-          // Render first frame immediately
-          renderCanvasFrame(0);
-
-          // Progressively preload remaining frames
-          manifestFrames.forEach((_, idx) => {
-            setTimeout(() => preloadFrame(idx), idx * 60);
-          });
-        }
-      })
-      .catch(err => {
-        console.warn('Manifest load failed:', err);
-      });
-  }
-
-  function preloadFrame(index) {
-    if (!manifestFrames[index] || preloadedFrames.has(index)) return;
-    const img = new Image();
-    img.src = manifestFrames[index].url;
-    img.onload = () => {
-      preloadedFrames.set(index, img);
-      if (poster && index === 0) {
-        poster.classList.add('hidden');
-      }
-    };
-  }
-
-  function renderCanvasFrame(timeInSeconds) {
-    if (!canvas || manifestFrames.length === 0) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    // Find closest frame by timestamp
-    let closestIndex = 0;
-    let minDiff = Infinity;
-    for (let i = 0; i < manifestFrames.length; i++) {
-      const diff = Math.abs(manifestFrames[i].timestamp - timeInSeconds);
-      if (diff < minDiff) {
-        minDiff = diff;
-        closestIndex = i;
-      }
-    }
-
-    const cachedImg = preloadedFrames.get(closestIndex);
-    if (cachedImg && cachedImg.complete && cachedImg.naturalWidth > 0) {
-      ctx.drawImage(cachedImg, 0, 0, canvas.width, canvas.height);
-      if (poster) poster.classList.add('hidden');
-    } else {
-      preloadFrame(closestIndex);
-    }
-  }
-
-  // 3. Scroll Progress Calculation
-  function calculateScroll() {
-    const rect = heroSection.getBoundingClientRect();
-    const scrollDistance = heroSection.offsetHeight - window.innerHeight;
-
-    if (scrollDistance <= 0) {
-      targetProgress = 0;
-      targetTime = 0;
-      return;
-    }
-
-    const currentScroll = -rect.top;
-    targetProgress = Math.max(0, Math.min(1, currentScroll / scrollDistance));
-    targetTime = targetProgress * videoDuration;
-  }
-
-  // 4. Smooth Animation Loop (RAF)
-  function updateLoop() {
-    if (!isVisible) {
-      isTicking = false;
-      return;
-    }
-
-    // Smooth Lerp Interpolation for seamless forward and reverse motion
-    const progressDiff = targetProgress - currentProgress;
-    if (Math.abs(progressDiff) > 0.0005) {
-      currentProgress += progressDiff * 0.22;
-    } else {
-      currentProgress = targetProgress;
-    }
-
-    const timeDiff = targetTime - smoothTime;
-    if (Math.abs(timeDiff) > 0.002) {
-      smoothTime += timeDiff * 0.22;
-    } else {
-      smoothTime = targetTime;
-    }
-
-    // Apply to Direct Video Stream
-    if (video && video.readyState >= 1) {
-      if (!video.seeking && Math.abs(video.currentTime - smoothTime) > 0.035) {
-        try {
-          if (typeof video.fastSeek === 'function') {
-            video.fastSeek(smoothTime);
-          } else {
-            video.currentTime = smoothTime;
-          }
-        } catch (e) {}
-      }
-    }
-
-    // Apply to Canvas Scrubbing (draws frame if canvas fallback is active or video is buffering)
-    if (canvas && (useCanvasFallback || !isVideoReady)) {
-      renderCanvasFrame(smoothTime);
-    }
-
-    // Update Telemetry & Scrub Bar
-    if (telemetryTime) {
-      const secs = (smoothTime % 60).toFixed(2).padStart(5, '0');
-      telemetryTime.textContent = `REC 00:${secs} / 00:14.56`;
-    }
-
-    if (scrubFill) {
-      scrubFill.style.width = `${(currentProgress * 100).toFixed(1)}%`;
-    }
-
-    // Fade scroll prompt once user begins scrolling
-    if (scrollPrompt) {
-      scrollPrompt.style.opacity = currentProgress > 0.06 ? '0' : '1';
-    }
-
-    // Subtle fade of corner brackets as user approaches Details Matter section
-    if (leftBracket && rightBracket) {
-      if (currentProgress > 0.78) {
-        const fade = Math.max(0, 1 - (currentProgress - 0.78) * 4.5);
-        leftBracket.style.opacity = fade.toFixed(2);
-        rightBracket.style.opacity = fade.toFixed(2);
-      } else {
-        leftBracket.style.opacity = '1';
-        rightBracket.style.opacity = '1';
-      }
-    }
-
-    // Seamless parallax on Details Matter jacket visual
-    if (detailsSection && detailsJacket) {
-      const dRect = detailsSection.getBoundingClientRect();
-      if (dRect.top < window.innerHeight && dRect.bottom > 0) {
-        const relY = (window.innerHeight - dRect.top) / (window.innerHeight + dRect.height);
-        const moveY = (relY - 0.5) * 35;
-        detailsJacket.style.transform = `translate3d(0, ${moveY.toFixed(1)}px, 0) scale(1.02)`;
-      }
-    }
-
-    // Continue loop if still animating or in view
-    rafId = requestAnimationFrame(updateLoop);
-  }
-
-  function onScroll() {
-    calculateScroll();
-    if (!isTicking && isVisible) {
-      isTicking = true;
-      rafId = requestAnimationFrame(updateLoop);
-    }
-  }
-
-  window.addEventListener('scroll', onScroll, { passive: true });
-  window.addEventListener('resize', calculateScroll, { passive: true });
-
-  // 5. IntersectionObserver: Pause loop when Hero section is off-screen
-  if ('IntersectionObserver' in window) {
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        isVisible = entry.isIntersecting;
-        if (isVisible) {
-          if (!isTicking) {
-            isTicking = true;
-            calculateScroll();
-            rafId = requestAnimationFrame(updateLoop);
-          }
-        } else {
-          if (rafId) {
-            cancelAnimationFrame(rafId);
-            isTicking = false;
-          }
-        }
-      });
-    }, { threshold: 0.02 });
-
-    observer.observe(heroSection);
-  }
-
-  // 6. Accessibility: Reduced Motion Compliance
-  if (prefersReducedMotion) {
-    if (video) video.currentTime = 0;
-    if (canvas) renderCanvasFrame(0);
-    if (scrubFill) scrubFill.style.width = '0%';
-    return;
-  }
-
-  // Initial calculation and kick-off
-  calculateScroll();
-  isTicking = true;
-  rafId = requestAnimationFrame(updateLoop);
-}
-
-// ==========================================================================
-// INTERACTIVE 3D EXPLODED MATERIAL LAYER STACK
-// ==========================================================================
-const MATERIAL_LAYERS_DATA = {
-  1: {
-    idx: '01',
-    name: 'OUTER SHELL',
-    desc: 'DURABLE 3-LAYER OUTER SHELL THAT REPELS WATER AND PROTECTS AGAINST MONSOON WIND AND RAIN.',
-    specs: [
-      '• 28,000mm HYDROSTATIC WATERPROOF HEAD',
-      '• FLUOROCARBON-FREE BIONIC-FINISH® ECO DWR',
-      '• YKK AQUAGUARD® HIGH-TENACITY ZIPPERS'
-    ]
-  },
-  2: {
-    idx: '02',
-    name: 'BREATHABLE MEMBRANE',
-    desc: 'MICRO-PERFORATED STORMGRID™ MEMBRANE EXPELS HEAT AND INTERNAL MOISTURE VAPOR WHILE PREVENTING WATER INGRESS.',
-    specs: [
-      '• 24,000 g/m²/24h MOISTURE VAPOR PERMEABILITY',
-      '• ULTRASONICALLY WELDED SEAM TAPING',
-      '• TEMPERATURE BUFFERING RANGE: -5°C TO 22°C'
-    ]
-  },
-  3: {
-    idx: '03',
-    name: 'THERMAL INSULATION CORE',
-    desc: 'ADVANCED 800-FILL HYDROPHOBIC DOWN CLUSTERS TRAP ESSENTIAL BODY WARMTH WITHOUT ADDING BULK OR EXCESS WEIGHT.',
-    specs: [
-      '• 800-FILL POWER AEROTHERM™ WATER-RESISTANT DOWN',
-      '• ERGONOMIC BAFFLE ZONING ACROSS CORE ORGANS',
-      '• SUB-ZERO RETENTION TESTED DOWN TO -18°C'
-    ]
-  },
-  4: {
-    idx: '04',
-    name: 'COMFORT INNER LINING',
-    desc: 'ULTRA-SMOOTH ANTI-STATIC RIPSTOP LINING FOR EFFORTLESS ALL-DAY WEAR AND FRICTIONLESS COLD-WEATHER LAYERING.',
-    specs: [
-      '• 100% RECYCLED HIGH-DENSITY SILK-TOUCH NYLON',
-      '• ANTI-MICROBIAL ODOR-CONTROL TREATMENT',
-      '• CONCEALED SECURE PASSPORT & DEVICE SLEEVES'
-    ]
-  }
-};
-
-function setupMaterialExplodedStack() {
-  const plates = $$('.material-layer-plate');
-  const calloutIdx = $('#calloutIdx');
-  const calloutName = $('#calloutName');
-  const calloutDesc = $('#calloutDesc');
-  const calloutSpecs = $('#calloutSpecs');
-  const calloutCard = $('#activeTechCallout');
-  const techSection = $('#technology');
-
-  function activateLayer(layerId) {
-    const data = MATERIAL_LAYERS_DATA[layerId];
-    if (!data) return;
-
-    plates.forEach(p => {
-      p.classList.toggle('active', p.dataset.layer === String(layerId));
-    });
-
-    if (calloutIdx) calloutIdx.textContent = data.idx;
-    if (calloutName) calloutName.textContent = data.name;
-    if (calloutDesc) calloutDesc.textContent = data.desc;
-    if (calloutSpecs) {
-      calloutSpecs.innerHTML = data.specs.map(s => `<div>${s}</div>`).join('');
-    }
-
-    if (calloutCard) {
-      calloutCard.classList.remove('active');
-      void calloutCard.offsetWidth;
-      calloutCard.classList.add('active');
-    }
-  }
-
-  // Click & hover interactions on plates
-  plates.forEach(plate => {
-    plate.addEventListener('click', () => {
-      activateLayer(plate.dataset.layer);
-    });
-    plate.addEventListener('mouseenter', () => {
-      activateLayer(plate.dataset.layer);
+  // 1. Colorway Selection on Featured Product
+  const colorDots = $$('#featuredColorDots .color-dot-btn');
+  const colorLabel = $('#featuredColorLabel');
+  colorDots.forEach(btn => {
+    btn.addEventListener('click', () => {
+      colorDots.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      selectedColor = btn.dataset.color || 'Blaze Orange';
+      if (colorLabel) colorLabel.textContent = selectedColor;
     });
   });
 
-  // Scroll tracking through Technology Section
-  if (!prefersReducedMotion && techSection) {
-    let lastActiveLayer = 1;
-    window.addEventListener('scroll', () => {
-      const rect = techSection.getBoundingClientRect();
-      const h = window.innerHeight;
-      if (rect.top <= h * 0.6 && rect.bottom >= h * 0.2) {
-        const sectionProgress = Math.max(0, Math.min(1, (h * 0.6 - rect.top) / rect.height));
-        let layer = 1;
-        if (sectionProgress > 0.75) layer = 4;
-        else if (sectionProgress > 0.5) layer = 3;
-        else if (sectionProgress > 0.25) layer = 2;
-        else layer = 1;
-
-        if (layer !== lastActiveLayer) {
-          lastActiveLayer = layer;
-          activateLayer(layer);
-        }
-      }
-    }, { passive: true });
-  }
-}
-
-// ==========================================================================
-// SHOWROOM CARDS & INTERACTION CONTROLLER
-// ==========================================================================
-function setupShowroomCardEvents() {
-  // Showroom 4 cards: click card -> open product modal, click add button -> add to cart
-  $$('.showroom-product-card').forEach(card => {
-    card.addEventListener('click', (e) => {
-      const addBtn = e.target.closest('.btn-card-add');
-      if (addBtn) {
-        e.stopPropagation();
-        const id = addBtn.dataset.add;
-        const product = State.products.find(p => p.id === id);
-        if (product) {
-          const img = card.querySelector('img');
-          addToCart(product, null, null, 1, img);
-          addBtn.classList.add('added');
-          const span = addBtn.querySelector('span');
-          if (span) span.textContent = 'ADDED ✓';
-          setTimeout(() => {
-            addBtn.classList.remove('added');
-            if (span) span.textContent = 'QUICK ADD';
-          }, 1200);
-        }
-        return;
-      }
-
-      const productId = card.dataset.id;
-      if (productId) {
-        openProductModal(productId);
-      }
+  // 2. Size Pill Selection on Featured Product
+  const sizePills = $$('#featuredSizePills .featured-size-pill');
+  sizePills.forEach(pill => {
+    pill.addEventListener('click', () => {
+      sizePills.forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+      selectedSize = pill.dataset.size || 'M';
     });
   });
 
-  // Explore the Jacket button (opens flagship jacket in modal)
+  // 3. Featured Add to Cart button (Apex Signal Hi-Vis Shell)
+  const featuredAddBtn = $('#btnFeaturedAdd');
+  if (featuredAddBtn) {
+    featuredAddBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const product = State.products.find(p => p.id === 'apex-blaze-orange');
+      if (product) {
+        const img = $('#featuredProductImg');
+        addToCart(product, selectedSize, selectedColor, 1, img);
+        featuredAddBtn.classList.add('added');
+        const span = featuredAddBtn.querySelector('span');
+        if (span) span.textContent = 'ADDED TO CART ✓';
+        setTimeout(() => {
+          featuredAddBtn.classList.remove('added');
+          if (span) span.textContent = `ADD TO CART — ${inr(product.price)}`;
+        }, 1400);
+      }
+    });
+  }
+
+  // 4. Featured Details button (Opens Apex Signal Hi-Vis Shell Modal)
+  const featuredDetailsBtn = $('#btnFeaturedDetails');
+  if (featuredDetailsBtn) {
+    featuredDetailsBtn.addEventListener('click', () => {
+      openProductModal('apex-blaze-orange');
+    });
+  }
+
+  // 5. Explore the Jacket button (in Details Matter section)
   const btnExplore = $('#btnExploreJacket');
   if (btnExplore) {
     btnExplore.addEventListener('click', () => {
@@ -2707,31 +2316,13 @@ function setupShowroomCardEvents() {
     });
   }
 
-  // Hero Shop Now button
+  // 6. Hero Shop Now button (Scrolls smoothly to catalogue)
   const heroShopBtn = $('#heroShopNowBtn');
   if (heroShopBtn) {
     heroShopBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      const target = $('#collections');
+      const target = $('#catalogue');
       if (target) target.scrollIntoView({ behavior: 'smooth' });
     });
   }
-
-  // View All 24 Jackets button
-  const btnViewAll = $('#btnViewAllJackets');
-  if (btnViewAll) {
-    btnViewAll.addEventListener('click', (e) => {
-      e.preventDefault();
-      const cat = $('#catalogue');
-      if (cat) cat.scrollIntoView({ behavior: 'smooth' });
-    });
-  }
-
-  // FAQ row hover and click highlights
-  $$('.tech-faq-row').forEach(row => {
-    row.addEventListener('click', () => {
-      $$('.tech-faq-row').forEach(r => r.style.backgroundColor = 'transparent');
-      row.style.backgroundColor = 'rgba(225, 92, 29, 0.05)';
-    });
-  });
 }

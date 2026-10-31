@@ -543,34 +543,46 @@ async function runAllTests() {
     return { status: res.status, json, text };
   }
 
-  await testAsync('GET / returns HTML homepage', async () => {
+  await testAsync('GET / returns redesigned clean static HTML homepage without video', async () => {
     const res = await httpReq('/');
     assert.strictEqual(res.status, 200);
     assert.ok(res.text.includes('AgentCart AI'));
-    assert.ok(res.text.includes('Find Your Style. Shop Smarter.'));
-    assert.ok(res.text.includes('id="heroVideo"'), 'Homepage must contain #heroVideo element');
-    assert.ok(res.text.includes('id="heroCanvas"'), 'Homepage must contain #heroCanvas fallback element');
-    assert.ok(res.text.includes('id="heroPosterImg"'), 'Homepage must contain #heroPosterImg instant fallback element');
-    assert.ok(!res.text.includes('<video id="heroVideo" controls'), 'Hero video MUST NOT have native controls');
+    assert.ok(res.text.includes('id="hero"'), 'Homepage must contain clean static #hero');
+    assert.ok(res.text.includes('id="featuredProduct"'), 'Homepage must contain #featuredProduct');
+    assert.ok(res.text.includes('Apex Signal Hi-Vis Shell'), 'Featured product must be Apex Signal Hi-Vis Shell');
+    assert.ok(res.text.includes('id="catalogue"'), 'Homepage must contain #catalogue');
+    assert.ok(res.text.includes('id="aiAssistant"'), 'Homepage must contain #aiAssistant');
+    assert.ok(!res.text.includes('id="reviews"'), 'Reviews section MUST be removed');
+    assert.ok(!res.text.includes('COMMUNITY VALIDATION'), 'Reviews section text MUST be removed');
+    assert.ok(!res.text.includes('PRECISION CRAFTSMANSHIP'), 'PRECISION CRAFTSMANSHIP text MUST be removed');
+    assert.ok(!res.text.includes('28,000mm // 800-FILL'), '28,000mm // 800-FILL text MUST be removed');
+    assert.ok(!res.text.includes('FLAGSHIP EDITION'), 'FLAGSHIP EDITION text MUST be removed');
+    assert.ok(!res.text.includes('TECHNICAL WINDBREAKERS // SAFETY SIGNAL'), 'TECHNICAL WINDBREAKERS // SAFETY SIGNAL text MUST be removed');
+    assert.ok(res.text.includes('id="detailsMatter"'), 'Homepage must contain #detailsMatter');
+    
+    // Strict verification of removed elements per redesign instructions
+    assert.ok(!res.text.includes('id="heroVideo"'), 'Video element #heroVideo MUST be removed');
+    assert.ok(!res.text.includes('id="heroCanvas"'), 'Video canvas fallback #heroCanvas MUST be removed');
+    assert.ok(!res.text.includes('BUILT ON EXPERIENCE'), 'Old promotional slogan MUST be removed');
+    assert.ok(!res.text.includes('WEATHER-RESISTANT. THERMAL INSULATION. OVERSIZED FIT. LIMITED QUANTITY'), 'Old scrolling text MUST be removed');
+    assert.ok(!res.text.includes('WORLDWIDE SHIPPING FAST & SECURE DELIVERY'), 'Old promotional banner MUST be removed');
+    assert.ok(!res.text.includes('id="needToKnow"'), 'Need to Know FAQ section MUST be removed');
   });
 
-  await testAsync('GET /video/manifest.json returns valid scrubbing metadata and 30 frames', async () => {
-    const res = await httpReq('/video/manifest.json');
+  await testAsync('DETAILS MATTER is preserved as the final main content section before footer', async () => {
+    const res = await httpReq('/');
     assert.strictEqual(res.status, 200);
-    assert.strictEqual(res.json.fps, 30);
-    assert.strictEqual(res.json.extracted_frame_count, 30);
-    assert.strictEqual(res.json.frames.length, 30);
-    assert.strictEqual(res.json.video_url, '/video/hero.mp4');
-    assert.ok(res.json.duration > 14);
-  });
-
-  await testAsync('GET /video/hero.mp4 serves video with HTTP range support', async () => {
-    const rangeRes = await originalFetch(`http://localhost:${TEST_PORT}/video/hero.mp4`, {
-      headers: { 'Range': 'bytes=0-1024' }
-    });
-    assert.strictEqual(rangeRes.status, 206, 'Should return HTTP 206 Partial Content for range request');
-    const rangeHeader = rangeRes.headers.get('content-range');
-    assert.ok(rangeHeader && rangeHeader.startsWith('bytes 0-1024/'));
+    const detailsIdx = res.text.indexOf('id="detailsMatter"');
+    const mainEndIdx = res.text.indexOf('</main>');
+    assert.ok(detailsIdx !== -1, 'DETAILS MATTER section must exist');
+    assert.ok(detailsIdx < mainEndIdx, 'DETAILS MATTER must be inside <main>');
+    
+    // Ensure no other sections follow detailsMatter in main
+    const afterDetails = res.text.substring(detailsIdx, mainEndIdx);
+    assert.ok(!afterDetails.includes('<section class='), 'No other section may appear between DETAILS MATTER and </main>');
+    assert.ok(res.text.includes('assets/images/jackets/cyber-shell-black.png'), 'Must preserve cyber-shell-black.png');
+    assert.ok(res.text.includes('01'), 'Must have numbered spec indicator 01');
+    assert.ok(res.text.includes('05'), 'Must have numbered spec indicator 05');
   });
 
   await testAsync('GET /api/config returns config, verified currency, and NEVER leaks PAYPAL_CLIENT_SECRET', async () => {

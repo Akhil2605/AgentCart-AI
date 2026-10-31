@@ -868,7 +868,8 @@ app.post('/api/admin/returns/:id/refund', requireAdminAuth, refundLimiter, async
       success: true,
       message: `Refund of $${refundUsd.toFixed(2)} USD successfully processed via PayPal Sandbox.`,
       paypal_result: paypalResult,
-      refund: refundRecord
+      refund: refundRecord,
+      return_request: db.getReturnById(ret.id)
     });
   } catch (err) {
     console.error('Admin refund error:', err.message);

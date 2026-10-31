@@ -102,6 +102,19 @@ function setupMockPayPalSandbox(options = {}) {
       });
     }
 
+    // 4. PayPal Captures API (Refund)
+    if (urlStr.includes('/refund')) {
+      const mockRefundId = 'REF-PP-' + Date.now();
+      return new Response(JSON.stringify({
+        id: mockRefundId,
+        status: 'COMPLETED',
+        amount: { currency_code: 'USD', value: '25.00' }
+      }), { 
+        status: 201, 
+        headers: { 'Content-Type': 'application/json', 'paypal-debug-id': 'DBG-REF-' + Date.now() } 
+      });
+    }
+
     return originalFetch(url, init);
   };
 }
@@ -112,6 +125,7 @@ function restoreFetch() {
 
 async function runAllTests() {
   console.log('🧪 Starting AgentCart AI Test Suite...\n');
+  db.resetCatalogInventory();
   let passed = 0;
   let total = 0;
 
@@ -531,16 +545,16 @@ async function runAllTests() {
     const s = app.listen(TEST_PORT, () => resolve(s));
   });
 
-  async function httpReq(path, method = 'GET', body = null) {
+  async function httpReq(path, method = 'GET', body = null, customHeaders = {}) {
     const res = await originalFetch(`http://localhost:${TEST_PORT}${path}`, {
       method,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...customHeaders },
       body: body ? JSON.stringify(body) : null
     });
     const text = await res.text();
     let json = null;
     try { json = JSON.parse(text); } catch (e) {}
-    return { status: res.status, json, text };
+    return { status: res.status, json, text, headers: res.headers };
   }
 
   await testAsync('GET / returns redesigned clean static HTML homepage without video', async () => {
@@ -548,10 +562,12 @@ async function runAllTests() {
     assert.strictEqual(res.status, 200);
     assert.ok(res.text.includes('AgentCart AI'));
     assert.ok(res.text.includes('id="hero"'), 'Homepage must contain clean static #hero');
-    assert.ok(res.text.includes('id="featuredProduct"'), 'Homepage must contain #featuredProduct');
-    assert.ok(res.text.includes('Apex Signal Hi-Vis Shell'), 'Featured product must be Apex Signal Hi-Vis Shell');
+    assert.ok(!res.text.includes('id="featuredProduct"'), 'Featured product box #featuredProduct MUST be removed per instructions');
+    assert.ok(!res.text.includes('VIEW FEATURED SHELL'), 'VIEW FEATURED SHELL hero button MUST be removed per instructions');
+    assert.ok(!res.text.includes('id="aiAssistant"'), 'AI Assistant section #aiAssistant MUST be removed per instructions');
+    assert.ok(!res.text.includes('ASK AI STYLIST'), 'ASK AI STYLIST hero button MUST be removed per instructions');
     assert.ok(res.text.includes('id="catalogue"'), 'Homepage must contain #catalogue');
-    assert.ok(res.text.includes('id="aiAssistant"'), 'Homepage must contain #aiAssistant');
+    assert.ok(res.text.includes('id="productGrid"'), 'Catalogue must contain dynamic #productGrid container');
     assert.ok(!res.text.includes('id="reviews"'), 'Reviews section MUST be removed');
     assert.ok(!res.text.includes('COMMUNITY VALIDATION'), 'Reviews section text MUST be removed');
     assert.ok(!res.text.includes('PRECISION CRAFTSMANSHIP'), 'PRECISION CRAFTSMANSHIP text MUST be removed');
@@ -933,8 +949,285 @@ async function runAllTests() {
     }
   });
 
+  // --- 7. Security Hardening & Headers Tests ---
+  console.log('\n🔒 Testing Security Hardening & Headers:');
+
+  await testAsync('Security headers are present on all HTTP responses', async () => {
+    const res = await httpReq('/');
+    assert.strictEqual(res.status, 200);
+    assert.strictEqual(res.headers.get('x-content-type-options'), 'nosniff');
+    assert.strictEqual(res.headers.get('x-frame-options'), 'SAMEORIGIN');
+    assert.strictEqual(res.headers.get('referrer-policy'), 'strict-origin-when-cross-origin');
+    assert.ok(res.headers.get('content-security-policy'), 'Content-Security-Policy header must exist');
+  });
+
+  // --- 8. Wishlist / Save for Later Tests ---
+  console.log('\n💖 Testing Wishlist / Save for Later Engine:');
+
+  await testAsync('Wishlist lifecycle: toggle add, retrieve full product data, toggle remove', async () => {
+    // 1. Initial wishlist
+    const getRes1 = await httpReq('/api/wishlist');
+    assert.strictEqual(getRes1.status, 200);
+    assert.ok(Array.isArray(getRes1.json.items));
+
+    // 2. Add product to wishlist
+    const addRes = await httpReq('/api/wishlist/toggle', 'POST', { product_id: 'cyber-shell-black' });
+    assert.strictEqual(addRes.status, 200);
+    assert.strictEqual(addRes.json.in_wishlist, true);
+
+    // 3. Verify in wishlist
+    const getRes2 = await httpReq('/api/wishlist');
+    assert.strictEqual(getRes2.status, 200);
+    const item = getRes2.json.items.find(i => i.id === 'cyber-shell-black');
+    assert.ok(item, 'Item must be in wishlist');
+    assert.strictEqual(item.name, 'CyberShell Pro Stormbreaker');
+    assert.ok(item.price > 0);
+
+    // 4. Duplicate toggle removes item
+    const toggleOffRes = await httpReq('/api/wishlist/toggle', 'POST', { product_id: 'cyber-shell-black' });
+    assert.strictEqual(toggleOffRes.status, 200);
+    assert.strictEqual(toggleOffRes.json.in_wishlist, false);
+
+    // 5. Explicit DELETE endpoint also works
+    await httpReq('/api/wishlist/toggle', 'POST', { product_id: 'cyber-shell-black' });
+    const delRes = await httpReq('/api/wishlist/cyber-shell-black', 'DELETE');
+    assert.strictEqual(delRes.status, 200);
+    assert.strictEqual(delRes.json.success, true);
+
+    const getRes3 = await httpReq('/api/wishlist');
+    assert.ok(!getRes3.json.items.some(i => i.id === 'cyber-shell-black'), 'Item must be removed from wishlist');
+  });
+
+  // --- 9. In-App Verified Notifications Tests ---
+  console.log('\n🔔 Testing In-App Verified Notifications:');
+
+  await testAsync('Notifications lifecycle: retrieve, mark read, mark all read', async () => {
+    // 1. Trigger notification via order or direct DB notification
+    db.createNotification('user_akhil', {
+      order_id: 'ORD-TEST-NOTIF',
+      type: 'ORDER_PLACED',
+      title: 'Test Notification',
+      message: 'Your automated test notification is ready.'
+    });
+
+    const notifRes = await httpReq('/api/notifications');
+    assert.strictEqual(notifRes.status, 200);
+    assert.ok(Array.isArray(notifRes.json.notifications));
+    assert.ok(notifRes.json.unread_count >= 1);
+
+    const testNotif = notifRes.json.notifications.find(n => n.title === 'Test Notification');
+    assert.ok(testNotif, 'Created notification must appear');
+
+    // 2. Mark specific notification as read
+    const readRes = await httpReq(`/api/notifications/${testNotif.id}/read`, 'POST');
+    assert.strictEqual(readRes.status, 200);
+    assert.strictEqual(readRes.json.success, true);
+
+    // 3. Mark all read
+    const readAllRes = await httpReq('/api/notifications/read-all', 'POST');
+    assert.strictEqual(readAllRes.status, 200);
+    assert.strictEqual(readAllRes.json.unread_count, 0);
+  });
+
+  // --- 10. Admin Authentication, RBAC, and Protected Endpoints ---
+  console.log('\n🛡️ Testing Admin Authentication & RBAC:');
+
+  let adminSessionToken = null;
+
+  await testAsync('Admin login rejects invalid credentials with 401', async () => {
+    const res = await httpReq('/api/admin/login', 'POST', {
+      username: 'admin',
+      password: 'WrongPassword123!'
+    });
+    assert.strictEqual(res.status, 401);
+    assert.strictEqual(res.json.success, false);
+  });
+
+  await testAsync('Admin login accepts valid credentials and issues session token', async () => {
+    const res = await httpReq('/api/admin/login', 'POST', {
+      username: 'admin',
+      password: process.env.ADMIN_PASSWORD || 'Admin@AgentCart2026!'
+    });
+    assert.strictEqual(res.status, 200);
+    assert.strictEqual(res.json.success, true);
+    assert.ok(res.json.token, 'Session token must be issued');
+    assert.strictEqual(res.json.admin.role, 'admin');
+    adminSessionToken = res.json.token;
+  });
+
+  await testAsync('Admin protected endpoints reject unauthenticated requests', async () => {
+    const res1 = await httpReq('/api/admin/stats');
+    assert.strictEqual(res1.status, 401);
+
+    const res2 = await httpReq('/api/admin/products');
+    assert.strictEqual(res2.status, 401);
+
+    const res3 = await httpReq('/api/admin/orders');
+    assert.strictEqual(res3.status, 401);
+  });
+
+  await testAsync('Admin protected endpoints succeed with Bearer session token', async () => {
+    const res = await httpReq('/api/admin/stats', 'GET', null, {
+      'Authorization': `Bearer ${adminSessionToken}`
+    });
+    assert.strictEqual(res.status, 200);
+    assert.ok(res.json.stats);
+    assert.strictEqual(typeof res.json.stats.total_orders, 'number');
+    assert.strictEqual(typeof res.json.stats.low_stock_count, 'number');
+  });
+
+  // --- 11. Admin Product & Inventory Management ---
+  console.log('\n📦 Testing Admin Inventory & Product Management:');
+
+  await testAsync('Admin can toggle product active status (deactivation hides from customer catalog)', async () => {
+    // 1. Deactivate cyber-shell-black
+    const toggleRes1 = await httpReq('/api/admin/products/cyber-shell-black/toggle-active', 'POST', {}, {
+      'Authorization': `Bearer ${adminSessionToken}`
+    });
+    assert.strictEqual(toggleRes1.status, 200);
+    assert.strictEqual(toggleRes1.json.is_active, false);
+
+    // Customer catalog should now only have 23 active products
+    const customerProds1 = await httpReq('/api/products');
+    assert.strictEqual(customerProds1.json.count, 23);
+    assert.ok(!customerProds1.json.products.some(p => p.id === 'cyber-shell-black'));
+
+    // 2. Reactivate cyber-shell-black
+    const toggleRes2 = await httpReq('/api/admin/products/cyber-shell-black/toggle-active', 'POST', {}, {
+      'Authorization': `Bearer ${adminSessionToken}`
+    });
+    assert.strictEqual(toggleRes2.status, 200);
+    assert.strictEqual(toggleRes2.json.is_active, true);
+
+    // Customer catalog back to 24 products
+    const customerProds2 = await httpReq('/api/products');
+    assert.strictEqual(customerProds2.json.count, 24);
+  });
+
+  await testAsync('Admin can adjust variant stock level', async () => {
+    const stockRes = await httpReq('/api/admin/products/stock', 'POST', {
+      variant_id: 1,
+      stock: 25
+    }, {
+      'Authorization': `Bearer ${adminSessionToken}`
+    });
+    assert.strictEqual(stockRes.status, 200);
+    assert.strictEqual(stockRes.json.variant.stock, 25);
+  });
+
+  // --- 12. Return & Refund Workflow with PayPal Sandbox ---
+  console.log('\n🔄 Testing Customer Return & PayPal Refund Workflow:');
+
+  await testAsync('Complete return lifecycle: request -> approve -> receive & restock -> PayPal Sandbox refund', async () => {
+    setupMockPayPalSandbox();
+    try {
+      // 1. Create and capture a test order
+      const createOrderRes = await httpReq('/api/paypal/create-order', 'POST', {
+        items: [{ id: 'apex-blaze-orange', size: 'M', color: 'Blaze Orange', quantity: 1 }],
+        shipping_address: {
+          name: 'Refund Test User',
+          email: 'buyer@global.example.com',
+          address: '456 Tech Parkway',
+          city: 'San Francisco',
+          state: 'CA',
+          postal_code: '94105',
+          country: 'United States'
+        }
+      });
+      assert.strictEqual(createOrderRes.status, 200);
+      const testOrderId = createOrderRes.json.order_id;
+      const paypalOrderId = createOrderRes.json.paypal_order_id;
+
+      // Check stock before capture
+      const prodBefore = db.getProductById('apex-blaze-orange');
+      const sizeVariantBefore = prodBefore.variants.find(v => v.size === 'M');
+      const stockBeforeCapture = sizeVariantBefore.stock;
+
+      // Capture payment
+      const captureRes = await httpReq('/api/paypal/capture-order', 'POST', {
+        order_id: testOrderId,
+        paypal_order_id: paypalOrderId
+      });
+      assert.strictEqual(captureRes.status, 200);
+      assert.strictEqual(captureRes.json.order.status, 'PAID');
+
+      // Verify stock was deducted upon capture
+      const prodAfterCapture = db.getProductById('apex-blaze-orange');
+      const sizeVariantAfterCapture = prodAfterCapture.variants.find(v => v.size === 'M');
+      assert.strictEqual(sizeVariantAfterCapture.stock, stockBeforeCapture - 1);
+
+      // Verify customer total spent increased
+      const statsAfterPay = await httpReq('/api/profile');
+      assert.ok(statsAfterPay.json.stats.total_spent_inr > 0);
+      const spentBeforeRefund = statsAfterPay.json.stats.total_spent_inr;
+
+      // 2. Customer submits return request
+      const returnReqRes = await httpReq('/api/returns/request', 'POST', {
+        order_id: testOrderId,
+        product_id: 'apex-blaze-orange',
+        size: 'M',
+        quantity: 1,
+        reason: 'Sizing too large for athletic fit',
+        comments: 'Item unopened with tags attached.'
+      });
+      assert.strictEqual(returnReqRes.status, 200);
+      assert.strictEqual(returnReqRes.json.success, true);
+      const returnId = returnReqRes.json.return_request.id;
+      assert.strictEqual(returnReqRes.json.return_request.status, 'REQUESTED');
+
+      // 3. Admin views return request
+      const adminReturnsRes = await httpReq('/api/admin/returns', 'GET', null, {
+        'Authorization': `Bearer ${adminSessionToken}`
+      });
+      assert.strictEqual(adminReturnsRes.status, 200);
+      assert.ok(adminReturnsRes.json.returns.some(r => r.id === returnId));
+
+      // 4. Admin approves return request
+      const approveRes = await httpReq(`/api/admin/returns/${returnId}/approve`, 'POST', {
+        admin_notes: 'Approved for return inspection.'
+      }, {
+        'Authorization': `Bearer ${adminSessionToken}`
+      });
+      assert.strictEqual(approveRes.status, 200);
+      assert.strictEqual(approveRes.json.return_request.status, 'APPROVED');
+
+      // 5. Admin marks package received -> triggers verified restock!
+      const receiveRes = await httpReq(`/api/admin/returns/${returnId}/receive`, 'POST', {}, {
+        'Authorization': `Bearer ${adminSessionToken}`
+      });
+      assert.strictEqual(receiveRes.status, 200);
+      assert.strictEqual(receiveRes.json.return_request.status, 'RECEIVED');
+
+      // Verify inventory was restored!
+      const prodAfterRestock = db.getProductById('apex-blaze-orange');
+      const sizeVariantAfterRestock = prodAfterRestock.variants.find(v => v.size === 'M');
+      assert.strictEqual(sizeVariantAfterRestock.stock, stockBeforeCapture, 'Stock must be safely restocked');
+
+      // 6. Admin executes PayPal Sandbox refund
+      const refundRes = await httpReq(`/api/admin/returns/${returnId}/refund`, 'POST', {
+        reason: 'Authorized return customer refund'
+      }, {
+        'Authorization': `Bearer ${adminSessionToken}`
+      });
+      assert.strictEqual(refundRes.status, 200);
+      assert.strictEqual(refundRes.json.success, true);
+      assert.strictEqual(refundRes.json.return_request.status, 'REFUNDED');
+      assert.ok(refundRes.json.refund.id);
+
+      // 7. Verify customer total spent is updated to deduct refunded amount
+      const statsAfterRefund = await httpReq('/api/profile');
+      const expectedNetInr = Math.max(0, spentBeforeRefund - refundRes.json.refund.inr_amount);
+      assert.strictEqual(statsAfterRefund.json.stats.total_spent_inr, expectedNetInr);
+      const expectedNetUsd = Math.max(0, Number((statsAfterPay.json.stats.total_spent_usd - refundRes.json.refund.amount).toFixed(2)));
+      assert.strictEqual(statsAfterRefund.json.stats.total_spent_usd, expectedNetUsd);
+    } finally {
+      restoreFetch();
+    }
+  });
+
   await testAsync('Final clean reset sets all dashboard statistics back to zero', async () => {
     const resetRes = await httpReq('/api/orders/reset', 'POST');
+    db.resetCatalogInventory();
     assert.strictEqual(resetRes.status, 200);
     assert.strictEqual(resetRes.json.stats.total_orders, 0);
     assert.strictEqual(resetRes.json.stats.active_orders, 0);

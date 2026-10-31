@@ -338,6 +338,33 @@ function seedIfEmpty() {
   }
 }
 
+function resetCatalogInventory() {
+  const db = getDb();
+  const catalog = JSON.parse(fs.readFileSync(CATALOG_PATH, 'utf-8'));
+  const updateVariant = db.prepare(`
+    UPDATE product_variants 
+    SET stock = ? 
+    WHERE product_id = ? AND size = ? AND color_name = ?
+  `);
+  
+  db.exec('BEGIN TRANSACTION');
+  try {
+    for (const p of catalog) {
+      for (const sizeObj of p.sizes) {
+        for (const col of p.colors) {
+          updateVariant.run(sizeObj.stock, p.id, sizeObj.size, col.name);
+        }
+      }
+    }
+    db.prepare('UPDATE products SET is_active = 1').run();
+    db.exec('COMMIT');
+    console.log('[SQLite] All 24 catalog jacket inventory stocks and active statuses reset to catalog baseline.');
+  } catch (err) {
+    db.exec('ROLLBACK');
+    console.error('Error resetting catalog inventory:', err.message);
+  }
+}
+
 // ============================================================================
 // PRODUCT RETRIEVAL & FILTERING
 // ============================================================================
@@ -1093,16 +1120,29 @@ function checkOrderStockAvailable(items) {
       throw new Error(`Product not found in catalog: ${it.id}`);
     }
 
-    const variant = db.prepare(`
-      SELECT * FROM product_variants 
-      WHERE product_id = ? AND size = ? 
-      LIMIT 1
-    `).get(it.id, size);
+    let variant = null;
+    if (it.color) {
+      variant = db.prepare(`
+        SELECT * FROM product_variants 
+        WHERE product_id = ? AND size = ? AND (color_name = ? OR color_name LIKE ?)
+        LIMIT 1
+      `).get(it.id, size, it.color, `%${it.color}%`);
+    }
 
-    if (!variant || variant.stock < qty) {
-      const name = prod.name;
-      const available = variant ? variant.stock : 0;
-      throw new Error(`Insufficient inventory: "${name}" (Size ${size}) only has ${available} units available (requested ${qty}).`);
+    if (variant) {
+      if (variant.stock < qty) {
+        throw new Error(`Insufficient inventory: "${prod.name}" (Size ${size}, Color: ${variant.color_name}) only has ${variant.stock} units available (requested ${qty}).`);
+      }
+    } else {
+      const variantsForSize = db.prepare(`
+        SELECT * FROM product_variants 
+        WHERE product_id = ? AND size = ?
+      `).all(it.id, size);
+
+      const totalStock = variantsForSize.reduce((acc, curr) => acc + curr.stock, 0);
+      if (variantsForSize.length === 0 || totalStock < qty) {
+        throw new Error(`Insufficient inventory: "${prod.name}" (Size ${size}) only has ${totalStock} units available (requested ${qty}).`);
+      }
     }
   }
   return true;
@@ -1122,24 +1162,36 @@ function deductOrderStock(orderId) {
   try {
     for (const item of order.items) {
       const size = item.size || 'M';
-      // Find best matching variant (by size and color if possible, or size)
-      let variant = db.prepare(`
-        SELECT id, stock FROM product_variants 
-        WHERE product_id = ? AND size = ? AND color_name = ?
-      `).get(item.product_id, size, item.color);
-
-      if (!variant) {
+      let variant = null;
+      if (item.color) {
         variant = db.prepare(`
-          SELECT id, stock FROM product_variants 
-          WHERE product_id = ? AND size = ?
+          SELECT id, stock, color_name FROM product_variants 
+          WHERE product_id = ? AND size = ? AND (color_name = ? OR color_name LIKE ?)
           LIMIT 1
-        `).get(item.product_id, size);
+        `).get(item.product_id, size, item.color, `%${item.color}%`);
+      }
+
+      if (!variant || variant.stock < item.quantity) {
+        // Fallback to variant with sufficient stock
+        variant = db.prepare(`
+          SELECT id, stock, color_name FROM product_variants 
+          WHERE product_id = ? AND size = ? AND stock >= ?
+          LIMIT 1
+        `).get(item.product_id, size, item.quantity);
+
+        if (!variant) {
+          variant = db.prepare(`
+            SELECT id, stock, color_name FROM product_variants 
+            WHERE product_id = ? AND size = ?
+            LIMIT 1
+          `).get(item.product_id, size);
+        }
       }
 
       if (variant) {
         const newStock = Math.max(0, variant.stock - item.quantity);
         db.prepare('UPDATE product_variants SET stock = ? WHERE id = ?').run(newStock, variant.id);
-        console.log(`[Inventory] Deducted ${item.quantity} units for ${item.product_name} (${size}). New stock: ${newStock}`);
+        console.log(`[Inventory] Deducted ${item.quantity} units for ${item.product_name} (${size}, ${variant.color_name}). New stock: ${newStock}`);
       }
     }
 
@@ -1649,6 +1701,7 @@ module.exports = {
   checkOrderStockAvailable,
   deductOrderStock,
   restockReturnItems,
+  resetCatalogInventory,
   // Wishlist
   getUserWishlist,
   isInWishlist,

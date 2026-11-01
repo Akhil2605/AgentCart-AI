@@ -54,11 +54,13 @@ function securityHeaders(req, res, next) {
   res.setHeader(
     'Content-Security-Policy',
     "default-src 'self'; " +
-    "script-src 'self' 'unsafe-inline' https://www.paypal.com https://*.paypal.com; " +
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
-    "font-src 'self' https://fonts.gstatic.com; " +
-    "img-src 'self' data: blob: https://*.paypal.com; " +
-    "connect-src 'self' blob: https://api-m.sandbox.paypal.com https://*.paypal.com https://generativelanguage.googleapis.com;"
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.paypal.com https://*.paypal.com https://*.paypalobjects.com https://www.paypalobjects.com https://*.sandbox.paypal.com; " +
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.paypal.com https://*.paypalobjects.com https://*.sandbox.paypal.com; " +
+    "font-src 'self' https://fonts.gstatic.com https://*.paypalobjects.com; " +
+    "img-src 'self' data: blob: https://*.paypal.com https://*.paypalobjects.com https://www.paypalobjects.com https://*.sandbox.paypal.com https://objects.paypal.com; " +
+    "frame-src 'self' https://*.paypal.com https://*.sandbox.paypal.com https://*.paypalobjects.com; " +
+    "child-src 'self' blob: https://*.paypal.com https://*.sandbox.paypal.com; " +
+    "connect-src 'self' blob: https://api-m.sandbox.paypal.com https://api.sandbox.paypal.com https://api-m.paypal.com https://*.paypal.com https://*.paypalobjects.com https://*.sandbox.paypal.com https://generativelanguage.googleapis.com;"
   );
   next();
 }

@@ -217,7 +217,7 @@ async function createPayPalSandboxOrder(order) {
         items: paypalItems
       }
     ],
-    payer: (order.customer_email && order.customer_email.includes('@')) ? {
+    payer: (order.customer_email && order.customer_email.includes('@') && !order.customer_email.endsWith('@agentcart.ai')) ? {
       email_address: order.customer_email
     } : undefined,
     payment_source: {
@@ -270,6 +270,9 @@ async function createPayPalSandboxOrder(order) {
     payer_email: order.customer_email
   });
 
+  const approveLink = (paypalData.links || []).find(l => l.rel === 'approve' || l.rel === 'payer-action')?.href 
+    || `https://www.sandbox.paypal.com/checkoutnow?token=${paypalData.id}`;
+
   return {
     success: true,
     is_configured: true,
@@ -277,6 +280,7 @@ async function createPayPalSandboxOrder(order) {
     order_id: order.id,
     charged_amount: chargedAmountNum,
     charged_currency: currency,
+    approve_url: approveLink,
     order: db.getOrderById(order.id)
   };
 }

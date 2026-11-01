@@ -64,7 +64,14 @@ function setupMockPayPalSandbox(options = {}) {
         id: mockOrderId,
         status: 'CREATED',
         intent: payload.intent || 'CAPTURE',
-        purchase_units: payload.purchase_units || []
+        purchase_units: payload.purchase_units || [],
+        links: [
+          {
+            href: `https://www.sandbox.paypal.com/checkoutnow?token=${mockOrderId}`,
+            rel: 'approve',
+            method: 'GET'
+          }
+        ]
       }), { 
         status: 201, 
         headers: { 'Content-Type': 'application/json', 'paypal-debug-id': 'DBG-ORD-' + Date.now() } 
@@ -944,6 +951,9 @@ async function runAllTests() {
       assert.strictEqual(res.status, 200);
       assert.strictEqual(res.json.charged_currency, 'USD');
       assert.ok(res.json.charged_amount > 0);
+      assert.ok(res.json.paypal_order_id, 'PayPal order ID must be generated');
+      assert.ok(res.json.approve_url, 'approve_url must be generated');
+      assert.ok(res.json.approve_url.includes('checkoutnow?token='), 'approve_url must link to PayPal checkout');
     } finally {
       restoreFetch();
     }
@@ -1220,6 +1230,94 @@ async function runAllTests() {
       assert.strictEqual(statsAfterRefund.json.stats.total_spent_inr, expectedNetInr);
       const expectedNetUsd = Math.max(0, Number((statsAfterPay.json.stats.total_spent_usd - refundRes.json.refund.amount).toFixed(2)));
       assert.strictEqual(statsAfterRefund.json.stats.total_spent_usd, expectedNetUsd);
+    } finally {
+      restoreFetch();
+    }
+  });
+
+  await testAsync('Time-based tiered return policy: immediate 0% fee vs late 15% restocking cut vs extended 25% cut', async () => {
+    setupMockPayPalSandbox();
+    try {
+      // 1. Create a paid order for testing return deductions
+      const orderRes = await httpReq('/api/paypal/create-order', 'POST', {
+        items: [{ id: 'cyber-shell-black', size: 'M', color: 'Onyx & Electric Blue', quantity: 1 }],
+        shipping_address: {
+          name: 'Tier Policy User',
+          email: 'tier@example.com',
+          address: '505 Tech Blvd',
+          city: 'Seattle',
+          state: 'WA',
+          postal_code: '98101',
+          country: 'United States'
+        }
+      });
+      assert.strictEqual(orderRes.status, 200);
+      const testOrderId = orderRes.json.order_id;
+      const paypalOrderId = orderRes.json.paypal_order_id;
+
+      // Capture payment
+      const capRes = await httpReq('/api/paypal/capture-order', 'POST', {
+        order_id: testOrderId,
+        paypal_order_id: paypalOrderId
+      });
+      assert.strictEqual(capRes.status, 200);
+      assert.strictEqual(capRes.json.order.status, 'PAID');
+
+      // 2. Query policy estimate for 0 days (Immediate Guarantee) -> 0% cut
+      const est0 = await httpReq(`/api/returns/policy-estimate?order_id=${testOrderId}&days_elapsed=0`);
+      assert.strictEqual(est0.status, 200);
+      assert.strictEqual(est0.json.policy_tier, 'IMMEDIATE_FULL');
+      assert.strictEqual(est0.json.deduction_rate, 0);
+      assert.strictEqual(est0.json.deduction_fee_inr, 0);
+      assert.strictEqual(est0.json.refund_amount_inr, est0.json.gross_inr);
+
+      // 3. Query policy estimate for 4 days (Late Restocking Fee) -> 15% cut
+      const est4 = await httpReq(`/api/returns/policy-estimate?order_id=${testOrderId}&days_elapsed=4`);
+      assert.strictEqual(est4.status, 200);
+      assert.strictEqual(est4.json.policy_tier, 'LATE_RESTOCKING_FEE');
+      assert.strictEqual(est4.json.deduction_rate, 0.15);
+      const expectedCut = Math.round(est4.json.gross_inr * 0.15);
+      assert.strictEqual(est4.json.deduction_fee_inr, expectedCut);
+      assert.strictEqual(est4.json.refund_amount_inr, est4.json.gross_inr - expectedCut);
+
+      // 4. Query policy estimate for 10 days (Extended Restocking Fee) -> 25% cut
+      const est10 = await httpReq(`/api/returns/policy-estimate?order_id=${testOrderId}&days_elapsed=10`);
+      assert.strictEqual(est10.status, 200);
+      assert.strictEqual(est10.json.policy_tier, 'EXTENDED_RESTOCKING_FEE');
+      assert.strictEqual(est10.json.deduction_rate, 0.25);
+
+      // 5. Submit return request simulated at 4 days elapsed
+      const retReq = await httpReq('/api/returns/request', 'POST', {
+        order_id: testOrderId,
+        product_id: 'cyber-shell-black',
+        size: 'M',
+        color: 'Onyx & Electric Blue',
+        quantity: 1,
+        reason: 'Late return fit evaluation',
+        description: 'Returning item 4 days after order placement',
+        days_elapsed: 4
+      });
+      assert.strictEqual(retReq.status, 200);
+      assert.strictEqual(retReq.json.return_request.deduction_rate, 0.15);
+      assert.strictEqual(retReq.json.return_request.deduction_fee_inr, expectedCut);
+
+      // 6. Admin approves return -> credits net refund to wallet
+      const returnId = retReq.json.return_request.id;
+      const appRes = await httpReq(`/api/admin/returns/${returnId}/approve`, 'POST', {
+        admin_note: 'Approved with 15% restocking fee deduction applied'
+      }, {
+        'Authorization': `Bearer ${adminSessionToken}`
+      });
+      assert.strictEqual(appRes.status, 200);
+      assert.strictEqual(appRes.json.return_request.status, 'APPROVED');
+
+      // Verify wallet credit reflects net refund (gross minus 15% cut)
+      const userReturns = await httpReq('/api/returns');
+      assert.strictEqual(userReturns.status, 200);
+      const submittedReturn = userReturns.json.returns.find(r => r.id === returnId);
+      assert.ok(submittedReturn);
+      assert.strictEqual(submittedReturn.deduction_fee_inr, expectedCut);
+      assert.strictEqual(submittedReturn.refund_amount_inr, est4.json.gross_inr - expectedCut);
     } finally {
       restoreFetch();
     }

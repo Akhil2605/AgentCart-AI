@@ -503,10 +503,34 @@ app.get('/api/returns', (req, res) => {
   }
 });
 
+// GET /api/returns/policy-estimate - get return policy tier, fee deduction, and refund estimate
+app.get('/api/returns/policy-estimate', (req, res) => {
+  try {
+    const { order_id, days_elapsed } = req.query;
+    if (!order_id) return res.status(400).json({ success: false, error: 'order_id is required' });
+
+    const order = db.getOrderById(order_id);
+    if (!order) return res.status(404).json({ success: false, error: 'Order not found' });
+
+    const breakdown = db.calculateReturnRefundBreakdown(
+      order.created_at,
+      order.total_amount,
+      order.charged_amount,
+      order.exchange_rate || 85.0,
+      days_elapsed !== undefined && days_elapsed !== '' ? Number(days_elapsed) : null
+    );
+
+    res.json({ success: true, order_id: order.id, ...breakdown, breakdown });
+  } catch (err) {
+    console.error('Policy estimate error:', err.message);
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
 // POST /api/returns/request — request a return for an order item
 app.post('/api/returns/request', (req, res) => {
   try {
-    const { order_id, product_id, product_name, size, color, quantity, reason, description } = req.body;
+    const { order_id, product_id, product_name, size, color, quantity, reason, description, days_elapsed } = req.body;
     if (!order_id || !reason) {
       return res.status(400).json({ success: false, error: 'order_id and return reason are required.' });
     }
@@ -520,7 +544,8 @@ app.post('/api/returns/request', (req, res) => {
       color,
       quantity: quantity || 1,
       reason,
-      description
+      description,
+      days_elapsed: days_elapsed !== undefined ? Number(days_elapsed) : null
     });
 
     res.json({
@@ -840,9 +865,11 @@ app.post('/api/admin/returns/:id/refund', requireAdminAuth, refundLimiter, async
       return res.status(400).json({ success: false, error: 'No capture or transaction ID found for this order to refund.' });
     }
 
-    // Determine refund amount in USD and INR
-    const refundUsd = req.body.amount ? Number(req.body.amount) : (order.charged_amount || Number((order.total_amount / 85).toFixed(2)));
-    const refundInr = Number((refundUsd * (order.exchange_rate || 85)).toFixed(0));
+    // Determine refund amount in USD and INR (taking into account tiered fee deduction if present)
+    const refundUsd = req.body.amount
+      ? Number(req.body.amount)
+      : (ret.refund_amount_usd || order.charged_amount || Number((order.total_amount / 85).toFixed(2)));
+    const refundInr = ret.refund_amount_inr || Number((refundUsd * (order.exchange_rate || 85)).toFixed(0));
     const currency = order.charged_currency || 'USD';
     const reason = req.body.reason || `Refund for return ${ret.id}: ${ret.reason}`;
 
@@ -894,6 +921,12 @@ process.on('unhandledRejection', (reason, promise) => {
 // Start server if run directly
 let server = null;
 if (require.main === module) {
+  try {
+    db.ensureSampleReturnOrder();
+  } catch (err) {
+    console.error('Error ensuring sample return order:', err.message);
+  }
+
   server = app.listen(PORT, () => {
     console.log(`⚡ AgentCart AI Server running at http://localhost:${PORT}`);
     console.log(`📦 SQLite database ready with 24 technical jackets`);

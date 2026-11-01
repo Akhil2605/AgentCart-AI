@@ -34,6 +34,9 @@ const State = {
   selectedModalSize: null,
   selectedModalColor: null,
   modalQty: 1,
+  isAiChatOpen: false,
+  aiConversationHistory: [],
+  isAiResponding: false,
   adminToken: sessionStorage.getItem('agentcart_admin_token') || null,
   isAdmin: false,
   admin: null
@@ -72,8 +75,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupNotificationsListeners();
   setupPortalAndAdminListeners();
   setupPayPal();
+  await checkForPayPalReturnRedirect();
   initScramblerElements();
   setupShowroomEvents();
+  setupAiAssistantListeners();
   if (typeof window.initJacketViewer === 'function') {
     window.heroJacketViewer = window.initJacketViewer('#heroJacketContainer');
   }
@@ -593,6 +598,34 @@ async function fetchReturns() {
         month: 'short', day: 'numeric', year: 'numeric'
       }) : 'Recent';
       const statusClass = (ret.status || 'REQUESTED').toLowerCase();
+      const isApprovedOrRefunded = ret.status === 'APPROVED' || ret.status === 'RECEIVED' || ret.status === 'REFUNDED';
+      const refInr = ret.refund_amount_inr || ret.refund_inr || ret.total_amount || 2049;
+      const refUsd = ret.refund_amount_usd ? Number(ret.refund_amount_usd).toFixed(2) : (ret.refund_usd ? Number(ret.refund_usd).toFixed(2) : (ret.charged_amount ? Number(ret.charged_amount).toFixed(2) : (refInr / 85).toFixed(2)));
+      const hasDeduction = ret.deduction_fee_inr && ret.deduction_fee_inr > 0;
+
+      const deductionNoteHtml = hasDeduction ? `
+        <div class="refund-deduction-note font-mono-tech">
+          ⚠️ ${Math.round((ret.deduction_rate || 0.15) * 100)}% Restocking Fee Cut: -${inr(ret.deduction_fee_inr)} (-$${Number(ret.deduction_fee_usd || 0).toFixed(2)} USD) • Requested ${ret.days_elapsed} days after order
+        </div>
+      ` : `
+        <div class="refund-deduction-note font-mono-tech" style="color:#065F46;">
+          ✨ Immediate Return Guarantee: 100% Full Refund (₹0 fee cut)
+        </div>
+      `;
+
+      const refundBannerHtml = isApprovedOrRefunded ? `
+        <div class="return-refund-credit-banner ${hasDeduction ? 'fee-deducted' : ''}">
+          <div class="refund-credit-details">
+            <span style="font-size:1.15rem;">💳</span>
+            <div>
+              <span class="refund-credit-label">${hasDeduction ? 'Net Refund Credited to Store Wallet:' : 'Refund Credited to Store Wallet:'}</span>
+              <span class="refund-credit-amt font-mono-tech">${inr(refInr)} <span class="usd">($${refUsd} USD)</span></span>
+              ${deductionNoteHtml}
+            </div>
+          </div>
+          <span class="refund-credit-badge ${hasDeduction ? 'fee-cut' : ''}">${hasDeduction ? 'Net Credited' : 'Full Credit'}</span>
+        </div>
+      ` : '';
 
       return `
         <div class="return-card">
@@ -609,6 +642,7 @@ async function fetchReturns() {
             ${ret.description ? `<div style="font-size:0.75rem; color:var(--text-muted); margin-top:3px; font-style:italic;">"${ret.description}"</div>` : ''}
           </div>
           ${ret.admin_notes ? `<div style="margin-top:10px; padding:8px 12px; background:#FAF8F5; border-radius:6px; font-size:0.75rem; color:var(--text-secondary); border-left:3px solid var(--accent-orange);">Admin Note: ${ret.admin_notes}</div>` : ''}
+          ${refundBannerHtml}
         </div>
       `;
     }).join('');
@@ -617,7 +651,7 @@ async function fetchReturns() {
   }
 }
 
-function openReturnRequestModal(orderId, productId = '', productName = '', size = '', color = '', quantity = 1) {
+async function openReturnRequestModal(orderId, productId = '', productName = '', size = '', color = '', quantity = 1) {
   const modal = $('#returnRequestModal');
   if (!modal) return;
 
@@ -630,6 +664,44 @@ function openReturnRequestModal(orderId, productId = '', productName = '', size 
     <div style="font-family:var(--font-mono); font-weight:700; font-size:0.85rem; margin-bottom:2px;">Order ID: ${orderId}</div>
     <div>Item: <strong>${productName || 'Technical Jacket'}</strong> (${size || 'M'} / ${color || 'Default'}) × ${quantity}</div>
   `;
+
+  // Fetch real-time policy and fee deduction estimate
+  try {
+    const res = await fetch(`/api/returns/policy-estimate?order_id=${encodeURIComponent(orderId)}`);
+    const data = await res.json();
+    if (data.success && data.breakdown) {
+      const b = data.breakdown;
+      if ($('#policyGrossTotal')) $('#policyGrossTotal').textContent = inr(b.gross_inr);
+      if ($('#policyNetRefund')) $('#policyNetRefund').textContent = `${inr(b.refund_amount_inr)} ($${b.refund_amount_usd.toFixed(2)} USD)`;
+
+      const dedRow = $('#policyDeductionRow');
+      const badge = $('#policyTierBadge');
+      const daysEl = $('#policyElapsedDays');
+      const notice = $('#policyNoticeText');
+
+      if (b.deduction_fee_inr > 0) {
+        if (dedRow) dedRow.style.display = 'flex';
+        if ($('#policyDeductionPct')) $('#policyDeductionPct').textContent = `${Math.round(b.deduction_rate * 100)}%`;
+        if ($('#policyDeductionAmt')) $('#policyDeductionAmt').textContent = `-${inr(b.deduction_fee_inr)} (-$${b.deduction_fee_usd.toFixed(2)} USD)`;
+        if (badge) {
+          badge.textContent = `${Math.round(b.deduction_rate * 100)}% Fee Deducted`;
+          badge.className = 'policy-badge late';
+        }
+        if (daysEl) daysEl.textContent = `${b.days_elapsed} days after order`;
+        if (notice) notice.innerHTML = `⚠️ <strong>Late Return Policy:</strong> Because this return is requested ${b.days_elapsed} days after placing your order, a ${Math.round(b.deduction_rate * 100)}% restocking & handling fee of ${inr(b.deduction_fee_inr)} ($${b.deduction_fee_usd.toFixed(2)} USD) is cut. The remaining ${inr(b.refund_amount_inr)} ($${b.refund_amount_usd.toFixed(2)} USD) will be credited to your store wallet upon approval.`;
+      } else {
+        if (dedRow) dedRow.style.display = 'none';
+        if (badge) {
+          badge.textContent = 'Immediate Return Guarantee';
+          badge.className = 'policy-badge';
+        }
+        if (daysEl) daysEl.textContent = 'Immediate (within 48h)';
+        if (notice) notice.innerHTML = `✨ <strong>Immediate Return Guarantee Active:</strong> 100% full refund (${inr(b.refund_amount_inr)} / $${b.refund_amount_usd.toFixed(2)} USD) will be returned with ₹0 fee deductions upon admin approval.`;
+      }
+    }
+  } catch (err) {
+    console.error('Failed to load return policy estimate:', err);
+  }
 
   modal.classList.add('open');
   modal.setAttribute('aria-hidden', 'false');
@@ -1745,7 +1817,7 @@ function openCheckoutModal() {
 
   if (State.profile) {
     if ($('#shipName')) $('#shipName').value = State.profile.name || 'Akhil';
-    if ($('#shipEmail')) $('#shipEmail').value = State.profile.email || 'akhil@agentcart.ai';
+    if ($('#shipEmail') && !$('#shipEmail').value) $('#shipEmail').value = State.profile.email || 'sb-lg72c53550049@personal.example.com';
     if ($('#shipAddress')) $('#shipAddress').value = State.profile.shipping_address || '402 Cyber Tech Residences, Indiranagar';
     if ($('#shipCity')) $('#shipCity').value = State.profile.city || 'Bengaluru';
     if ($('#shipState')) $('#shipState').value = State.profile.state || 'Karnataka';
@@ -1784,70 +1856,232 @@ function updateCheckoutCountryEligibility() {
   }
 }
 
+let activePayPalSession = null;
+let activePayPalPollInterval = null;
+
 function closeCheckoutModal() {
+  if (activePayPalPollInterval) {
+    clearInterval(activePayPalPollInterval);
+    activePayPalPollInterval = null;
+  }
+  const sessionPanel = $('#paypalActiveSessionPanel');
+  if (sessionPanel) sessionPanel.style.display = 'none';
+
   const modal = $('#checkoutModal');
   modal.classList.remove('open');
   modal.setAttribute('aria-hidden', 'true');
 }
 
-function setupPayPal() {
-  const clientId = State.config.paypal_client_id;
-  if (!clientId || clientId === 'your_paypal_client_id_here') {
+async function initiatePayPalCheckout(fundingSource = 'paypal') {
+  const shipping = getShippingFormData();
+  const isDomestic = /^(india|in|ind)$/i.test((shipping.country || '').trim());
+  if (isDomestic) {
+    alert('PayPal Domestic Payment Restriction: Under RBI regulations, PayPal does not support domestic payments within India. Please select United States or an international destination country to test PayPal checkout.');
     return;
   }
 
-  const script = document.createElement('script');
-  script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&currency=USD&intent=capture`;
-  script.async = true;
+  if (State.cart.size === 0) {
+    alert('Your cart is empty. Please add items to checkout.');
+    return;
+  }
 
-  script.onload = () => {
-    if (window.paypal && window.paypal.Buttons) {
-      window.paypal.Buttons({
-        createOrder: async () => {
-          const shipping = getShippingFormData();
-          const items = [...State.cart.values()].map(it => ({
-            id: it.id,
-            size: it.size,
-            color: it.color,
-            quantity: it.quantity
-          }));
+  const btnPaypal = $('#btnNativePaypal');
+  const btnCard = $('#btnNativeCard');
+  const originalPaypalHtml = btnPaypal ? btnPaypal.innerHTML : '';
+  const originalCardHtml = btnCard ? btnCard.innerHTML : '';
 
-          const res = await fetch('/api/paypal/create-order', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ items, shipping_address: shipping })
-          });
-          const data = await res.json();
-          if (!data.success) throw new Error(data.error);
-          return data.paypal_order_id;
-        },
-        onApprove: async (data) => {
-          const res = await fetch('/api/paypal/capture-order', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ paypal_order_id: data.orderID })
-          });
-          const result = await res.json();
-          if (!result.success) throw new Error(result.error);
-          handleOrderSuccess(result.order);
-        },
-        onCancel: async (data) => {
-          await fetch('/api/paypal/cancel-order', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ paypal_order_id: data.orderID })
-          });
-          alert('PayPal transaction was cancelled. Your items remain in the cart.');
-        },
-        onError: (err) => {
-          console.error('PayPal Buttons Error:', err);
-          alert('PayPal encountered an error. Please try again.');
-        }
-      }).render('#paypalButtonContainer');
+  try {
+    if (fundingSource === 'paypal' && btnPaypal) {
+      btnPaypal.disabled = true;
+      btnPaypal.innerHTML = `<span class="session-spinner" style="width:16px;height:16px;border-width:2px;margin:0;"></span> <span>Connecting to PayPal Sandbox...</span>`;
+    } else if (btnCard) {
+      btnCard.disabled = true;
+      btnCard.innerHTML = `<span class="session-spinner" style="width:16px;height:16px;border-width:2px;margin:0;"></span> <span>Connecting to Card Gateway...</span>`;
     }
-  };
 
-  document.head.appendChild(script);
+    const items = [...State.cart.values()].map(it => ({
+      id: it.id,
+      size: it.size,
+      color: it.color,
+      quantity: it.quantity
+    }));
+
+    const res = await fetch('/api/paypal/create-order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items, shipping_address: shipping })
+    });
+
+    const data = await res.json();
+    if (!data.success) {
+      throw new Error(data.error || 'Failed to create PayPal order');
+    }
+
+    activePayPalSession = {
+      orderId: data.order_id,
+      paypalOrderId: data.paypal_order_id,
+      approveUrl: data.approve_url,
+      totalUsd: data.charged_amount
+    };
+
+    // Update active session card in modal
+    const sessionPanel = $('#paypalActiveSessionPanel');
+    const sessionMeta = $('#paypalSessionMeta');
+    const directLink = $('#paypalDirectApproveLink');
+    const statusText = $('#paypalSessionStatusText');
+
+    if (sessionMeta) {
+      sessionMeta.textContent = `Order: ${data.order_id} • PayPal Txn: ${data.paypal_order_id} • $${Number(data.charged_amount).toFixed(2)} USD`;
+    }
+
+    if (directLink && data.approve_url) {
+      directLink.href = data.approve_url;
+      directLink.style.display = 'inline-flex';
+    } else if (directLink) {
+      directLink.style.display = 'none';
+    }
+
+    if (statusText) {
+      statusText.textContent = data.approve_url 
+        ? 'PayPal Sandbox authorization window opened. Complete payment in PayPal, or click the direct approval link below:'
+        : 'Order registered in sandbox mode. Click confirm below to capture payment.';
+    }
+
+    if (sessionPanel) {
+      sessionPanel.style.display = 'flex';
+      sessionPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // Open popup window for PayPal authorization
+    let checkoutWindow = null;
+    if (data.approve_url) {
+      try {
+        checkoutWindow = window.open(
+          data.approve_url,
+          'AgentCartPayPalCheckout',
+          'width=540,height=700,menubar=no,toolbar=no,location=yes,status=no'
+        );
+      } catch (winErr) {
+        console.warn('Popup blocked by browser:', winErr);
+      }
+    }
+
+    // Auto-capture check when window closes
+    if (activePayPalPollInterval) clearInterval(activePayPalPollInterval);
+    activePayPalPollInterval = setInterval(async () => {
+      if (checkoutWindow && checkoutWindow.closed) {
+        clearInterval(activePayPalPollInterval);
+        activePayPalPollInterval = null;
+        console.log('PayPal popup closed. Verifying payment capture status...');
+        await captureActivePayPalCheckout(true);
+      }
+    }, 2500);
+
+  } catch (err) {
+    console.error('PayPal checkout error:', err);
+    alert('PayPal Checkout Notice: ' + err.message);
+  } finally {
+    if (btnPaypal) {
+      btnPaypal.disabled = false;
+      btnPaypal.innerHTML = originalPaypalHtml;
+    }
+    if (btnCard) {
+      btnCard.disabled = false;
+      btnCard.innerHTML = originalCardHtml;
+    }
+  }
+}
+
+async function captureActivePayPalCheckout(isAutoPoll = false) {
+  if (!activePayPalSession || !activePayPalSession.paypalOrderId) {
+    if (!isAutoPoll) alert('No active PayPal checkout session found.');
+    return;
+  }
+
+  const captureBtn = $('#btnPaypalCaptureNow');
+  const originalText = captureBtn ? captureBtn.innerHTML : '';
+
+  try {
+    if (captureBtn) {
+      captureBtn.disabled = true;
+      captureBtn.innerHTML = `<span class="session-spinner" style="width:14px;height:14px;border-width:2px;margin:0;"></span> <span>Verifying Capture...</span>`;
+    }
+
+    const res = await fetch('/api/paypal/capture-order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        order_id: activePayPalSession.orderId,
+        paypal_order_id: activePayPalSession.paypalOrderId
+      })
+    });
+
+    const result = await res.json();
+    if (!result.success) {
+      if (!isAutoPoll) {
+        throw new Error(result.error || 'Payment capture not finalized on PayPal yet. Please complete approval on PayPal first.');
+      } else {
+        console.log('Capture not ready yet or cancelled:', result.error);
+        return;
+      }
+    }
+
+    // Successfully captured!
+    if (activePayPalPollInterval) {
+      clearInterval(activePayPalPollInterval);
+      activePayPalPollInterval = null;
+    }
+
+    const sessionPanel = $('#paypalActiveSessionPanel');
+    if (sessionPanel) sessionPanel.style.display = 'none';
+
+    activePayPalSession = null;
+    closeCheckoutModal();
+    handleOrderSuccess(result.order);
+
+  } catch (err) {
+    console.error('Capture order error:', err);
+    if (!isAutoPoll) {
+      alert('Payment Capture: ' + err.message);
+    }
+  } finally {
+    if (captureBtn) {
+      captureBtn.disabled = false;
+      captureBtn.innerHTML = originalText;
+    }
+  }
+}
+
+async function checkForPayPalReturnRedirect() {
+  const urlParams = new URLSearchParams(window.location.search);
+  let paypalToken = urlParams.get('token');
+  if (!paypalToken && window.location.hash.includes('token=')) {
+    const hashQuery = window.location.hash.split('?')[1] || '';
+    paypalToken = new URLSearchParams(hashQuery).get('token');
+  }
+
+  if (paypalToken) {
+    console.log('[PayPal Return] Detected approval token:', paypalToken);
+    try {
+      const res = await fetch('/api/paypal/capture-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paypal_order_id: paypalToken })
+      });
+      const data = await res.json();
+      if (data.success && data.order) {
+        handleOrderSuccess(data.order);
+        history.replaceState(null, '', window.location.pathname);
+      }
+    } catch (err) {
+      console.warn('[PayPal Return Capture Error]', err);
+    }
+  }
+}
+
+function setupPayPal() {
+  // Configured via high-fidelity native PayPal buttons with zero CDN image failure
+  console.log('PayPal Checkout System ready. Client ID:', State.config.paypal_client_id ? 'Configured' : 'Demo Mode');
 }
 
 function getShippingFormData() {
@@ -2125,6 +2359,14 @@ function updateProfileUI() {
     if ($('#statDeliveredOrders')) $('#statDeliveredOrders').textContent = State.profileStats.delivered_orders;
     if ($('#statTotalSpent')) $('#statTotalSpent').textContent = inr(State.profileStats.total_spent_inr);
     if ($('#statTotalSpentUsd')) $('#statTotalSpentUsd').textContent = `$${Number(State.profileStats.total_spent_usd || 0).toFixed(2)}`;
+
+    // Store Wallet Balance in Profile & Returns tab
+    const walletInr = State.profileStats.wallet_balance_inr || 0;
+    const walletUsd = Number(State.profileStats.wallet_balance_usd || 0).toFixed(2);
+    if ($('#statWalletBalance')) $('#statWalletBalance').textContent = inr(walletInr);
+    if ($('#statWalletBalanceUsd')) $('#statWalletBalanceUsd').textContent = `$${walletUsd}`;
+    if ($('#returnsWalletBalance')) $('#returnsWalletBalance').textContent = inr(walletInr);
+    if ($('#returnsWalletUsd')) $('#returnsWalletUsd').textContent = `($${walletUsd} USD)`;
 
     renderProfileActivity(State.profileStats.recent_activity || []);
   }
@@ -2828,6 +3070,9 @@ function setupEventListeners() {
 
   // Checkout modal
   $('#checkoutCloseBtn')?.addEventListener('click', closeCheckoutModal);
+  $('#btnNativePaypal')?.addEventListener('click', () => initiatePayPalCheckout('paypal'));
+  $('#btnNativeCard')?.addEventListener('click', () => initiatePayPalCheckout('card'));
+  $('#btnPaypalCaptureNow')?.addEventListener('click', () => captureActivePayPalCheckout(false));
   $('#btnDemoCheckout')?.addEventListener('click', executeDemoTestOrder);
   $('#confDoneBtn')?.addEventListener('click', closeConfirmationModal);
   $('#shipCountry')?.addEventListener('change', updateCheckoutCountryEligibility);
@@ -2919,4 +3164,228 @@ function setupShowroomEvents() {
       if (target) target.scrollIntoView({ behavior: 'smooth' });
     });
   }
+}
+
+// ==========================================================================
+// AI JACKET ASSISTANT SLIDE-OUT PANEL CONTROLLER
+// ==========================================================================
+function openAiChat() {
+  const panel = $('#aiChatPanel');
+  const backdrop = $('#aiChatBackdrop');
+  if (!panel || !backdrop) return;
+
+  State.isAiChatOpen = true;
+  panel.classList.add('open');
+  panel.setAttribute('aria-hidden', 'false');
+  backdrop.classList.add('open');
+  backdrop.setAttribute('aria-hidden', 'false');
+
+  $('#headerAiBtn')?.setAttribute('aria-expanded', 'true');
+
+  const messagesContainer = $('#aiChatMessages');
+  if (messagesContainer && messagesContainer.children.length === 0) {
+    renderAiWelcome();
+  }
+
+  setTimeout(() => {
+    $('#aiChatInput')?.focus();
+  }, 350);
+}
+
+function closeAiChat() {
+  const panel = $('#aiChatPanel');
+  const backdrop = $('#aiChatBackdrop');
+  if (!panel || !backdrop) return;
+
+  State.isAiChatOpen = false;
+  panel.classList.remove('open');
+  panel.setAttribute('aria-hidden', 'true');
+  backdrop.classList.remove('open');
+  backdrop.setAttribute('aria-hidden', 'true');
+
+  $('#headerAiBtn')?.setAttribute('aria-expanded', 'false');
+}
+
+function renderAiWelcome() {
+  const container = $('#aiChatMessages');
+  if (!container) return;
+
+  const welcomeHtml = `
+    <div class="ai-msg-row bot-row">
+      <div class="ai-bubble-bot">
+        <p style="margin: 0 0 8px 0;"><strong>Hello! Looking for the perfect jacket?</strong></p>
+        <p style="margin: 0 0 6px 0; color: #cbd5e1;">Tell me what you need, and I'll find the best matches from our collection.</p>
+        <p style="margin: 0; font-size: 0.8rem; color: #94a3b8; font-style: italic;">Example: <em>I need a waterproof trekking jacket under ₹3,000.</em></p>
+      </div>
+    </div>
+  `;
+  container.innerHTML = welcomeHtml;
+}
+
+function formatAiText(text) {
+  if (!text) return '';
+  let safe = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+  safe = safe.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  safe = safe.replace(/\*(.*?)\*/g, '<em>$1</em>');
+  return safe.replace(/\n\n+/g, '</p><p>').replace(/\n/g, '<br>');
+}
+
+async function sendAiMessage(promptText) {
+  if (!promptText || !promptText.trim()) return;
+  if (State.isAiResponding) return;
+
+  const text = promptText.trim();
+  const container = $('#aiChatMessages');
+  const input = $('#aiChatInput');
+  const sendBtn = $('#aiChatSendBtn');
+  const loading = $('#aiChatLoading');
+
+  if (input) input.value = '';
+
+  const userRow = document.createElement('div');
+  userRow.className = 'ai-msg-row user-row';
+  userRow.innerHTML = `<div class="ai-bubble-user">${formatAiText(text)}</div>`;
+  container.appendChild(userRow);
+  container.scrollTop = container.scrollHeight;
+
+  State.aiConversationHistory.push({ role: 'user', content: text });
+
+  State.isAiResponding = true;
+  if (input) input.disabled = true;
+  if (sendBtn) sendBtn.disabled = true;
+  if (loading) loading.style.display = 'block';
+
+  try {
+    const res = await fetch('/api/ai/recommend', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt: text,
+        history: State.aiConversationHistory.map(h => ({
+          role: h.role === 'model' ? 'model' : 'user',
+          parts: [{ text: h.content }]
+        }))
+      })
+    });
+
+    const data = await res.json();
+    if (!data.success) {
+      throw new Error(data.error || 'Failed to generate recommendations');
+    }
+
+    State.aiConversationHistory.push({ role: 'model', content: data.reply });
+
+    const botRow = document.createElement('div');
+    botRow.className = 'ai-msg-row bot-row';
+
+    let cardsHtml = '';
+    if (data.recommendations && data.recommendations.length > 0) {
+      cardsHtml = data.recommendations.map(p => `
+        <div class="ai-rec-card">
+          <div class="ai-rec-top">
+            <img src="${p.image}" alt="${p.name}" class="ai-rec-thumb">
+            <div class="ai-rec-info">
+              <div class="ai-rec-title" title="${p.name}">${p.name}</div>
+              <div class="ai-rec-price">${dualPrice(p.price)}</div>
+            </div>
+          </div>
+          ${p.match_reason ? `<div class="ai-rec-reason">${formatAiText(p.match_reason)}</div>` : ''}
+          <div class="ai-rec-actions">
+            <button type="button" class="btn-ai-view-product" data-id="${p.id}">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+              <span>View in 3D</span>
+            </button>
+            <button type="button" class="btn-ai-add-cart" data-id="${p.id}">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+              <span>Add to Cart</span>
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    botRow.innerHTML = `
+      <div class="ai-bubble-bot">
+        <div class="ai-bot-text"><p>${formatAiText(data.reply)}</p></div>
+        ${cardsHtml}
+      </div>
+    `;
+    container.appendChild(botRow);
+  } catch (err) {
+    console.error('[AI Chat] Request failed:', err);
+    const errRow = document.createElement('div');
+    errRow.className = 'ai-msg-row bot-row';
+    errRow.innerHTML = `
+      <div class="ai-bubble-bot" style="border-color: rgba(239, 68, 68, 0.4);">
+        <p style="color: #fca5a5; margin: 0;">Sorry, I encountered an issue connecting to the AI stylist. Please try again.</p>
+      </div>
+    `;
+    container.appendChild(errRow);
+  } finally {
+    State.isAiResponding = false;
+    if (input) input.disabled = false;
+    if (sendBtn) sendBtn.disabled = false;
+    if (loading) loading.style.display = 'none';
+    container.scrollTop = container.scrollHeight;
+    if (input) input.focus();
+  }
+}
+
+function setupAiAssistantListeners() {
+  $('#headerAiBtn')?.addEventListener('click', openAiChat);
+  $('#navAiAssistantBtn')?.addEventListener('click', openAiChat);
+  $('#mobileAiAssistantBtn')?.addEventListener('click', () => {
+    $('#mobileNavDrawer')?.classList.remove('open');
+    openAiChat();
+  });
+
+  $('#aiChatCloseBtn')?.addEventListener('click', closeAiChat);
+  $('#aiChatBackdrop')?.addEventListener('click', closeAiChat);
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && State.isAiChatOpen) {
+      closeAiChat();
+    }
+  });
+
+  $('#aiChatForm')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const input = $('#aiChatInput');
+    if (!input) return;
+    const val = input.value.trim();
+    if (val) sendAiMessage(val);
+  });
+
+  $('#aiChatChips')?.addEventListener('click', (e) => {
+    const btn = e.target.closest('.ai-chip-btn');
+    if (!btn || State.isAiResponding) return;
+    const query = btn.dataset.query;
+    if (query) sendAiMessage(query);
+  });
+
+  $('#aiChatMessages')?.addEventListener('click', (e) => {
+    const viewBtn = e.target.closest('.btn-ai-view-product');
+    if (viewBtn) {
+      const pid = viewBtn.dataset.id;
+      if (pid) {
+        openProductModal(pid);
+        closeAiChat();
+      }
+      return;
+    }
+
+    const addBtn = e.target.closest('.btn-ai-add-cart');
+    if (addBtn) {
+      const pid = addBtn.dataset.id;
+      const product = State.products.find(p => p.id === pid);
+      if (product) {
+        const defaultSize = product.sizes?.find(s => s.stock > 0)?.size || product.sizes?.[0]?.size || 'M';
+        const defaultColor = product.colors?.[0]?.name || 'Default';
+        addToCart(product, defaultSize, defaultColor, 1, addBtn);
+      }
+    }
+  });
 }

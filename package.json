@@ -11,6 +11,7 @@
     "verify:account": "node tests/verify_account_and_pricing.js",
     "verify:3d": "node tests/verify_3d_jacket.js",
     "verify:modal-3d": "node tests/verify_modal_3d.js",
+    "verify:ai": "node tests/verify_ai_assistant_panel.js",
     "build:3d": "npx esbuild frontend/assets/js/jacket-viewer-src.js --bundle --minify --outfile=frontend/assets/js/jacket-viewer.js --format=iife --global-name=JacketViewerBundle"
   },
   "keywords": [

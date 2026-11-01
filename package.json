@@ -10,6 +10,7 @@
     "verify:scroll": "node tests/verify_browser_scroll.js",
     "verify:account": "node tests/verify_account_and_pricing.js",
     "verify:3d": "node tests/verify_3d_jacket.js",
+    "verify:modal-3d": "node tests/verify_modal_3d.js",
     "build:3d": "npx esbuild frontend/assets/js/jacket-viewer-src.js --bundle --minify --outfile=frontend/assets/js/jacket-viewer.js --format=iife --global-name=JacketViewerBundle"
   },
   "keywords": [

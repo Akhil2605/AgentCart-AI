@@ -75,7 +75,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   initScramblerElements();
   setupShowroomEvents();
   if (typeof window.initJacketViewer === 'function') {
-    window.initJacketViewer('#heroJacketContainer');
+    window.heroJacketViewer = window.initJacketViewer('#heroJacketContainer');
+  }
+  if (typeof window.initModalJacketViewer === 'function') {
+    window.modalJacketViewer = window.initModalJacketViewer('#modalJacketContainer');
   }
 });
 
@@ -1524,6 +1527,10 @@ function openProductModal(productId) {
 
   $('#modalImg').src = product.image;
   $('#modalImg').alt = product.name;
+
+  if (window.modalJacketViewer) {
+    window.modalJacketViewer.loadProduct(product, State.selectedModalColor);
+  }
   $('#modalCategory').textContent = product.category;
   $('#modalTitle').textContent = product.name;
   $('#modalPrice').innerHTML = dualPrice(product.price);
@@ -1602,6 +1609,9 @@ function closeProductModal() {
   modal.classList.remove('open');
   modal.setAttribute('aria-hidden', 'true');
   State.activeModalProduct = null;
+  if (window.modalJacketViewer) {
+    window.modalJacketViewer.pause();
+  }
 }
 
 // Product Comparison Flow
@@ -2701,6 +2711,9 @@ function setupEventListeners() {
     $$('#modalSwatches .color-swatch-btn').forEach(b => b.classList.remove('selected'));
     btn.classList.add('selected');
     State.selectedModalColor = btn.dataset.color;
+    if (window.modalJacketViewer) {
+      window.modalJacketViewer.updateColor(btn.dataset.color);
+    }
   });
 
   $('#modalSizes')?.addEventListener('click', (e) => {

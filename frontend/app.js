@@ -74,6 +74,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupPayPal();
   initScramblerElements();
   setupShowroomEvents();
+  if (typeof window.initJacketViewer === 'function') {
+    window.initJacketViewer('#heroJacketContainer');
+  }
 });
 
 // Load App Config from Server
@@ -1144,6 +1147,7 @@ function setupPortalAndAdminListeners() {
   $('#entryPortalBtn')?.addEventListener('click', openEntryPortalModal);
   $('#footerPortalLink')?.addEventListener('click', (e) => { e.preventDefault(); openEntryPortalModal(); });
   $('#portalCloseBtn')?.addEventListener('click', closeEntryPortalModal);
+  $('#portalCloseIconBtn')?.addEventListener('click', closeEntryPortalModal);
 
   $('#btnSelectCustomerPortal')?.addEventListener('click', () => {
     closeEntryPortalModal();
@@ -2680,7 +2684,7 @@ function setupEventListeners() {
     heroQuickAdd.addEventListener('click', () => {
       const product = State.products.find(p => p.id === 'cyber-shell-black');
       if (product) {
-        addToCart(product, 'M', 'Onyx & Electric Blue', 1, $('#heroJacketImg'));
+        addToCart(product, 'M', 'Onyx & Electric Blue', 1, $('#heroJacketContainer') || $('#heroJacketImg'));
       }
     });
   }

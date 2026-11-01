@@ -8,14 +8,24 @@
     "seed": "node database/seed.js",
     "test": "node tests/run_tests.js",
     "verify:scroll": "node tests/verify_browser_scroll.js",
-    "verify:account": "node tests/verify_account_and_pricing.js"
+    "verify:account": "node tests/verify_account_and_pricing.js",
+    "verify:3d": "node tests/verify_3d_jacket.js",
+    "build:3d": "npx esbuild frontend/assets/js/jacket-viewer-src.js --bundle --minify --outfile=frontend/assets/js/jacket-viewer.js --format=iife --global-name=JacketViewerBundle"
   },
-  "keywords": ["ai", "ecommerce", "outerwear", "jackets", "paypal", "gemini"],
+  "keywords": [
+    "ai",
+    "ecommerce",
+    "outerwear",
+    "jackets",
+    "paypal",
+    "gemini"
+  ],
   "author": "AgentCart AI Team",
   "license": "ISC",
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
-    "express": "^4.21.2"
+    "express": "^4.21.2",
+    "three": "^0.187.0"
   }
 }

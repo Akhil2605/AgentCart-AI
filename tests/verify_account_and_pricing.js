@@ -94,7 +94,11 @@ async function runVerification() {
     console.log('🧭 Navigating to http://localhost:' + TEST_PORT);
     await sendCommand('Page.navigate', { url: `http://localhost:${TEST_PORT}` });
 
-    await new Promise(r => setTimeout(r, 2500));
+    for (let i = 0; i < 30; i++) {
+      await new Promise(r => setTimeout(r, 200));
+      const hasCards = await evaluate(`document.querySelectorAll('.product-card').length > 0`);
+      if (hasCards) break;
+    }
 
     // 1. Verify Primary INR Currency on product cards
     console.log('🔍 Checking primary product card pricing...');

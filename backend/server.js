@@ -503,6 +503,25 @@ app.get('/api/returns', (req, res) => {
   }
 });
 
+// GET /api/wallet/transactions — fetch authoritative store wallet ledger and balance
+app.get('/api/wallet/transactions', (req, res) => {
+  try {
+    const userId = req.query.user_id || 'user_akhil';
+    const balance = db.getWalletBalance(userId);
+    const transactions = db.getWalletTransactions(userId);
+    res.json({
+      success: true,
+      balance_inr: balance.balance_inr,
+      balance_usd: balance.balance_usd,
+      count: transactions.length,
+      transactions
+    });
+  } catch (err) {
+    console.error('Fetch wallet transactions error:', err.message);
+    res.status(500).json({ success: false, error: 'Failed to retrieve wallet transactions' });
+  }
+});
+
 // GET /api/returns/policy-estimate - get return policy tier, fee deduction, and refund estimate
 app.get('/api/returns/policy-estimate', (req, res) => {
   try {
@@ -921,12 +940,6 @@ process.on('unhandledRejection', (reason, promise) => {
 // Start server if run directly
 let server = null;
 if (require.main === module) {
-  try {
-    db.ensureSampleReturnOrder();
-  } catch (err) {
-    console.error('Error ensuring sample return order:', err.message);
-  }
-
   server = app.listen(PORT, () => {
     console.log(`⚡ AgentCart AI Server running at http://localhost:${PORT}`);
     console.log(`📦 SQLite database ready with 24 technical jackets`);
@@ -936,9 +949,11 @@ if (require.main === module) {
 
   server.on('error', (err) => {
     if (err.code === 'EADDRINUSE') {
-      console.error(`Port ${PORT} is already in use.`);
+      console.error(`❌ Port ${PORT} is already in use by another process. Please close it or set PORT in .env.`);
+      process.exit(1);
     } else {
       console.error('Server error:', err);
+      process.exit(1);
     }
   });
 }

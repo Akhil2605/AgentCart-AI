@@ -5,6 +5,7 @@
   "main": "backend/server.js",
   "scripts": {
     "start": "node backend/server.js",
+    "dev": "node backend/server.js",
     "seed": "node database/seed.js",
     "test": "node tests/run_tests.js",
     "verify:scroll": "node tests/verify_browser_scroll.js",

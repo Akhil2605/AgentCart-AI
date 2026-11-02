@@ -221,3 +221,26 @@ CREATE TABLE IF NOT EXISTS refunds (
   FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
   FOREIGN KEY (user_id) REFERENCES user_profiles(id) ON DELETE CASCADE
 );
+
+-- ============================================================================
+-- 6. WALLET TRANSACTIONS TABLE
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS wallet_transactions (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  type TEXT NOT NULL CHECK(type IN ('CREDIT', 'DEBIT')),
+  source TEXT NOT NULL CHECK(source IN ('RETURN_REFUND', 'ORDER_PAYMENT', 'ADMIN_ADJUSTMENT')),
+  amount_inr INTEGER NOT NULL,
+  amount_usd REAL NOT NULL,
+  balance_after_inr INTEGER NOT NULL,
+  balance_after_usd REAL NOT NULL,
+  return_id TEXT UNIQUE,
+  order_id TEXT NOT NULL,
+  reference TEXT UNIQUE NOT NULL,
+  description TEXT NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES user_profiles(id) ON DELETE CASCADE,
+  FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+  FOREIGN KEY (return_id) REFERENCES returns(id) ON DELETE SET NULL
+);
+

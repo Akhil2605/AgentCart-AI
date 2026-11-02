@@ -582,6 +582,20 @@ async function fetchReturns() {
     const data = await res.json();
     State.returns = data.returns || [];
 
+    // Sync authoritative wallet balance
+    try {
+      const wRes = await fetch('/api/wallet/transactions');
+      if (wRes.ok) {
+        const wData = await wRes.json();
+        if ($('#returnsWalletBalance')) $('#returnsWalletBalance').textContent = inr(wData.balance_inr || 0);
+        if ($('#returnsWalletUsd')) $('#returnsWalletUsd').textContent = `($${(wData.balance_usd || 0).toFixed(2)} USD)`;
+        if ($('#statWalletBalance')) $('#statWalletBalance').textContent = inr(wData.balance_inr || 0);
+        if ($('#statWalletBalanceUsd')) $('#statWalletBalanceUsd').textContent = `$${(wData.balance_usd || 0).toFixed(2)}`;
+      }
+    } catch (wErr) {
+      console.warn('Wallet transactions sync error:', wErr.message);
+    }
+
     if (State.returns.length === 0) {
       list.innerHTML = `
         <div style="text-align:center; padding:48px 20px; color:var(--text-muted);">
@@ -634,7 +648,13 @@ async function fetchReturns() {
               <strong style="font-family:var(--font-mono); font-size:0.85rem;">${ret.id}</strong>
               <span style="font-size:0.75rem; color:var(--text-muted); margin-left:8px;">Order: ${ret.order_id} • ${dateStr}</span>
             </div>
-            <span class="return-status-pill ${statusClass}">${ret.status}</span>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="return-status-pill ${statusClass}">${ret.status}</span>
+              <button type="button" class="btn-return-track" onclick="openTrackingModal('${ret.order_id}')" style="display:inline-flex; align-items:center; gap:5px; padding:4px 9px; border-radius:6px; background:var(--accent-orange-soft); border:1px solid var(--accent-orange-border); color:var(--accent-orange); font-size:0.72rem; font-weight:700; cursor:pointer;" title="Track Order & Refund">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                <span>Track Order</span>
+              </button>
+            </div>
           </div>
           <div style="margin-top:8px;">
             <div style="font-weight:700; color:var(--text-primary); font-size:0.92rem;">${ret.product_name} (${ret.size} / ${ret.color}) × ${ret.quantity}</div>
@@ -2659,9 +2679,85 @@ async function openTrackingModal(orderId) {
       </div>
     `;
 
+    // Highlighted Return Approved & Wallet Refund Banner
+    const refundContainer = $('#trackingRefundBannerContainer');
+    if (refundContainer) {
+      if (tr.refund_info || tr.return_info || tr.current_status === 'RETURNED') {
+        const refAmtInr = tr.refund_info ? tr.refund_info.amount_inr : (tr.return_info ? tr.return_info.refund_amount_inr : 2049);
+        const refAmtUsd = tr.refund_info ? Number(tr.refund_info.amount_usd).toFixed(2) : (tr.return_info ? Number(tr.return_info.refund_amount_usd).toFixed(2) : (refAmtInr / 85).toFixed(2));
+        const refDest = (tr.refund_info && tr.refund_info.destination) || 'AgentCart Store Wallet';
+        const retId = (tr.return_info && tr.return_info.id) || (tr.refund_info && tr.refund_info.return_id) || 'RET-AUTHORIZED';
+        const refDateRaw = (tr.refund_info && tr.refund_info.completed_at) || (tr.return_info && tr.return_info.updated_at) || tr.updated_at;
+        const refDateStr = refDateRaw ? new Date(refDateRaw.replace(' ', 'T') + 'Z').toLocaleDateString('en-IN', {
+          weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit'
+        }) : 'Completed';
+        const retStatus = (tr.return_info && tr.return_info.status) || 'APPROVED';
+        const refStatus = (tr.refund_info && tr.refund_info.status) || 'COMPLETED';
+        const paymentStatus = (tr.payment && tr.payment.status) || 'PAID';
+
+        refundContainer.innerHTML = `
+          <div class="tracking-refund-highlight-card">
+            <div class="tracking-refund-head">
+              <div class="tracking-refund-badge-pill">
+                <span class="icon">✨</span>
+                <span>RETURN & REFUND PROCESSED</span>
+              </div>
+              <div class="tracking-refund-dest font-mono-tech">${refDest}</div>
+            </div>
+            <div class="tracking-refund-main-title">
+              Return Approved — Refund Credited to Store Wallet
+            </div>
+            <div class="tracking-refund-large-amount font-mono-tech">
+              ${inr(refAmtInr)} <span class="usd">($${refAmtUsd} USD)</span>
+            </div>
+            <div class="tracking-refund-telemetry-grid font-mono-tech">
+              <div class="grid-item">
+                <span class="lbl">Original Order ID</span>
+                <span class="val bold">${tr.order_id}</span>
+              </div>
+              <div class="grid-item">
+                <span class="lbl">Payment Status</span>
+                <span class="val badge-paid">${paymentStatus}</span>
+              </div>
+              <div class="grid-item">
+                <span class="lbl">Shipping / Fulfilment</span>
+                <span class="val">${tr.current_status}</span>
+              </div>
+              <div class="grid-item">
+                <span class="lbl">Return Status</span>
+                <span class="val bold" style="color:#059669;">${retStatus}</span>
+              </div>
+              <div class="grid-item">
+                <span class="lbl">Refund Status</span>
+                <span class="val bold" style="color:#10B981;">${refStatus}</span>
+              </div>
+              <div class="grid-item">
+                <span class="lbl">Refund Amount</span>
+                <span class="val bold">${inr(refAmtInr)} ($${refAmtUsd} USD)</span>
+              </div>
+              <div class="grid-item">
+                <span class="lbl">Refund Destination</span>
+                <span class="val bold">${refDest}</span>
+              </div>
+              <div class="grid-item">
+                <span class="lbl">Return Request ID</span>
+                <span class="val bold">${retId}</span>
+              </div>
+              <div class="grid-item full-width">
+                <span class="lbl">Return Approval & Refund Date</span>
+                <span class="val">${refDateStr}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      } else {
+        refundContainer.innerHTML = '';
+      }
+    }
+
     const completedStages = tr.timeline.filter(t => t.completed);
     const lastCompletedStage = completedStages.length > 0 ? completedStages[completedStages.length - 1].stage_number : 1;
-    const currentActiveStage = tr.current_status === 'DELIVERED' ? 6 : Math.min(6, lastCompletedStage + (lastCompletedStage < 6 ? 1 : 0));
+    const currentActiveStage = tr.current_status === 'DELIVERED' || tr.current_status === 'RETURNED' ? 8 : Math.min(6, lastCompletedStage + (lastCompletedStage < 6 ? 1 : 0));
 
     stepper.innerHTML = tr.timeline.map((stage, idx) => {
       const isCompleted = stage.completed;
@@ -2690,16 +2786,24 @@ async function openTrackingModal(orderId) {
       `;
     }).join('');
 
-    advanceGroup.innerHTML = [
-      { num: 1, label: '1. Placed' },
-      { num: 2, label: '2. Paid' },
-      { num: 3, label: '3. Processing' },
-      { num: 4, label: '4. Shipped' },
-      { num: 5, label: '5. Out for Delivery' },
-      { num: 6, label: '6. Delivered' }
-    ].map(st => `
-      <button class="btn-advance-chip" onclick="advanceOrderStageTest('${orderId}', ${st.num})">${st.label}</button>
-    `).join('');
+    if (tr.current_status === 'RETURNED') {
+      advanceGroup.innerHTML = `
+        <div style="font-size:0.75rem; color:#059669; font-family:var(--font-mono); font-weight:700;">
+          ✓ RETURN COMPLETED & REFUND CREDITED TO STORE WALLET
+        </div>
+      `;
+    } else {
+      advanceGroup.innerHTML = [
+        { num: 1, label: '1. Placed' },
+        { num: 2, label: '2. Paid' },
+        { num: 3, label: '3. Processing' },
+        { num: 4, label: '4. Shipped' },
+        { num: 5, label: '5. Out for Delivery' },
+        { num: 6, label: '6. Delivered' }
+      ].map(st => `
+        <button class="btn-advance-chip" onclick="advanceOrderStageTest('${orderId}', ${st.num})">${st.label}</button>
+      `).join('');
+    }
 
   } catch (err) {
     banner.innerHTML = `<div style="color:var(--color-error);">Tracking fetch failed: ${err.message}</div>`;

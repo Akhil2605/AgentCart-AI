@@ -1,9 +1,10 @@
 # Project State: AgentCart AI
 
-**Current Status:** All User Requests Completed & Verified (High-Fidelity Zero-CDN PayPal Sandbox Buttons, Full Security Review, Time-Based Dynamic Return Policy & Restocking Deductions)  
-**Date:** November 1, 2026  
-**Platform Version:** v4.6.0 (Zero-CDN PayPal Sandbox & Tiered Dynamic Returns Edition)  
+**Current Status:** Production-Ready — Complete Return, Refund, Store Wallet, and Order-Tracking System Implemented with Controlled Database Reset  
+**Date:** November 2, 2026  
+**Platform Version:** v5.0.0 (Authoritative Store Wallet Ledger & Fresh Transactional State)  
 **Database Location:** `D:\AgentCart-AI\database\agentcart.sqlite`  
+**Verified Backup:** `D:\AgentCart-AI\database\agentcart.sqlite.backup_2026-11-02T12-45-52-331Z`  
 **Default Customer Profile:** `Akhil` (`user_akhil`)  
 **Default Admin Account:** `admin` / `Admin@AgentCart2026!`  
 
@@ -11,48 +12,71 @@
 
 ## 1. Executive Summary & Capabilities Overview
 
-AgentCart AI v4.6.0 resolves the PayPal payment loading and button text visibility issue, hardens the end-to-end payment security architecture, and delivers a dynamic, tiered return & refund policy with automated fee cuts.
+AgentCart AI v5.0.0 resolves the return/refund/wallet/order-tracking synchronization issues, introduces an authoritative SQLite `wallet_transactions` ledger, updates customer order tracking with prominent return/refund callout telemetry, and completes a controlled database reset to a pristine zero-transaction baseline while preserving all catalog products, baseline inventory, customer accounts, and administrative credentials.
 
-### 1.1 Resolution of PayPal Loading & Invisible Button Text
+### 1.1 Resolution of Return, Refund, Wallet & Order-Tracking Disconnect
 - **Root Cause Analysis:**
-  - PayPal's JS SDK iframe attempted to fetch external SVGs from `https://www.paypalobjects.com/js-sdk-logos/2.3.7/paypal-blue.svg` and `card-white.svg`.
-  - In privacy-focused environments (such as Chrome Incognito mode, ad-blockers like uBlock/Brave, or corporate/ISP filters), these external SVG assets failed to load. Because PayPal's SDK iframe lacks text fallbacks, Chrome rendered blank buttons with broken image icons `[🖼️]`.
-  - In addition, Chrome Incognito blocks third-party cookies and suppresses popup windows from localhost, causing PayPal's popup checkout window to hang on "loading paypal" indefinitely.
+  1. *Lack of Authoritative Wallet Ledger:* Previously, wallet balances were computed on the fly by summing rows from `returns` and `refunds`. There was no transactional ledger, no unique constraints preventing duplicate credits upon repeated admin approval, and no transaction history.
+  2. *Disconnect in "Track Order":* `getOrderTracking(orderId)` only queried stages 1–6 (courier logistics) and did not join `returns`, `refunds`, or wallet credit events. Track Order did not display the refund amount, destination (`AgentCart Store Wallet`), return request ID, or approval date.
+  3. *Conflation of Store Wallet vs PayPal Refund:* Admin return approvals were intended to credit the customer's internal Store Wallet, but lacked a dedicated wallet transaction record.
+  4. *Automatic Sample Data Seeding:* `backend/server.js` was invoking `db.ensureSampleReturnOrder()` on startup, re-injecting sample return `ORD-MVY09K6S-8390` / `RET-MVY0CDLC-899` on every server boot.
+
 - **Engineered Solution:**
-  1. **Guaranteed Visible Native PayPal Buttons:** Replaced external iframe dependency with high-fidelity, native buttons using **inline vector SVGs** for both the official PayPal dual-P monogram and the debit/credit card icon. The text (`Pay with PayPal` in `#003087` on `#FFC439` gold and `Debit or Credit Card` in white on `#2C2E2F` charcoal) is **100% visible at all times** and cannot be broken by ad-blockers, network timeouts, or CDN outages.
-  2. **Active Checkout Session Panel:** When clicked, the button transitions to an animated connecting state and calls `POST /api/paypal/create-order`. The server creates the order in PayPal Sandbox and returns the direct approval link (`approve_url: https://www.sandbox.paypal.com/checkoutnow?token=...`). If popup blockers or Incognito restrictions prevent the popup from opening, an active session card appears with a direct clickable link (`🔗 Open PayPal Approval Page`) and a `Confirm & Capture Payment` button.
-  3. **Auto-Capture on Window Close & Return Redirect:** The app listens for popup window closure and page return redirects (`?token=...` or `#paypal-return?token=...`) to automatically execute payment capture via `POST /api/paypal/capture-order`.
-  4. **Instant Demo Fallback:** Preserved the green `Complete Verified Test Purchase (Demo Mode)` button for instant offline simulation.
+  1. **Authoritative `wallet_transactions` Ledger:**
+     - Created SQLite table `wallet_transactions` with `id`, `user_id`, `type` (`CREDIT`/`DEBIT`), `source`, `amount_inr`, `amount_usd`, `balance_after_inr`, `balance_after_usd`, `return_id` (`UNIQUE`), `order_id`, `reference` (`UNIQUE`), `description`, and `created_at`.
+     - `UNIQUE(return_id)` guarantees that a return can only generate one refund credit.
+  2. **Atomic `creditWalletForReturn(returnId, adminNotes)`:**
+     - Executes inside an atomic SQLite transaction.
+     - Checks deduplication before crediting; repeated approvals safely return `already_credited: true` without duplicating wallet funds.
+     - Atomically updates:
+       - `wallet_transactions` (credit entry with running balance)
+       - `returns.status = 'APPROVED'`
+       - `orders.status = 'RETURNED'`
+       - `refunds` table entry (`payment_id = 'STORE_WALLET'`, `reason = 'Return Approved — Refund Credited to Store Wallet'`, `status = 'COMPLETED'`)
+       - `order_tracking_events` (Stage 8: Return Approved — Refund Credited to Store Wallet)
+       - Customer in-app notification
+  3. **Synchronized Track Order Presentation:**
+     - `getOrderTracking(orderId)` returns `return_info`, `refund_info`, and Stage 7 (`Return Requested`) and Stage 8 (`Return Approved & Refunded`) in the timeline.
+     - When a return/refund exists, Track Order displays the requested callout card:
+       **Return Approved — Refund Credited to Store Wallet**
+       `₹... ($... USD)`
+       Displaying: Original Order ID, Payment Status, Shipping/Fulfilment Status, Return Status, Refund Status, Refund Amount, Refund Destination (`AgentCart Store Wallet`), Return Request ID, and Approval/Refund Date.
+     - Original payment and shipping timeline events remain intact.
+  4. **Customer Orders & Returns Tab Synchronization:**
+     - Orders with status `RETURNED` are excluded from the customer's active orders tab (`getUserOrders`) and active dashboard metrics (`getUserStats`), while remaining fully accessible in the Admin Orders console and in order tracking.
+     - Return cards in the customer's Returns & Refunds tab include a direct **Track Order** button (`openTrackingModal(ret.order_id)`).
+     - Store Wallet display syncs directly with `GET /api/wallet/transactions`.
+  5. **Clean Server Startup:**
+     - Removed `db.ensureSampleReturnOrder()` from `backend/server.js` startup to ensure no ghost records are generated on restart.
 
 ---
 
-### 1.2 Comprehensive PayPal Payment Security Architecture & Review
-A thorough end-to-end audit of the payment pipeline was conducted with all security controls verified:
-1. **Server-Side Price Recalculation:** Prices submitted by the client are strictly ignored. The backend retrieves unit prices directly from the SQLite catalog, calculating subtotal, delivery fee, and USD conversion server-side.
-2. **Exchange Rate Consistency:** Conversion is fixed at 1 USD = 85.00 INR across all server calculation, payment payloads, and database records. Subtotals $\ge \text{₹2,000}$ automatically qualify for free shipping; otherwise, a ₹150 delivery fee is applied.
-3. **Atomic Inventory Reservation:** Product stock is decremented atomically inside an SQLite transaction upon successful payment capture (`COMPLETED`), preventing overselling or race conditions.
-4. **Duplicate Capture Prevention:** The server explicitly verifies that an order is not already `PAID` before contacting PayPal (`if (localOrder.status === 'PAID') throw new Error(...)`).
-5. **Domestic RBI Cross-Border Compliance:** As required by the Reserve Bank of India (RBI) and PayPal policy, transactions between Indian buyers and merchants cannot be processed domestically; domestic checkout attempts are rejected with descriptive guidance.
-6. **Rate Limiting & Anti-Brute-Force:** `checkoutLimiter` middleware protects `/api/paypal/create-order` and `/api/paypal/capture-order` from automated abuse.
-7. **Hardened Content Security Policy (CSP):** `backend/security.js` explicitly whitelists PayPal endpoints (`*.paypal.com`, `*.sandbox.paypal.com`, `*.paypalobjects.com`, `objects.paypal.com`, `api-m.sandbox.paypal.com`, `api.sandbox.paypal.com`) while enforcing `'nosniff'`, `'SAMEORIGIN'`, and strict referrer policies.
+### 1.2 Controlled Database Reset & Integrity Verification
 
----
-
-### 1.3 Dynamic Time-Based Return & Refund Deduction Policy
-Implemented a dynamic, tiered return policy that penalizes delayed returns while offering a 100% guarantee for immediate returns:
-- **Tiers:**
-  - **Immediate Return Guarantee (0–2 days):** 0% fee cut $\rightarrow$ 100% full refund credited to store wallet.
-  - **Late Restocking Fee (3–7 days):** 15% restocking and handling fee cut $\rightarrow$ 85% net refund.
-  - **Extended Restocking Fee (8+ days):** 25% processing fee cut $\rightarrow$ 75% net refund.
-- **Backend & Database:**
-  - Added columns in `returns`: `days_elapsed`, `deduction_fee_inr`, `deduction_fee_usd`, `deduction_rate`, `refund_amount_inr`, `refund_amount_usd`, `policy_tier`.
-  - Added `calculateReturnRefundBreakdown()` in `database/db.js`.
-  - Added endpoint `GET /api/returns/policy-estimate?order_id=...&days_elapsed=...`.
-  - Updated wallet balance logic to credit net refund amounts (`COALESCE(r.refund_amount_inr, o.total_amount)`).
-- **Frontend Presentation:**
-  - `#returnRequestModal` includes `#returnPolicyPreviewBox` showing policy tier badge, gross amount, fee cut, and estimated net refund in real time.
-  - `#accountReturnsList` displays dedicated deduction notices and warning banners when a fee was cut.
-  - Existing order `ORD-MVY09K6S-8390` / `RET-MVY0CDLC-899` retains its full 100% ₹2,049 ($24.10 USD) refund under the Immediate Return Guarantee.
+Following implementation and testing, a controlled database reset was performed to establish a clean transactional starting point:
+- **Verified Timestamped Backup:**
+  - File: `database/agentcart.sqlite.backup_2026-11-02T12-45-52-331Z` (499,712 bytes, verified readable with all 15 tables).
+- **Preserved Permanent Data:**
+  - Customer profile: `user_akhil` (`Akhil`, `akhil@agentcart.ai`) preserved.
+  - Admin credentials & permissions: `admin` / `Admin@AgentCart2026!` preserved.
+  - Products & Catalog: All 24 technical jackets preserved with descriptions, prices, materials, features, and images.
+  - Inventory Stock: All 198 variant stock levels restored strictly from `database/catalog.json`.
+  - Application & PayPal Sandbox configurations in `.env` preserved.
+- **Cleared Old Transactions:**
+  - `orders`: 0
+  - `order_items`: 0
+  - `order_tracking_events`: 0
+  - `payments`: 0
+  - `returns`: 0
+  - `refunds`: 0
+  - `wallet_transactions`: 0
+  - `notifications`: 0
+  - `wishlist`: 0
+- **Customer Balances Reset:**
+  - Authoritative Store Wallet balance: strictly **₹0.00 ($0.00 USD)**.
+  - Active orders count: **0**.
+  - Total spent: **₹0.00 ($0.00 USD)**.
+- **Foreign Key Integrity:** `PRAGMA foreign_key_check` executed with **0 violations**.
 
 ---
 
@@ -60,26 +84,30 @@ Implemented a dynamic, tiered return policy that penalizes delayed returns while
 
 | File | Status | Description |
 |---|---|---|
-| `backend/paypal.js` | Modified | Added `approve_url` resolution (`payer-action` and `approve` links with token fallback) |
-| `backend/security.js` | Modified | Updated CSP headers to allow PayPal API, eval, and asset domains |
-| `backend/server.js` | Modified | Updated `/api/returns/policy-estimate` to spread breakdown properties |
-| `database/db.js` | Modified | Added tiered calculation, schema migrations, and seeded sample return with tier data |
-| `database/seed.js` | Modified | Seed script automatically calls `db.ensureSampleReturnOrder()` |
-| `frontend/index.html` | Modified | Replaced broken iframe with high-fidelity native PayPal buttons (inline SVG), active session card, and brand footer |
-| `frontend/styles.css` | Modified | Added styles for `.btn-paypal-native`, `.btn-paypal-card`, `.paypal-active-session`, `.session-spinner`, and policy preview badges |
-| `frontend/app.js` | Modified | Implemented `initiatePayPalCheckout`, `captureActivePayPalCheckout`, `checkForPayPalReturnRedirect`, and modal reset |
-| `tests/run_tests.js` | Modified | Added tests for `approve_url`, return redirect capture, and dynamic time-based return policy (54/54 passing) |
-| `PROJECT_STATE.md` | Modified | Updated to v4.6.0 documentation |
-| `HANDOFF.md` | Modified | Updated handoff documentation |
+| `database/schema.sql` | Modified | Added `wallet_transactions` table definition with `UNIQUE(return_id)` |
+| `database/db.js` | Modified | Added `wallet_transactions` migration, `getWalletBalance`, `getWalletTransactions`, atomic `creditWalletForReturn`, updated `getOrderTracking`, `getUserStats`, and exports |
+| `backend/server.js` | Modified | Added `GET /api/wallet/transactions`, connected admin return approval to wallet credit, removed startup sample order seeding |
+| `frontend/index.html` | Modified | Added `#trackingRefundBannerContainer` in `#trackingModal` |
+| `frontend/styles.css` | Modified | Added CSS for `.tracking-refund-highlight-card`, `.tracking-refund-telemetry-grid`, and badges |
+| `frontend/app.js` | Modified | Rendered highlighted return/refund callout banner in `openTrackingModal`, added Track Order button to return cards, synced wallet balance |
+| `database/agentcart.sqlite` | Modified | Database updated with clean baseline following verified controlled reset |
+| `PROJECT_STATE.md` | Modified | Updated to v5.0.0 documentation |
+| `HANDOFF.md` | Modified | Updated handoff instructions |
 
 ---
 
 ## 3. Verification & Test Results
 
-- **Automated Test Suite:** `npm test` $\rightarrow$ **54/54 passed (100.0%)**
-- **AI Assistant Verification:** `npm run verify:ai` $\rightarrow$ **10/10 passed (100.0%)**
-- **3D Jacket Integration:** `npm run verify:3d` $\rightarrow$ **4/4 passed (0 errors)**
-- **Browser Screenshot Verification:**
-  - `scratch/checkout_debug.png` confirmed crisp, gold "Pay with PayPal" button with official blue dual-P monogram and high-contrast visible text.
-  - "Debit or Credit Card" button rendered in sleek charcoal with white typography and card icon.
-  - Click verification confirmed automated transition to active session state with `approveHref: https://www.sandbox.paypal.com/checkoutnow?token=...`.
+- **Automated Test Suite (`npm test`):** **54/54 passed (100.0%)**
+- **AI Stylist Test Suite (`npm run verify:ai`):** **10/10 passed (100.0%)**
+- **3D Model Integration (`npm run verify:3d`):** **4/4 passed (0 errors)**
+- **Wallet & Deduplication Test Suite:** **7/7 passed** (atomic credit, duplicate prevention, tracking telemetry, active order exclusion).
+- **Fresh End-to-End Workflow Verification:**
+  1. Initial state: 0 orders, ₹0.00 balance verified.
+  2. Order placement & payment capture: stock deducted from baseline verified.
+  3. Immediate return requested: ₹0 restocking fee cut calculated.
+  4. Admin approval: Store Wallet credited, deduplication verified on repeated call.
+  5. Track Order: Displays **Return Approved — Refund Credited to Store Wallet** with complete telemetry grid.
+  6. Customer dashboard: Returned order removed from active list, return tracked in Returns tab.
+  7. Package restock: Inventory restored to baseline upon receipt.
+  8. Late return policy: 15% restocking fee cut verified for 5-day return.

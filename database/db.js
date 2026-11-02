@@ -142,6 +142,32 @@ function getDb() {
       console.error('Error running returns migrations:', e.message);
     }
 
+    // Ensure wallet_transactions table exists with UNIQUE(return_id) constraint
+    try {
+      dbInstance.exec(`
+        CREATE TABLE IF NOT EXISTS wallet_transactions (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          type TEXT NOT NULL CHECK(type IN ('CREDIT', 'DEBIT')),
+          source TEXT NOT NULL CHECK(source IN ('RETURN_REFUND', 'ORDER_PAYMENT', 'ADMIN_ADJUSTMENT')),
+          amount_inr INTEGER NOT NULL,
+          amount_usd REAL NOT NULL,
+          balance_after_inr INTEGER NOT NULL,
+          balance_after_usd REAL NOT NULL,
+          return_id TEXT UNIQUE,
+          order_id TEXT NOT NULL,
+          reference TEXT UNIQUE NOT NULL,
+          description TEXT NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (user_id) REFERENCES user_profiles(id) ON DELETE CASCADE,
+          FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+          FOREIGN KEY (return_id) REFERENCES returns(id) ON DELETE SET NULL
+        );
+      `);
+    } catch (e) {
+      console.error('Error running wallet_transactions migration:', e.message);
+    }
+
     seedIfEmpty();
     ensureDefaultProfile();
     ensureAdminAccount();
@@ -565,6 +591,37 @@ function updateUserProfile(userId = 'user_akhil', profileData = {}) {
   return getUserProfile(userId);
 }
 
+function getWalletBalance(userId = 'user_akhil') {
+  const db = getDb();
+  const lastTx = db.prepare(`
+    SELECT balance_after_inr, balance_after_usd 
+    FROM wallet_transactions 
+    WHERE user_id = ? 
+    ORDER BY created_at DESC, id DESC 
+    LIMIT 1
+  `).get(userId);
+
+  if (lastTx) {
+    return {
+      balance_inr: Number(lastTx.balance_after_inr) || 0,
+      balance_usd: Number(lastTx.balance_after_usd) || 0.0
+    };
+  }
+  return {
+    balance_inr: 0,
+    balance_usd: 0.0
+  };
+}
+
+function getWalletTransactions(userId = 'user_akhil') {
+  const db = getDb();
+  return db.prepare(`
+    SELECT * FROM wallet_transactions 
+    WHERE user_id = ? 
+    ORDER BY created_at DESC, id DESC
+  `).all(userId);
+}
+
 function getUserStats(userId = 'user_akhil') {
   const db = getDb();
   
@@ -622,40 +679,13 @@ function getUserStats(userId = 'user_akhil') {
     WHERE user_id = ? AND status = 'COMPLETED'
   `).get(userId).total;
 
-  // Wallet balance & net refunds: sum of approved / refunded returns (net of any late deduction fee)
-  const totalReturnRefundsInr = db.prepare(`
-    SELECT COALESCE(SUM(COALESCE(r.refund_amount_inr, o.total_amount)), 0) as total
-    FROM returns r
-    JOIN orders o ON r.order_id = o.id
-    WHERE r.user_id = ? AND r.status IN ('APPROVED', 'RECEIVED', 'REFUNDED')
-  `).get(userId).total;
+  // Authoritative wallet balance derived directly from wallet_transactions ledger
+  const walletBal = getWalletBalance(userId);
+  const walletBalanceInr = walletBal.balance_inr;
+  const walletBalanceUsd = walletBal.balance_usd;
 
-  const totalReturnRefundsUsd = db.prepare(`
-    SELECT COALESCE(SUM(COALESCE(r.refund_amount_usd, o.charged_amount)), 0) as total
-    FROM returns r
-    JOIN orders o ON r.order_id = o.id
-    WHERE r.user_id = ? AND r.status IN ('APPROVED', 'RECEIVED', 'REFUNDED')
-  `).get(userId).total;
-
-  // Standalone completed refunds without return records
-  const directRefundsInr = db.prepare(`
-    SELECT COALESCE(SUM(inr_amount), 0) as total FROM refunds 
-    WHERE user_id = ? AND status = 'COMPLETED' AND (return_id IS NULL OR return_id NOT IN (SELECT id FROM returns WHERE status IN ('APPROVED', 'RECEIVED', 'REFUNDED')))
-  `).get(userId).total;
-
-  const directRefundsUsd = db.prepare(`
-    SELECT COALESCE(SUM(amount), 0) as total FROM refunds 
-    WHERE user_id = ? AND status = 'COMPLETED' AND (return_id IS NULL OR return_id NOT IN (SELECT id FROM returns WHERE status IN ('APPROVED', 'RECEIVED', 'REFUNDED')))
-  `).get(userId).total;
-
-  const effectiveRefundedInr = Number(totalReturnRefundsInr || 0) + Number(directRefundsInr || 0);
-  const effectiveRefundedUsd = Number(totalReturnRefundsUsd || 0) + Number(directRefundsUsd || 0);
-
-  const walletBalanceInr = effectiveRefundedInr;
-  const walletBalanceUsd = Number(effectiveRefundedUsd.toFixed(2));
-
-  const netSpentInr = Math.max(0, Number(spentInr || 0) - effectiveRefundedInr);
-  const netSpentUsd = netSpentInr === 0 ? 0 : Math.max(0, Number((Number(spentUsd || (netSpentInr / 85)) - effectiveRefundedUsd).toFixed(2)));
+  const netSpentInr = Math.max(0, Number(spentInr || 0) - walletBalanceInr);
+  const netSpentUsd = netSpentInr === 0 ? 0 : Math.max(0, Number((Number(spentUsd || (netSpentInr / 85)) - walletBalanceUsd).toFixed(2)));
 
   // Wishlist count
   const wishlistCount = db.prepare('SELECT COUNT(*) as count FROM wishlist WHERE user_id = ?').get(userId).count;
@@ -1046,6 +1076,7 @@ function addTrackingEvent(orderId, eventData) {
 }
 
 function getOrderTracking(orderId) {
+  const db = getDb();
   const order = getOrderById(orderId);
   if (!order) return null;
 
@@ -1054,6 +1085,19 @@ function getOrderTracking(orderId) {
   for (const ev of completedEvents) {
     completedStageMap.set(ev.stage_number, ev);
   }
+
+  // Look up returns, refunds, and wallet transactions for this order
+  const returnRec = db.prepare(`
+    SELECT * FROM returns WHERE order_id = ? ORDER BY created_at DESC LIMIT 1
+  `).get(orderId);
+
+  const refundRec = db.prepare(`
+    SELECT * FROM refunds WHERE order_id = ? ORDER BY created_at DESC LIMIT 1
+  `).get(orderId);
+
+  const walletTx = db.prepare(`
+    SELECT * FROM wallet_transactions WHERE order_id = ? ORDER BY created_at DESC LIMIT 1
+  `).get(orderId);
 
   const timeline = TRACKING_STAGES.map(stage => {
     const isCompleted = completedStageMap.has(stage.stage_number);
@@ -1070,6 +1114,71 @@ function getOrderTracking(orderId) {
     };
   });
 
+  let return_info = null;
+  if (returnRec) {
+    return_info = {
+      id: returnRec.id,
+      order_id: returnRec.order_id,
+      status: returnRec.status,
+      product_name: returnRec.product_name,
+      reason: returnRec.reason,
+      description: returnRec.description,
+      admin_notes: returnRec.admin_notes,
+      refund_amount_inr: returnRec.refund_amount_inr || order.total_amount,
+      refund_amount_usd: returnRec.refund_amount_usd || order.charged_amount,
+      deduction_fee_inr: returnRec.deduction_fee_inr || 0,
+      deduction_fee_usd: returnRec.deduction_fee_usd || 0.0,
+      policy_tier: returnRec.policy_tier || 'IMMEDIATE_FULL',
+      created_at: returnRec.created_at,
+      updated_at: returnRec.updated_at
+    };
+
+    timeline.push({
+      stage_number: 7,
+      stage_name: 'Return Requested',
+      status_code: 'RETURN_REQUESTED',
+      title: 'Return Request Registered',
+      description: `Return ${returnRec.id} filed for ${returnRec.product_name}. Reason: ${returnRec.reason}.`,
+      location: 'AgentCart Online Showroom',
+      completed: true,
+      completed_at: returnRec.created_at
+    });
+  }
+
+  let refund_info = null;
+  const isApprovedReturn = returnRec && ['APPROVED', 'RECEIVED', 'REFUNDED'].includes(returnRec.status);
+  if (refundRec || walletTx || isApprovedReturn) {
+    const isWallet = !!walletTx || (refundRec && (refundRec.payment_id === 'STORE_WALLET' || (refundRec.reason && refundRec.reason.includes('Store Wallet')))) || (!refundRec?.paypal_refund_id);
+    const destination = isWallet ? 'AgentCart Store Wallet' : (refundRec?.paypal_refund_id ? 'PayPal Sandbox' : 'AgentCart Store Wallet');
+    const amountInr = returnRec?.refund_amount_inr || refundRec?.inr_amount || walletTx?.amount_inr || order.total_amount;
+    const amountUsd = returnRec?.refund_amount_usd ? Number(returnRec.refund_amount_usd) : (refundRec?.amount ? Number(refundRec.amount) : (walletTx?.amount_usd ? Number(walletTx.amount_usd) : Number((amountInr / 85).toFixed(2))));
+    const completedAt = walletTx?.created_at || refundRec?.created_at || returnRec?.updated_at || order.updated_at;
+
+    refund_info = {
+      id: refundRec ? refundRec.id : (walletTx ? walletTx.id : 'REF-INTERNAL'),
+      return_id: returnRec ? returnRec.id : (refundRec ? refundRec.return_id : null),
+      order_id: orderId,
+      status: refundRec ? refundRec.status : 'COMPLETED',
+      amount_inr: amountInr,
+      amount_usd: amountUsd,
+      destination,
+      reference: walletTx?.reference || refundRec?.paypal_refund_id || refundRec?.id || 'WTX-INTERNAL',
+      completed_at: completedAt
+    };
+
+    const stage8Ev = completedStageMap.get(8);
+    timeline.push({
+      stage_number: 8,
+      stage_name: 'Return Approved & Refunded',
+      status_code: 'RETURN_REFUNDED',
+      title: 'Return Approved — Refund Credited to Store Wallet',
+      description: stage8Ev ? stage8Ev.description : `Refund of ₹${amountInr} ($${amountUsd} USD) credited to ${destination}.`,
+      location: stage8Ev ? stage8Ev.location : 'AgentCart Store Wallet Engine',
+      completed: true,
+      completed_at: stage8Ev ? stage8Ev.completed_at : completedAt
+    });
+  }
+
   return {
     order_id: order.id,
     current_status: order.status,
@@ -1081,7 +1190,9 @@ function getOrderTracking(orderId) {
     updated_at: order.updated_at,
     timeline,
     items: order.items,
-    payment: order.payment
+    payment: order.payment,
+    return_info,
+    refund_info
   };
 }
 
@@ -1609,10 +1720,135 @@ function getAllReturns() {
   `).all();
 }
 
+function creditWalletForReturn(returnId, adminNotes = '') {
+  const db = getDb();
+  const existing = getReturnById(returnId);
+  if (!existing) throw new Error(`Return ${returnId} not found.`);
+
+  // Deduplication check: A return can only generate one refund credit
+  const existingTx = db.prepare('SELECT * FROM wallet_transactions WHERE return_id = ?').get(returnId);
+  if (existingTx) {
+    return {
+      already_credited: true,
+      return: getReturnById(returnId),
+      transaction: existingTx,
+      wallet: getWalletBalance(existing.user_id)
+    };
+  }
+
+  const order = getOrderById(existing.order_id);
+  const amountInr = existing.refund_amount_inr || (order ? order.total_amount : 2049);
+  const amountUsd = existing.refund_amount_usd ? Number(existing.refund_amount_usd) : (order ? Number(order.charged_amount) : Number((amountInr / 85).toFixed(2)));
+
+  const currentBal = getWalletBalance(existing.user_id);
+  const newBalInr = currentBal.balance_inr + amountInr;
+  const newBalUsd = Number((currentBal.balance_usd + amountUsd).toFixed(2));
+
+  const txId = 'WTX-' + Date.now().toString(36).toUpperCase() + '-' + Math.floor(1000 + Math.random() * 9000);
+  const ref = 'REFUND-CREDIT-' + returnId;
+  const desc = `Store wallet refund credit for return ${returnId} (Order: ${existing.order_id})`;
+
+  // Atomic SQLite transaction
+  db.exec('BEGIN TRANSACTION;');
+  try {
+    // 1. Insert into wallet_transactions
+    db.prepare(`
+      INSERT INTO wallet_transactions (
+        id, user_id, type, source, amount_inr, amount_usd, balance_after_inr, balance_after_usd,
+        return_id, order_id, reference, description
+      ) VALUES (?, ?, 'CREDIT', 'RETURN_REFUND', ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      txId, existing.user_id, amountInr, amountUsd, newBalInr, newBalUsd,
+      returnId, existing.order_id, ref, desc
+    );
+
+    // 2. Update return status to APPROVED
+    db.prepare(`
+      UPDATE returns 
+      SET status = 'APPROVED', admin_notes = COALESCE(?, admin_notes), updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).run(adminNotes || null, returnId);
+
+    // 3. Update order status to RETURNED
+    db.prepare(`
+      UPDATE orders 
+      SET status = 'RETURNED', updated_at = CURRENT_TIMESTAMP 
+      WHERE id = ?
+    `).run(existing.order_id);
+
+    // 4. Record refund in refunds table (destination: STORE_WALLET)
+    const refundId = 'REF-' + Date.now().toString(36).toUpperCase() + '-' + Math.floor(100 + Math.random() * 900);
+    const existingRefund = db.prepare('SELECT id FROM refunds WHERE return_id = ?').get(returnId);
+    if (!existingRefund) {
+      db.prepare(`
+        INSERT INTO refunds (
+          id, return_id, order_id, user_id, payment_id,
+          amount, currency, inr_amount, reason, status
+        ) VALUES (?, ?, ?, ?, 'STORE_WALLET', ?, 'USD', ?, ?, 'COMPLETED')
+      `).run(
+        refundId, returnId, existing.order_id, existing.user_id,
+        amountUsd, amountInr, 'Return Approved — Refund Credited to Store Wallet'
+      );
+    } else {
+      db.prepare(`
+        UPDATE refunds 
+        SET status = 'COMPLETED', reason = 'Return Approved — Refund Credited to Store Wallet',
+            amount = ?, inr_amount = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).run(amountUsd, amountInr, existingRefund.id);
+    }
+
+    // 5. Insert stage 8 order tracking event
+    const existingEv8 = db.prepare('SELECT id FROM order_tracking_events WHERE order_id = ? AND stage_number = 8').get(existing.order_id);
+    if (!existingEv8) {
+      db.prepare(`
+        INSERT INTO order_tracking_events (
+          order_id, stage_number, stage_name, status_code, title, description, location
+        ) VALUES (?, 8, 'Return Approved & Refunded', 'RETURN_REFUNDED',
+                  'Return Approved — Refund Credited to Store Wallet',
+                  ?, 'AgentCart Store Wallet Engine')
+      `).run(
+        existing.order_id,
+        `Refund of ₹${amountInr} ($${amountUsd} USD) credited to AgentCart Store Wallet for Return ${returnId}.`
+      );
+    }
+
+    // 6. Create customer notification
+    const feeMsg = existing.deduction_fee_inr > 0
+      ? ` Net ₹${amountInr} ($${amountUsd} USD) has been credited to your store wallet (${Math.round((existing.deduction_rate || 0.15) * 100)}% fee of ₹${existing.deduction_fee_inr} deducted).`
+      : ` Full ₹${amountInr} ($${amountUsd} USD) has been credited to your store wallet (100% immediate return).`;
+
+    createNotification(existing.user_id, {
+      order_id: existing.order_id,
+      type: 'RETURN_APPROVED',
+      title: 'Return Request Approved & Credited to Store Wallet',
+      message: `Return ${returnId} for ${existing.product_name} has been approved.${feeMsg}`
+    });
+
+    db.exec('COMMIT;');
+  } catch (err) {
+    db.exec('ROLLBACK;');
+    throw err;
+  }
+
+  return {
+    already_credited: false,
+    return: getReturnById(returnId),
+    transaction: db.prepare('SELECT * FROM wallet_transactions WHERE id = ?').get(txId),
+    wallet: getWalletBalance(existing.user_id)
+  };
+}
+
 function updateReturnStatus(returnId, status, adminNotes = '') {
   const db = getDb();
   const existing = getReturnById(returnId);
   if (!existing) throw new Error(`Return ${returnId} not found.`);
+
+  // If approved, execute atomic wallet credit & synchronization
+  if (status === 'APPROVED') {
+    const credRes = creditWalletForReturn(returnId, adminNotes);
+    return credRes.return;
+  }
 
   db.prepare(`
     UPDATE returns 
@@ -1620,23 +1856,7 @@ function updateReturnStatus(returnId, status, adminNotes = '') {
     WHERE id = ?
   `).run(status, adminNotes || null, returnId);
 
-  // If approved, transition order to RETURNED and notify customer
-  if (status === 'APPROVED') {
-    db.prepare("UPDATE orders SET status = 'RETURNED', updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(existing.order_id);
-
-    const refInr = existing.refund_amount_inr || 2049;
-    const refUsd = existing.refund_amount_usd ? Number(existing.refund_amount_usd).toFixed(2) : (refInr / 85).toFixed(2);
-    const feeMsg = existing.deduction_fee_inr > 0
-      ? ` Net ₹${refInr} ($${refUsd} USD) has been credited to your store wallet (${Math.round((existing.deduction_rate || 0.15) * 100)}% fee of ₹${existing.deduction_fee_inr} deducted).`
-      : ` Full ₹${refInr} ($${refUsd} USD) has been credited to your store wallet (100% immediate return).`;
-
-    createNotification(existing.user_id, {
-      order_id: existing.order_id,
-      type: 'RETURN_APPROVED',
-      title: 'Return Request Approved & Credited',
-      message: `Return ${returnId} for ${existing.product_name} has been approved.${feeMsg}`
-    });
-  } else if (status === 'RECEIVED') {
+  if (status === 'RECEIVED') {
     restockReturnItems(returnId);
     createNotification(existing.user_id, {
       order_id: existing.order_id,
@@ -2040,6 +2260,10 @@ module.exports = {
   getOrderRefunds,
   calculateReturnRefundBreakdown,
   ensureSampleReturnOrder,
+  // Wallet
+  getWalletBalance,
+  getWalletTransactions,
+  creditWalletForReturn,
   // Admin Management
   adminGetAllProducts,
   adminCreateProduct,

@@ -457,10 +457,6 @@
         </button>
       </div>
 
-      <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 20px;">
-        Prices are maintained in INR (₹) and charged in USD via PayPal Sandbox for eligible international destinations. Stock is securely deducted upon payment capture.
-      </p>
-
       <!-- Shipping Form -->
       <form id="shippingForm">
         <div class="checkout-form-grid">
@@ -661,7 +657,6 @@
           <div>
             <div class="account-title-row">
               <h2 class="account-user-name" id="accountUserNameDisplay">Akhil</h2>
-              <span class="account-verified-tag font-mono-tech">DEFAULT PROFILE</span>
             </div>
             <p class="account-user-meta font-mono-tech" id="accountUserMetaDisplay">akhil@agentcart.ai • Bengaluru, Karnataka</p>
           </div>
@@ -747,7 +742,7 @@
               <div class="profile-card-glass">
                 <div class="profile-card-header">
                   <h3>Personal & Delivery Details</h3>
-                  <span class="profile-save-status" id="profileSaveStatus">Persistent SQLite Storage</span>
+                  <span class="profile-save-status" id="profileSaveStatus"></span>
                 </div>
                 <form id="profileForm" class="profile-form-grid">
                   <div class="checkout-input-group form-full-col">
@@ -806,7 +801,6 @@
               <div class="profile-card-glass" style="margin-top: 20px;">
                 <div class="profile-card-header">
                   <h3>Recent Activity</h3>
-                  <span class="font-mono-tech" style="font-size:0.75rem; color:var(--text-muted);">SQLITE REAL-TIME</span>
                 </div>
                 <div class="profile-activity-list" id="profileActivityList">
                   <!-- Dynamically populated from /api/profile -->
@@ -860,7 +854,6 @@
           <div class="wishlist-tab-header">
             <div>
               <h3>Saved Technical Outerwear</h3>
-              <p style="font-size:0.82rem; color:var(--text-muted);">Permanently stored in your SQLite profile. Move items to cart anytime.</p>
             </div>
           </div>
           <div class="wishlist-cards-list" id="accountWishlistList">
@@ -873,7 +866,6 @@
           <div class="wishlist-tab-header">
             <div>
               <h3>Return Requests & Refunds</h3>
-              <p style="font-size:0.82rem; color:var(--text-muted);">Track your return evaluations, restocking receipts, and PayPal refunds.</p>
             </div>
           </div>
 
@@ -1165,7 +1157,6 @@
             <div class="admin-panel-card">
               <div class="admin-panel-header">
                 <h3>Recent Return Requests</h3>
-                <span class="font-mono-tech" style="font-size:0.75rem; color:var(--text-muted);">SQLITE REAL-TIME</span>
               </div>
               <div id="adminRecentReturnsList" class="admin-recent-returns-wrap">
                 <!-- Populated via app.js -->

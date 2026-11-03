@@ -386,7 +386,6 @@ function renderWishlistItems(items) {
       <div style="text-align:center; padding:48px 20px; color:var(--text-muted); grid-column: 1 / -1;">
         <div style="font-size:2.2rem; margin-bottom:8px;">🖤</div>
         <strong style="color:var(--text-primary); font-size:1rem;">Your Wishlist is Empty</strong>
-        <p style="font-size:0.82rem; margin-top:4px;">Browse the 24 technical jackets in our catalogue and click the heart icon on any style to save it for later.</p>
         <button type="button" class="btn-tech-shop" onclick="closeAccountModal(); location.href='#catalogue';" style="margin:16px auto 0;">Explore Jackets</button>
       </div>
     `;
@@ -1488,7 +1487,6 @@ function renderCartDrawer(open = true) {
       <div style="text-align: center; padding: 48px 20px; color: var(--text-muted);">
         <svg viewBox="0 0 24 24" width="48" height="48" stroke="currentColor" fill="none" stroke-width="1.5"><path d="M6 8h12l-1 12H7L6 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>
         <p style="margin-top: 12px; font-weight: 700; color: var(--text-primary);">Your cart is empty</p>
-        <small>Explore 24 technical jackets and start building your collection.</small>
       </div>
     `;
   } else {
@@ -2511,7 +2509,7 @@ async function handleProfileSave(e) {
   const statusLabel = $('#profileSaveStatus');
   const saveBtn = $('#btnSaveProfile');
   if (saveBtn) saveBtn.disabled = true;
-  if (statusLabel) statusLabel.textContent = 'Saving to SQLite...';
+  if (statusLabel) statusLabel.textContent = 'Saving...';
 
   try {
     const res = await fetch('/api/profile', {
@@ -2527,10 +2525,10 @@ async function handleProfileSave(e) {
       updateProfileUI();
 
       if (statusLabel) {
-        statusLabel.textContent = '✓ Saved permanently to SQLite';
+        statusLabel.textContent = '✓ Saved successfully';
         statusLabel.style.color = '#10B981';
         setTimeout(() => {
-          statusLabel.textContent = 'Persistent SQLite Storage';
+          statusLabel.textContent = '';
           statusLabel.style.color = '';
         }, 3000);
       }

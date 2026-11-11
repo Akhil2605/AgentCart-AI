@@ -24,7 +24,7 @@ export const PRODUCT_3D_MAPPING = {
   'alpine-white-shell': {
     name: 'Alpine Shift Hardshell',
     model: 'alpine',
-    baseModelUrl: 'assets/models/white-jacket.glb',
+    baseModelUrl: 'assets/models/jacket.glb',
     defaultHex: '#f1f5f9',
     zipperHex: '#1e293b',
     accentHex: '#1e293b',
@@ -37,7 +37,7 @@ export const PRODUCT_3D_MAPPING = {
   'ranger-olive-tactical': {
     name: 'Ranger Exo Tactical Shell',
     model: 'alpine',
-    baseModelUrl: 'assets/models/white-jacket.glb',
+    baseModelUrl: 'assets/models/jacket.glb',
     defaultHex: '#4b5320',
     zipperHex: '#1a1f14',
     accentHex: '#84cc16',
@@ -50,7 +50,7 @@ export const PRODUCT_3D_MAPPING = {
   'apex-blaze-orange': {
     name: 'Apex Signal Hi-Vis Shell',
     model: 'alpine',
-    baseModelUrl: 'assets/models/white-jacket.glb',
+    baseModelUrl: 'assets/models/jacket.glb',
     defaultHex: '#ea580c',
     zipperHex: '#18181b',
     accentHex: '#18181b',
@@ -63,7 +63,7 @@ export const PRODUCT_3D_MAPPING = {
   'neon-pulse-magenta': {
     name: 'Neon Pulse City Windcoat',
     model: 'alpine',
-    baseModelUrl: 'assets/models/white-jacket.glb',
+    baseModelUrl: 'assets/models/jacket.glb',
     defaultHex: '#ec4899',
     zipperHex: '#111827',
     accentHex: '#111827',
@@ -76,7 +76,7 @@ export const PRODUCT_3D_MAPPING = {
   'shadow-camo-stealth': {
     name: 'Shadow Camo Stealth Parka',
     model: 'alpine',
-    baseModelUrl: 'assets/models/white-jacket.glb',
+    baseModelUrl: 'assets/models/jacket.glb',
     defaultHex: '#27272a',
     zipperHex: '#09090b',
     accentHex: '#09090b',
@@ -89,7 +89,7 @@ export const PRODUCT_3D_MAPPING = {
   'stealth-bomber-ma1': {
     name: 'AeroMA-1 Technical Bomber',
     model: 'alpine',
-    baseModelUrl: 'assets/models/white-jacket.glb',
+    baseModelUrl: 'assets/models/jacket.glb',
     defaultHex: '#1e293b',
     zipperHex: '#0f172a',
     accentHex: '#ea580c',
@@ -102,7 +102,7 @@ export const PRODUCT_3D_MAPPING = {
   'veloce-commuter-softshell': {
     name: 'Veloce Commuter Softshell',
     model: 'alpine',
-    baseModelUrl: 'assets/models/white-jacket.glb',
+    baseModelUrl: 'assets/models/jacket.glb',
     defaultHex: '#334155',
     zipperHex: '#18181b',
     accentHex: '#18181b',
@@ -115,7 +115,7 @@ export const PRODUCT_3D_MAPPING = {
   'arctic-expedition-down': {
     name: 'Arctic Expedition 800 Down',
     model: 'alpine',
-    baseModelUrl: 'assets/models/white-jacket.glb',
+    baseModelUrl: 'assets/models/jacket.glb',
     defaultHex: '#b91c1c',
     zipperHex: '#0f172a',
     accentHex: '#0f172a',
@@ -128,7 +128,7 @@ export const PRODUCT_3D_MAPPING = {
   'quantum-ripstop-trench': {
     name: 'Quantum Ripstop Rain Trench',
     model: 'alpine',
-    baseModelUrl: 'assets/models/white-jacket.glb',
+    baseModelUrl: 'assets/models/jacket.glb',
     defaultHex: '#cbd5e1',
     zipperHex: '#1e293b',
     accentHex: '#1e293b',
@@ -154,7 +154,7 @@ export const PRODUCT_3D_MAPPING = {
   'aerogrid-windrunner': {
     name: 'AeroGrid Ultralight Windrunner',
     model: 'alpine',
-    baseModelUrl: 'assets/models/white-jacket.glb',
+    baseModelUrl: 'assets/models/jacket.glb',
     defaultHex: '#a3e635',
     zipperHex: '#374151',
     accentHex: '#374151',
@@ -180,7 +180,7 @@ export const PRODUCT_3D_MAPPING = {
   'obsidian-tactical-bomber': {
     name: 'Obsidian Tactical Bomber',
     model: 'alpine',
-    baseModelUrl: 'assets/models/white-jacket.glb',
+    baseModelUrl: 'assets/models/jacket.glb',
     defaultHex: '#111827',
     zipperHex: '#1f2937',
     accentHex: '#1f2937',
@@ -193,7 +193,7 @@ export const PRODUCT_3D_MAPPING = {
   'glacier-puffer-anorak': {
     name: 'Glacier Down Puffer Anorak',
     model: 'alpine',
-    baseModelUrl: 'assets/models/white-jacket.glb',
+    baseModelUrl: 'assets/models/jacket.glb',
     defaultHex: '#f0f9ff',
     zipperHex: '#0f172a',
     accentHex: '#7dd3fc',
@@ -206,7 +206,7 @@ export const PRODUCT_3D_MAPPING = {
   'subzero-thermal-parka': {
     name: 'Sub-Zero Thermal Heavy Parka',
     model: 'alpine',
-    baseModelUrl: 'assets/models/white-jacket.glb',
+    baseModelUrl: 'assets/models/jacket.glb',
     defaultHex: '#475569',
     zipperHex: '#09090b',
     accentHex: '#09090b',
@@ -219,7 +219,7 @@ export const PRODUCT_3D_MAPPING = {
   'metro-minimalist-windcoat': {
     name: 'Metro Minimalist City Windcoat',
     model: 'alpine',
-    baseModelUrl: 'assets/models/white-jacket.glb',
+    baseModelUrl: 'assets/models/jacket.glb',
     defaultHex: '#7c3aed',
     zipperHex: '#334155',
     accentHex: '#334155',
@@ -245,7 +245,7 @@ export const PRODUCT_3D_MAPPING = {
   'terra-hybrid-trekker': {
     name: 'Terra Hybrid Trekker Jacket',
     model: 'alpine',
-    baseModelUrl: 'assets/models/white-jacket.glb',
+    baseModelUrl: 'assets/models/jacket.glb',
     defaultHex: '#d97706',
     zipperHex: '#1e293b',
     accentHex: '#1e293b',
@@ -258,7 +258,7 @@ export const PRODUCT_3D_MAPPING = {
   'carbon-denim-biker': {
     name: 'Carbon Waxed Denim Biker',
     model: 'alpine',
-    baseModelUrl: 'assets/models/white-jacket.glb',
+    baseModelUrl: 'assets/models/jacket.glb',
     defaultHex: '#1c1917',
     zipperHex: '#292524',
     accentHex: '#292524',
@@ -271,7 +271,7 @@ export const PRODUCT_3D_MAPPING = {
   'nimbus-packable-rain': {
     name: 'Nimbus Packable Emerald Anorak',
     model: 'alpine',
-    baseModelUrl: 'assets/models/white-jacket.glb',
+    baseModelUrl: 'assets/models/jacket.glb',
     defaultHex: '#059669',
     zipperHex: '#1f2937',
     accentHex: '#1f2937',
@@ -284,7 +284,7 @@ export const PRODUCT_3D_MAPPING = {
   'zenith-urban-shell': {
     name: 'Zenith Amber Everyday Shell',
     model: 'alpine',
-    baseModelUrl: 'assets/models/white-jacket.glb',
+    baseModelUrl: 'assets/models/jacket.glb',
     defaultHex: '#d97706',
     zipperHex: '#1e293b',
     accentHex: '#1e293b',
@@ -297,7 +297,7 @@ export const PRODUCT_3D_MAPPING = {
   'solstice-thermo-down': {
     name: 'Solstice Thermo Quilted Down',
     model: 'alpine',
-    baseModelUrl: 'assets/models/white-jacket.glb',
+    baseModelUrl: 'assets/models/jacket.glb',
     defaultHex: '#c2410c',
     zipperHex: '#18181b',
     accentHex: '#18181b',
@@ -310,7 +310,7 @@ export const PRODUCT_3D_MAPPING = {
   'vanguard-field-jacket': {
     name: 'Vanguard Combat Tech Field Jacket',
     model: 'alpine',
-    baseModelUrl: 'assets/models/white-jacket.glb',
+    baseModelUrl: 'assets/models/jacket.glb',
     defaultHex: '#273627',
     zipperHex: '#18181b',
     accentHex: '#18181b',
@@ -911,6 +911,7 @@ export class ModalJacketViewer {
 
     // Geometry Caching to eliminate repeated parsing & network fetches
     this.modelCache = new Map();
+    this.neutralTextureCache = new Map();
     this.loader = new GLTFLoader();
 
     this.activeProduct = null;
@@ -1273,7 +1274,7 @@ export class ModalJacketViewer {
 
     const mapping = PRODUCT_3D_MAPPING[product.id] || {
       model: 'alpine',
-      baseModelUrl: 'assets/models/white-jacket.glb',
+      baseModelUrl: 'assets/models/jacket.glb',
       defaultHex: product.colors?.[0]?.hex || '#f1f5f9'
     };
 
@@ -1351,6 +1352,93 @@ export class ModalJacketViewer {
     return p;
   }
 
+  getNeutralDetailTexture(origMap, maxAnisotropy = 4) {
+    if (!origMap || !origMap.image) return null;
+    if (this.neutralTextureCache.has(origMap.uuid)) {
+      return this.neutralTextureCache.get(origMap.uuid);
+    }
+
+    const img = origMap.image;
+    const width = Math.min(img.width || 512, 1024);
+    const height = Math.min(img.height || 512, 1024);
+    if (!width || !height) return null;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+
+    try {
+      ctx.drawImage(img, 0, 0, width, height);
+      const imageData = ctx.getImageData(0, 0, width, height);
+      const data = imageData.data;
+
+      // Build luminance histogram of fabric pixels (ignore UV black gutter & neon cyan zippers)
+      const hist = new Uint32Array(256);
+      let fabricCount = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i], g = data[i + 1], b = data[i + 2];
+        const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        const isCyanZipper = (b - r > 35 && b > 50);
+        if (luma > 3 && !isCyanZipper) {
+          hist[Math.min(255, Math.round(luma))]++;
+          fabricCount++;
+        }
+      }
+
+      // 95th percentile white-point for fabric panels
+      let p95 = 24;
+      if (fabricCount > 0) {
+        const target = Math.floor(fabricCount * 0.95);
+        let acc = 0;
+        for (let bIdx = 0; bIdx < 256; bIdx++) {
+          acc += hist[bIdx];
+          if (acc >= target) {
+            p95 = Math.max(bIdx, 12);
+            break;
+          }
+        }
+      }
+
+      // Normalize fabric luminance to high-value neutral shading [202..255] with charcoal zipper seam lines
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i], g = data[i + 1], b = data[i + 2];
+        const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        let outVal;
+        if (luma <= 2.5) {
+          outVal = 225;
+        } else if (b - r > 32 && b > 55) {
+          outVal = 115;
+        } else {
+          const norm = Math.min(1, luma / p95);
+          outVal = Math.round(202 + 53 * Math.pow(norm, 0.55));
+        }
+        data[i] = outVal;
+        data[i + 1] = outVal;
+        data[i + 2] = outVal;
+      }
+
+      ctx.putImageData(imageData, 0, 0);
+    } catch (_) {
+      return null;
+    }
+
+    const neutralTex = new THREE.CanvasTexture(canvas);
+    neutralTex.flipY = origMap.flipY;
+    neutralTex.wrapS = origMap.wrapS;
+    neutralTex.wrapT = origMap.wrapT;
+    neutralTex.colorSpace = THREE.SRGBColorSpace;
+    neutralTex.anisotropy = maxAnisotropy;
+    neutralTex.minFilter = THREE.LinearMipmapLinearFilter;
+    neutralTex.magFilter = THREE.LinearFilter;
+    neutralTex.generateMipmaps = true;
+    neutralTex.needsUpdate = true;
+
+    this.neutralTextureCache.set(origMap.uuid, neutralTex);
+    return neutralTex;
+  }
+
   setupProductModel(gltf, mapping, colorHex) {
     // Remove previous model from pivot
     if (this.pivot) {
@@ -1371,6 +1459,8 @@ export class ModalJacketViewer {
     // Clone materials so each product has independent color/roughness
     const maxAnisotropy = this.renderer.capabilities.getMaxAnisotropy();
     const primaryColor = new THREE.Color(colorHex);
+    const isHeroCyberBlack = this.activeProduct?.id === 'cyber-shell-black';
+    this.activeMapping = mapping;
 
     sceneClone.traverse((child) => {
       if (child.isMesh) {
@@ -1379,25 +1469,18 @@ export class ModalJacketViewer {
 
         const cloneMat = (m) => {
           const mat = m.clone();
-          if (mat.map) {
-            mat.map = m.map; // Share texture memory
-            mat.map.anisotropy = maxAnisotropy;
-            mat.map.minFilter = THREE.LinearMipmapLinearFilter;
-            mat.map.magFilter = THREE.LinearFilter;
-            mat.map.generateMipmaps = true;
-            mat.map.colorSpace = THREE.SRGBColorSpace;
-          }
-
           const name = (mat.name || '').toLowerCase();
 
-          if (mapping.model === 'alpine') {
-            // Alpine model: White fabric base with black zippers & hardware
-            // Tint fabric with exact colorway hex
-            mat.color = primaryColor;
-            mat.roughness = mapping.roughness || 0.82;
-            mat.metalness = mapping.metalness || 0.04;
-          } else {
-            // Cyber model: Multi-material setup
+          if (isHeroCyberBlack) {
+            if (mat.map) {
+              mat.map = m.map; // Share texture memory
+              mat.map.anisotropy = maxAnisotropy;
+              mat.map.minFilter = THREE.LinearMipmapLinearFilter;
+              mat.map.magFilter = THREE.LinearFilter;
+              mat.map.generateMipmaps = true;
+              mat.map.colorSpace = THREE.SRGBColorSpace;
+            }
+
             if (name.includes('zipper')) {
               mat.color = new THREE.Color(mapping.zipperHex || 0x00d4ff);
               mat.roughness = 0.28;
@@ -1411,9 +1494,33 @@ export class ModalJacketViewer {
               mat.emissive = new THREE.Color(mapping.accentHex || 0x003388);
               mat.emissiveIntensity = 0.25;
             } else {
-              mat.color = primaryColor;
+              mat.color = primaryColor.clone();
               mat.roughness = mapping.roughness || 0.82;
               mat.metalness = mapping.metalness || 0.04;
+            }
+          } else {
+            // Convert dark base texture into neutral cloth detail map so exact colorway hex renders cleanly
+            const neutralMap = m.map ? this.getNeutralDetailTexture(m.map, maxAnisotropy) : null;
+            if (neutralMap) {
+              mat.map = neutralMap;
+            } else if (mat.map) {
+              mat.map = m.map;
+              mat.map.anisotropy = maxAnisotropy;
+              mat.map.colorSpace = THREE.SRGBColorSpace;
+            }
+
+            if (mapping.model === 'cyber' && name.includes('zipper')) {
+              mat.color = new THREE.Color(mapping.zipperHex || 0x00d4ff);
+              mat.roughness = 0.28;
+              mat.metalness = 0.48;
+              mat.emissive = new THREE.Color(mapping.zipperHex || 0x0044aa);
+              mat.emissiveIntensity = 0.35;
+            } else {
+              mat.color = primaryColor.clone();
+              mat.roughness = mapping.roughness || 0.82;
+              mat.metalness = mapping.metalness || 0.04;
+              mat.emissive = new THREE.Color(0x000000);
+              mat.emissiveIntensity = 0.0;
             }
           }
 
@@ -1472,14 +1579,17 @@ export class ModalJacketViewer {
 
     const newColor = new THREE.Color(hex);
     this.activeColor = hex;
+    const isCyber = this.activeMapping?.model === 'cyber';
+    const isHeroCyberBlack = this.activeProduct?.id === 'cyber-shell-black';
 
     this.activeModel.traverse((child) => {
       if (child.isMesh) {
         const updateMat = (mat) => {
           const name = (mat.name || '').toLowerCase();
-          // For cyber model, don't overwrite zippers/accents with fabric color
-          if (!name.includes('zipper') && !name.includes('accent')) {
-            mat.color = newColor;
+          const preserveZipper = isCyber && name.includes('zipper');
+          const preserveAccent = isHeroCyberBlack && name.includes('accent');
+          if (!preserveZipper && !preserveAccent) {
+            mat.color = newColor.clone();
             mat.needsUpdate = true;
           }
         };
@@ -1584,6 +1694,11 @@ export class ModalJacketViewer {
           }
         }
       });
+    }
+
+    if (this.neutralTextureCache) {
+      this.neutralTextureCache.forEach((tex) => tex.dispose());
+      this.neutralTextureCache.clear();
     }
 
     if (this.renderer) {

@@ -10,11 +10,6 @@
 AgentCart AI is a high-performance, dark-themed technical outerwear online shopping destination. Designed with a luxury cyber-technical aesthetic inspired by leading outdoor brands, the application features:
 - **Palette:** Deep pitch black and charcoal backgrounds (`#07080a`, `#0c0d12`), neon electric cyan accents (`#00f0ff`, `#0070f3`), and subtle frosted glass surfaces (`backdrop-filter: blur(16px)`).
 - **Hero Section:** Cinematic technical jacket showcase featuring the flagship CyberShell Stormbreaker, technical specifications, and instant shopping call-to-action.
-- **Outerwear Specialization:** Exclusively jackets — zero agricultural or produce content.
-- **Preserved Interactions:** Seamlessly retains and enhances the beloved cart mechanics from `apmc.html` (flying jacket animations, morphing cart drawer, and interactive free shipping progress bar).
-
----
-
 ## 2. Key Features
 
 ### 🛍️ Jacket-Only Product Catalogue (24 Distinct Models)

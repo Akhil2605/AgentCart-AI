@@ -3,10 +3,6 @@
 > **Tagline:** Find Your Style. Shop Smarter.  
 > Premium futuristic fashion-tech outerwear e-commerce platform powered by Google Gemini AI, SQLite, and PayPal Sandbox Checkout.
 
----
-
-## 1. Overview & Aesthetic Direction
-
 ## 2. Key Features
 
 ### 🛍️ Jacket-Only Product Catalogue (24 Distinct Models)

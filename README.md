@@ -7,7 +7,6 @@
 
 ## 1. Overview & Aesthetic Direction
 
-AgentCart AI is a high-performance, dark-themed technical outerwear online shopping destination. Designed with a luxury cyber-technical aesthetic inspired by leading outdoor brands, the application features:
 ## 2. Key Features
 
 ### 🛍️ Jacket-Only Product Catalogue (24 Distinct Models)

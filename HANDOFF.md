@@ -50,7 +50,6 @@
 
 ## 2. Test Suite Status
 
-- **Automated Tests (`npm test`):** **54/54 passed (100.0%)**
 
 
 ## 3. How to Start the Application

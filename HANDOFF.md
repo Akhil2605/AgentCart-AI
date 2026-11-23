@@ -52,9 +52,6 @@
 
 - **Automated Tests (`npm test`):** **54/54 passed (100.0%)**
 - **AI Assistant Verification (`npm run verify:ai`):** **10/10 passed (100.0%)**
-- **3D Jacket Integration (`npm run verify:3d`):** **4/4 passed (0 errors)**
-
----
 
 ## 3. How to Start the Application
 

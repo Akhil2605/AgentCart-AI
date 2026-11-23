@@ -62,4 +62,3 @@
 npm start
 ```
 - Server runs at `http://localhost:3000`.
-- The application begins recording all new transactions cleanly starting from ₹0.00!

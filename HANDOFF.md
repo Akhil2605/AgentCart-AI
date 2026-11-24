@@ -34,7 +34,7 @@
    - Cleared all old transactional tables: `orders` (0), `order_items` (0), `order_tracking_events` (0), `payments` (0), `returns` (0), `refunds` (0), `wallet_transactions` (0), `notifications` (0), `wishlist` (0).
    - Preserved all permanent data: customer profile `user_akhil`, admin credentials & permissions `admin`, 24 products with descriptions/prices/images.
    - Restored inventory stock strictly from verified baseline in `database/catalog.json` (198 variants).
-   - Reset customer wallet balance strictly to **₹0.00 ($0.00 USD)**.
+   - Reset customer wallet balance strictly to **₹0
 
 3. **Fresh End-to-End Workflow Verification:**
    - Verified clean baseline: 0 orders, ₹0.00 balance.

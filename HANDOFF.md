@@ -35,7 +35,6 @@
    - Preserved all permanent data: customer profile `user_akhil`, admin credentials & permissions `admin`, 24 products with descriptions/prices/images.
    - Restored inventory stock strictly from verified baseline in `database/catalog.json` (198 variants).
    - Reset customer wallet balance strictly to **₹0.00 ($0.00 USD)**.
-   - Verified with `PRAGMA foreign_key_check` (0 violations).
 
 3. **Fresh End-to-End Workflow Verification:**
    - Verified clean baseline: 0 orders, ₹0.00 balance.

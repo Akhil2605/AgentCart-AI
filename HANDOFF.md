@@ -43,7 +43,6 @@
    - Verified immediate return request (₹0 fee cut) and late return calculation (15% restocking fee cut).
    - Verified admin approval and atomic Store Wallet credit.
    - Verified deduplication: duplicate approval attempts are rejected with `already_credited: true`.
-   - Verified Track Order telemetry displaying the required callout card and 
 
 ## 3. How to Start the Application
 
